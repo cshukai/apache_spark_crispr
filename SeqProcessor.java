@@ -20,7 +20,16 @@ public class SeqProcessor implements Serializable{
 		
 		JavaRDD<Integer> lineLengths = seqFiles.map(new Function<String, Integer>() {
 			
-			public Integer call(String s) { return s.length(); }
+			public Integer call(String s) {
+			   if(s.contains(">")){
+			   	   return 0;
+			   } 
+
+			   else{
+			   		return s.length();
+			   }
+
+			}
 		});
 		int totalLength = lineLengths.reduce(new Function2<Integer, Integer, Integer>() {
 			
@@ -34,10 +43,4 @@ public class SeqProcessor implements Serializable{
 
 }
 
-
-
-spark-submit \
-  --class "SeqProcessor" \
-  --master local[4] \
-  target/simple-project-1.0.jar
 
