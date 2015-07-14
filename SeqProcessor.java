@@ -16,20 +16,22 @@ public class SeqProcessor implements Serializable{
 		JavaSparkContext sc=new JavaSparkContext(conf); 		
 		SeqProcessor proc=new SeqProcessor();
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Xanthomonas_campestris_pv_campestris_str_atcc_33913.GCA_000007145.1.26.dna.chromosome.Chromosome.fa");
-		//proc.findDiNuRich(inputs);
+		JavaPairRDD<Double[],Long>  possibleLeadSeqs=proc.computeATfreq(inputs);
+		
 	}
 
-	public JavaPairRDD findDiNuRich(JavaRDD<String>  seqFiles){
+	public JavaPairRDD<Double[],Long> computeATfreq(JavaRDD<String>  seqFiles){
         
-        JavaRDD<Integer[]> seqFiles=seqs.flatMap(new FlatMapFunction<String,Integer[]> (){
-        	public Iterable<Integer[]> call(String line) {
-        		ArrayList<Integer[]> result = new ArrayList<Integer[]>();                               
+        JavaRDD<Double[]> di_rich_regions=seqFiles.flatMap(new FlatMapFunction<String,Double[]> (){
+        	@Override
+        	public Iterable<Double[]> call(String line) {
+        		ArrayList<Double[]> result = new ArrayList<Double[]>();                               
                 line=line.toUpperCase();
                 // 0-left 1-right of a line
-                int left_hit=0;
-                int right_hit=0;
-                int seq_length=line.length();
-                Integer[] result_this_line=new Integer[2];
+                Double left_hit=0.00;
+                Double right_hit=0.00;
+                double seq_length=line.length();
+                Double[] result_this_line=new Double[2];
                 for(int i=0;i<seq_length;i++){
                 	
                 	Character thisLetter=line.charAt(i);     
@@ -46,22 +48,35 @@ public class SeqProcessor implements Serializable{
 
                 	
                 }
-                result_this_line[0]=left_hit;
-                result_this_line[1]=right_hit;
+                result_this_line[0]=left_hit/(seq_length/2);
+                result_this_line[1]=right_hit/(seq_length/2);
 
                 result.add(result_this_line);
 
        			return result;
         	}
         }); 
+
+  //       Double[] test=di_rich_regions.first();
+		// System.out.println("test:"+test[0]+" "+test[1]);
+
   		return (di_rich_regions.zipWithIndex());
 
 
 	}
 
+	//possibleLeadSeqs  String [left-freq, right-freq], lineNum
+//     public  JavaPairRDD findATrich(JavaPairRDD possibleLeadSeqs,int cutoff){
+//     	Function<Tuple2<Integer[], Long>, Boolean> AT_Filter =new Function<Tuple2<Integer[], Long>, Boolean>() {
+//     		public Boolean call(Tuple2<String, String> keyValue) {
+//     			String[] thisATfreq=keyValue._1();
 
+//       			return (keyValue._1().length() < 20);
+//     		}
+//   		};
+//     }
 
-}
+ }
 
 
 
