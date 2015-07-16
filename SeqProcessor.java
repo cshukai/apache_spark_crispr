@@ -19,31 +19,48 @@ public class SeqProcessor implements Serializable{
 		final double cutoff=0.70;
 
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Xanthomonas_campestris_pv_campestris_str_atcc_33913.GCA_000007145.1.26.dna.chromosome.Chromosome.fa");
-		JavaPairRDD<Double[],Long>  freq_region=proc.computeATfreq(inputs);
-		JavaPairRDD<Double[],Long>  possible_leader_region=proc.getATrichRegions(freq_region,cutoff);
-		JavaRDD<Double[]> test=possible_leader_region.keys();
-		JavaRDD<Long> rows=possible_leader_region.values();
-		Double[] test_arry=test.first();
-		System.out.println("left:"+test_arry[0]+"right:"+test_arry[1]);
-		System.out.println("first row "+rows.first());
-	}
-
-	public JavaPairRDD<Double[],Long> computeATfreq(JavaRDD<String>  seqFiles){
+		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+        JavaRDD<Long[]> possibleLeadRegion=sc.parallelize(proc.flagLeadSeq(freq_region));
         
-        JavaRDD<Double[]> di_rich_regions=seqFiles.flatMap(new FlatMapFunction<String,Double[]> (){
+       
+        System.out.println("total count:"+possibleLeadRegion.count());
+        List<Long[]> testList=possibleLeadRegion.collect();
+        for(int i=0;i<testList.size();i++){
+            Long[] this_array=testList.get(i);
+            System.out.println("first:"+this_array[0]+"second:"+this_array[1]);
+        }
+
+        //System.out.println(freq_region.first());
+		//JavaPairRDD<Double[],Long>  possible_leader_region=proc.getATrichRegions(freq_region,cutoff);
+		// JavaRDD<Double[]> test=possible_leader_region.keys();
+		// JavaRDD<Long> rows=possible_leader_region.values();
+		// Double[] test_arry=test.first();
+		// System.out.println("left:"+test_arry[0]+"right:"+test_arry[1]);
+		// System.out.println("first row "+rows.first());
+
+	}
+    //nu_1,nu_2 are upper case 
+    //0-poor 1-rich
+    //01,1  second line has right region enriched
+  
+	public JavaPairRDD<String,Long> computeRegionFract(JavaRDD<String>  seqFiles, Character base_1,Character base_2, double cutoff ){
+        final double cut=cutoff;
+        final Character nu_1=base_1;
+        final Character nu_2=base_2;
+        JavaRDD<String> di_rich_regions=seqFiles.map(new Function<String,String> (){
         	@Override
-        	public Iterable<Double[]> call(String line) {
-        		ArrayList<Double[]> result = new ArrayList<Double[]>();                               
+        	public String call(String line) {
+        		                               
                 line=line.toUpperCase();
-                // 0-left 1-right of a line
-                Double left_hit=0.00;
-                Double right_hit=0.00;
+                
+                double left_hit=0.00;
+                double right_hit=0.00;
                 double seq_length=line.length();
-                Double[] result_this_line=new Double[2];
+                String result="";
                 for(int i=0;i<seq_length;i++){
                 	
                 	Character thisLetter=line.charAt(i);     
-                	if(thisLetter.equals('A')||thisLetter.equals('T')){
+                	if(thisLetter.equals(nu_1)||thisLetter.equals(nu_2)){
                 		if(i>(seq_length/2)){
                 			right_hit=right_hit+1;
                 		}
@@ -56,44 +73,78 @@ public class SeqProcessor implements Serializable{
 
                 	
                 }
-                result_this_line[0]=left_hit/(seq_length/2);
-                result_this_line[1]=right_hit/(seq_length/2);
 
-                result.add(result_this_line);
+                double left_fraction=left_hit/(seq_length/2);
+                double right_fraction=right_hit/(seq_length/2);
+
+                if(left_fraction<cut && right_fraction<cut) {
+                    result="00";
+                }
+
+                 if(left_fraction>cut && right_fraction<cut) {
+                    result="10";
+                }
+
+                if(left_fraction>cut && right_fraction>cut) {
+                    result="11";
+                }
+
+
+                if(left_fraction<cut && right_fraction>cut) {
+                    result="01";
+                }                  
 
        			return result;
         	}
         }); 
-
-  //       Double[] test=di_rich_regions.first();
-		// System.out.println("test:"+test[0]+" "+test[1]);
+ 
+        
+     
 
   		return (di_rich_regions.zipWithIndex());
 
 
 	}
+    
+    // output :[start_line_num,end_line_number]
 
-	//possibleLeadSeqs  String [left-freq, right-freq], lineNum
-    public  JavaPairRDD<Double[],Long> getATrichRegions(JavaPairRDD<Double[],Long> freq_region ,double cutoff){
-    	final double cut=cutoff;
+    public  ArrayList<Long[]> flagLeadSeq(JavaPairRDD<String,Long> freq_region){
+        List<Long> full_regions=freq_region.lookup("11");
+        List<Long> left_rich_regions=freq_region.lookup("10");
+        List<Long> right_rich_regions=freq_region.lookup("01");
 
-  		
-  		JavaPairRDD<Double[],Long> result=freq_region.filter(
-  				new Function<Tuple2<Double[], Long>, Boolean>() {
-    				@Override
-    				public Boolean call(Tuple2<Double[], Long> keyValue) {
-    					Double[] thisATfreq=keyValue._1();
-    					Long rowNum=keyValue._2();
-                        return (!(thisATfreq[0]<cut && thisATfreq[1]<cut) && !rowNum.equals("0") );
-    				}
-  				}
+  		//extend full regions 
+        ArrayList<Long[]> result= new ArrayList<Long[]>();  
+        
+        for(int i=0; i<full_regions.size();i++){
+            Long this_full_line=full_regions.get(i);
 
-  			);
-        return(result);
+            int left_rich_idx=left_rich_regions.indexOf(this_full_line-1);
+            int right_rich_idx=right_rich_regions.indexOf(this_full_line+1);
+            Long[] this_result=new Long[2];
+            if(left_rich_idx>=0){
+               this_result[0]=left_rich_regions.get(left_rich_idx);
+            }
+
+            else{
+               this_result[0]=this_full_line;    
+            }
+
+            if(right_rich_idx>=0){
+               this_result[1]=right_rich_regions.get(right_rich_idx);
+            }
+            else{
+               this_result[1]=this_full_line;    
+            }
+
+            result.add(this_result);
+        }
+
+  		return(result);
     }
 
 
-
+     // todo : add a method for string matching
  }
 
 
