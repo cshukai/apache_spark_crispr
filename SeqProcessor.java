@@ -23,20 +23,26 @@ public class SeqProcessor implements Serializable{
         JavaRDD<Long[]> possibleLeadRegion=sc.parallelize(proc.flagLeadSeq(freq_region));
         
        
-        System.out.println("total count:"+possibleLeadRegion.count());
-        List<Long[]> testList=possibleLeadRegion.collect();
-        for(int i=0;i<testList.size();i++){
-            Long[] this_array=testList.get(i);
-            System.out.println("first:"+this_array[0]+"second:"+this_array[1]);
+        // System.out.println("total count:"+possibleLeadRegion.count());
+        // List<Long[]> testList=possibleLeadRegion.collect();
+        // for(int i=0;i<testList.size();i++){
+        //     Long[] this_array=testList.get(i);
+        //     System.out.println("first:"+this_array[0]+"second:"+this_array[1]);
+        // }
+        List<Long> full_regions=freq_region.lookup("11");
+        List<Long> left_rich_regions=freq_region.lookup("10");
+        List<Long> right_rich_regions=freq_region.lookup("01");
+
+        for(int i=0;i<full_regions.size();i++){
+            System.out.println("full:"+full_regions.get(i));
+        }
+         for(int i=0;i<left_rich_regions.size();i++){
+            System.out.println("left:"+left_rich_regions.get(i));
         }
 
-        //System.out.println(freq_region.first());
-		//JavaPairRDD<Double[],Long>  possible_leader_region=proc.getATrichRegions(freq_region,cutoff);
-		// JavaRDD<Double[]> test=possible_leader_region.keys();
-		// JavaRDD<Long> rows=possible_leader_region.values();
-		// Double[] test_arry=test.first();
-		// System.out.println("left:"+test_arry[0]+"right:"+test_arry[1]);
-		// System.out.println("first row "+rows.first());
+         for(int i=0;i<right_rich_regions.size();i++){
+            System.out.println("right:"+right_rich_regions.get(i));
+        }
 
 	}
     //nu_1,nu_2 are upper case 
