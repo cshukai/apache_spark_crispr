@@ -11,6 +11,8 @@ import java.util.*;
 import scala.Tuple2;
 
 
+
+
 public class SeqProcessor implements Serializable{
 
 	public static void main(String [ ] args) throws Exception{
@@ -21,13 +23,19 @@ public class SeqProcessor implements Serializable{
 
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Xanthomonas_campestris_pv_campestris_str_atcc_33913.GCA_000007145.1.26.dna.chromosome.Chromosome.fa");
 		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-        JavaRDD<Long[]> possibleLeadRegion=sc.parallelize(proc.flagLeadSeq(freq_region));
-        
-       int[] searchLoc={2,58};
-       int subseq_legnth=3;
-       ArrayList<String>test=proc.substrFastaByLoc(inputs, searchLoc,subseq_legnth);
-       System.out.println(test.get(0));
-       System.out.println(test.get(1));
+        ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
+        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion );
+        threePrimeRegions.values().saveAsTextFile("test.txt");
+        // JavaRDD<Long[]> possibleLeadRegion=sc.parallelize(proc.flagLeadSeq(freq_region));
+        for(int i=0;i<possibleLeadRegion.size();i++){
+            System.out.println("start:"+possibleLeadRegion.get(i)[0]);
+            System.out.println("start:"+possibleLeadRegion.get(i)[1]);
+        }
+       // int[] searchLoc={2,58};
+       // int subseq_legnth=3;
+       // ArrayList<String>test=proc.substrFastaByLoc(inputs, searchLoc,subseq_legnth);
+       // System.out.println(test.get(0));
+       // System.out.println(test.get(1));
         // List<Long[]> testList=possibleLeadRegion.collect();
         // for(int i=0;i<testList.size();i++){
         //     Long[] this_array=testList.get(i);
@@ -250,9 +258,51 @@ public class SeqProcessor implements Serializable{
         return(targetSubstrings);
     }
 
+    // output: 0-line 1-matched location
+    // first filter out non-target area which is not preceded by possible leader seq
+    public JavaPairRDD<String,Long> flagThreePrimeLoc(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
+         JavaPairRDD<String,Long> temp=input.zipWithIndex();
+         
 
-    public ArrayList<Long[]> flagThreePrimeLoc(JavaPairRDD<String,Long> freq_region){
-        
+         final Long scan_area_start=possibleLeadRegion.get(0)[1];
+         final Long scan_area_end=possibleLeadRegion.get(possibleLeadRegion.size()-1)[1];
+         
+
+
+        JavaPairRDD<String,Long> potentialRegions=temp.filter(new Function<Tuple2<String, Long>, Boolean>(){
+                @Override
+                public Boolean call(Tuple2<String, Long> keyValue){
+                    Long rowNum=keyValue._2();
+                    String text=keyValue._1().toUpperCase();
+                    Boolean detected=true;
+                    if(rowNum<scan_area_end && rowNum>scan_area_start){
+                       int text_length=text.length(); 
+                       for(int i=0;i<text_length-4;i++){
+                     
+                      
+
+                        if(text.indexOf("GAAAG")>=0 ||text.indexOf("GAAAC")>=0){
+                           detected= true;
+                        }
+
+                        else{
+                            detected=false;
+                        }
+
+                        
+                       
+
+                       } 
+                    }
+
+                    else{
+                        detected= false;
+                    }
+                    return(detected);
+                }
+                
+        });
+        return(potentialRegions);
     }
 
      // todo : add a method for string matching
