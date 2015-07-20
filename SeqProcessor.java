@@ -13,21 +13,6 @@ import scala.Tuple2;
 
 
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
-import java.io.Serializable;
-import java.util.*;
-import scala.Tuple2;
-
-
-
-
 public class SeqProcessor implements Serializable{
 
 	public static void main(String [ ] args) throws Exception{
@@ -39,11 +24,13 @@ public class SeqProcessor implements Serializable{
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Xanthomonas_campestris_pv_campestris_str_atcc_33913.GCA_000007145.1.26.dna.chromosome.Chromosome.fa");
 		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
         final ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
-        //JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion );
-        for(int i=0;i<possibleLeadRegion.size();i++){
-            System.out.println("start:"+possibleLeadRegion.get(i)[0]);
-            System.out.println("start:"+possibleLeadRegion.get(i)[1]);
-        }
+        JavaPairRDD<Long,ArrayList<Integer>> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion );
+    
+        JavaRDD<Long>keys=threePrimeRegions.keys();
+        JavaRDD<ArrayList<Integer>> values=threePrimeRegions.values();
+  
+        threePrimeRegions.saveAsTextFile("crispr_test");
+
        
 
 	}
@@ -198,20 +185,20 @@ public class SeqProcessor implements Serializable{
 
     // use the first and last possible leader sequence to find potential lines that contain three prime flags
     public JavaPairRDD<Long,ArrayList<Integer>> flagThreePrimeLoc(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
-         JavaPairRDD<String,Long> temp=input.zipWithIndex();
-         JavaPairRDD<Long,Integer> lastPotentialRegions=null;  //<lineNum,start_loc_inline>
-          JavaPairRDD<Long,ArrayList<Integer>> priorPotentialRegions=null;
+         final JavaPairRDD<String,Long> temp=input.zipWithIndex();
+         JavaPairRDD<Long,ArrayList<Integer>> result=null;
 
 
+         JavaPairRDD [] resultArray=new JavaPairRDD[possibleLeadRegion.size()];
          for(int i=0;i<possibleLeadRegion.size();i++){
             if(i==possibleLeadRegion.size()-1){
-                final Long scan_area_start=possibleLeadRegion.get(i)[0];
-                priorPotentialRegions=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
+                final Long scan_area_start=possibleLeadRegion.get(i)[1];
+                JavaPairRDD<Long,ArrayList<Integer>> tempPair=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
                     @Override
                     public Tuple2<Long,ArrayList<Integer>> call(Tuple2<String,Long> keyValue){
                          Long thisLineNum=keyValue._2();
                          ArrayList<Integer>start_loc_inline=new ArrayList<Integer>();                     
-                         if(thisLineNum>scan_area_start){
+                         if(thisLineNum.compareTo(scan_area_start)>0){
                             String thisText=keyValue._1().toUpperCase();
                             for(int j=0;j<thisText.length()-4;j++){
                                 if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='G')){
@@ -236,24 +223,32 @@ public class SeqProcessor implements Serializable{
                             }
 
                          }
-                        return new Tuple2(thisLineNum, start_loc_inline); 
+                        return new Tuple2<Long,ArrayList<Integer>>(thisLineNum, start_loc_inline); 
                     }
                 
                  });
+               resultArray[i]=tempPair;
+               for(int k=1;k<resultArray.length;k++){
+                        resultArray[0]=resultArray[0].union(resultArray[i]);
+               }
+               result=resultArray[0];
 
             }
 
             else{
-                final Long scan_area_start=possibleLeadRegion.get(i)[0];
-                final Long scan_area_end=possibleLeadRegion.get(i)[1]; 
 
 
-                priorPotentialRegions=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
+
+                final Long scan_area_start=possibleLeadRegion.get(i)[1];
+                final Long scan_area_end=possibleLeadRegion.get(i+1)[0]; 
+
+                System.out.println("start "+scan_area_start+" end "+scan_area_end);
+                JavaPairRDD<Long,ArrayList<Integer>> tempPair=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
                     @Override
                     public Tuple2<Long,ArrayList<Integer>> call(Tuple2<String,Long> keyValue){
                          Long thisLineNum=keyValue._2();
                          ArrayList<Integer>start_loc_inline=new ArrayList<Integer>();                     
-                         if(thisLineNum<scan_area_end && thisLineNum>scan_area_start){
+                         if(thisLineNum.compareTo(scan_area_end)<0 && thisLineNum.compareTo(scan_area_start)>0){
                             String thisText=keyValue._1().toUpperCase();
                             for(int j=0;j<thisText.length()-4;j++){
                                 if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='G')){
@@ -278,22 +273,22 @@ public class SeqProcessor implements Serializable{
                             }
 
                          }
-                        return new Tuple2(thisLineNum, start_loc_inline); 
+                        return new Tuple2<Long,ArrayList<Integer>>(thisLineNum, start_loc_inline); 
                     }
                 
                  });
+                resultArray[i]=tempPair;   
             }
             
             
          }
-          
-    return(priorPotentialRegions);        
+    
+     
+    System.out.print("test result  "+result.count());
+    return(result);        
     }
 
  }
-
-
-
 
 
 
