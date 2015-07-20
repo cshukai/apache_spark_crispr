@@ -13,6 +13,21 @@ import scala.Tuple2;
 
 
 
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
+import java.io.Serializable;
+import java.util.*;
+import scala.Tuple2;
+
+
+
+
 public class SeqProcessor implements Serializable{
 
 	public static void main(String [ ] args) throws Exception{
@@ -191,7 +206,40 @@ public class SeqProcessor implements Serializable{
          for(int i=0;i<possibleLeadRegion.size();i++){
             if(i==possibleLeadRegion.size()-1){
                 final Long scan_area_start=possibleLeadRegion.get(i)[0];
+                priorPotentialRegions=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
+                    @Override
+                    public Tuple2<Long,ArrayList<Integer>> call(Tuple2<String,Long> keyValue){
+                         Long thisLineNum=keyValue._2();
+                         ArrayList<Integer>start_loc_inline=new ArrayList<Integer>();                     
+                         if(thisLineNum>scan_area_start){
+                            String thisText=keyValue._1().toUpperCase();
+                            for(int j=0;j<thisText.length()-4;j++){
+                                if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='G')){
+                                    start_loc_inline.add(j);
+                                }
+                                else{
 
+                                    if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='C')){
+                                        start_loc_inline.add(j);
+                                    }
+                                    else{
+                                          if(j==thisText.length()-5){
+                                            break;
+                                        }
+                                          else{
+                                            j=j+5;
+                                        }
+
+                                    }    
+                                  
+                                }
+                            }
+
+                         }
+                        return new Tuple2(thisLineNum, start_loc_inline); 
+                    }
+                
+                 });
 
             }
 
@@ -243,6 +291,9 @@ public class SeqProcessor implements Serializable{
     }
 
  }
+
+
+
 
 
 
