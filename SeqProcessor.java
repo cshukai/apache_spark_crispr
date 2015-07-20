@@ -282,12 +282,10 @@ public class SeqProcessor implements Serializable{
             
             
          }
-    
      
     System.out.print("test result  "+result.count());
     return(result);        
     }
-
  }
 
 
