@@ -24,10 +24,12 @@ public class SeqProcessor implements Serializable{
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Xanthomonas_campestris_pv_campestris_str_atcc_33913.GCA_000007145.1.26.dna.chromosome.Chromosome.fa");
 		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
         final ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
-        JavaPairRDD<Long,ArrayList<Integer>> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion );
+        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion );
     
-        JavaRDD<Long>keys=threePrimeRegions.keys();
-        JavaRDD<ArrayList<Integer>> values=threePrimeRegions.values();
+        for(int i=0;i<possibleLeadRegion.size();i++){
+            System.out.println("start"+possibleLeadRegion.get(i)[0]);
+            System.out.println("end"+possibleLeadRegion.get(i)[1]);
+        }
   
         threePrimeRegions.saveAsTextFile("crispr_test");
 
@@ -184,108 +186,62 @@ public class SeqProcessor implements Serializable{
 
 
     // use the first and last possible leader sequence to find potential lines that contain three prime flags
-    public JavaPairRDD<Long,ArrayList<Integer>> flagThreePrimeLoc(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
+    public JavaPairRDD<String,Long> flagThreePrimeLoc(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
          final JavaPairRDD<String,Long> temp=input.zipWithIndex();
-         JavaPairRDD<Long,ArrayList<Integer>> result=null;
+        
+         //generate possibe regeions based on locaiotn of leader sequences
+        final ArrayList<Integer> possibleLeadRegion_transformed=new ArrayList<Integer>();
+         for (int i=0;i<possibleLeadRegion.size();i++){
+              if(i==possibleLeadRegion.size()-1){
+                   int thisStart=Integer.parseInt(possibleLeadRegion.get(i)[1].toString());
+                   int thisEnd=(int)(temp.count()-1);
+                   for(int j=thisStart;j<thisEnd;j++){
+                    possibleLeadRegion_transformed.add(j);
+                   }
+                   
+              }    
 
-
-         JavaPairRDD [] resultArray=new JavaPairRDD[possibleLeadRegion.size()];
-         for(int i=0;i<possibleLeadRegion.size();i++){
-            if(i==possibleLeadRegion.size()-1){
-                final Long scan_area_start=possibleLeadRegion.get(i)[1];
-                JavaPairRDD<Long,ArrayList<Integer>> tempPair=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
-                    @Override
-                    public Tuple2<Long,ArrayList<Integer>> call(Tuple2<String,Long> keyValue){
-                         Long thisLineNum=keyValue._2();
-                         ArrayList<Integer>start_loc_inline=new ArrayList<Integer>();                     
-                         if(thisLineNum.compareTo(scan_area_start)>0){
-                            String thisText=keyValue._1().toUpperCase();
-                            for(int j=0;j<thisText.length()-4;j++){
-                                if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='G')){
-                                    start_loc_inline.add(j);
-                                }
-                                else{
-
-                                    if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='C')){
-                                        start_loc_inline.add(j);
-                                    }
-                                    else{
-                                          if(j==thisText.length()-5){
-                                            break;
-                                        }
-                                          else{
-                                            j=j+5;
-                                        }
-
-                                    }    
-                                  
-                                }
-                            }
-
-                         }
-                        return new Tuple2<Long,ArrayList<Integer>>(thisLineNum, start_loc_inline); 
-                    }
-                
-                 });
-               resultArray[i]=tempPair;
-               for(int k=1;k<resultArray.length;k++){
-                        resultArray[0]=resultArray[0].union(resultArray[i]);
-               }
-               result=resultArray[0];
-
-            }
-
-            else{
-
-
-
-                final Long scan_area_start=possibleLeadRegion.get(i)[1];
-                final Long scan_area_end=possibleLeadRegion.get(i+1)[0]; 
-
-                System.out.println("start "+scan_area_start+" end "+scan_area_end);
-                JavaPairRDD<Long,ArrayList<Integer>> tempPair=temp.mapToPair(new PairFunction<Tuple2<String,Long>,Long,ArrayList<Integer>>(){
-                    @Override
-                    public Tuple2<Long,ArrayList<Integer>> call(Tuple2<String,Long> keyValue){
-                         Long thisLineNum=keyValue._2();
-                         ArrayList<Integer>start_loc_inline=new ArrayList<Integer>();                     
-                         if(thisLineNum.compareTo(scan_area_end)<0 && thisLineNum.compareTo(scan_area_start)>0){
-                            String thisText=keyValue._1().toUpperCase();
-                            for(int j=0;j<thisText.length()-4;j++){
-                                if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='G')){
-                                    start_loc_inline.add(j);
-                                }
-                                else{
-
-                                    if(((((thisText.charAt(j)=='G'&&thisText.charAt(j+1)=='A')&&thisText.charAt(j+2)=='A')&&thisText.charAt(j+3)=='A')&&thisText.charAt(j+4)=='C')){
-                                        start_loc_inline.add(j);
-                                    }
-                                    else{
-                                          if(j==thisText.length()-5){
-                                            break;
-                                        }
-                                          else{
-                                            j=j+5;
-                                        }
-
-                                    }    
-                                  
-                                }
-                            }
-
-                         }
-                        return new Tuple2<Long,ArrayList<Integer>>(thisLineNum, start_loc_inline); 
-                    }
-                
-                 });
-                resultArray[i]=tempPair;   
-            }
-            
-            
+              else{
+                   int thisStart=Integer.parseInt(possibleLeadRegion.get(i)[1].toString());;
+                   int thisEnd=Integer.parseInt(possibleLeadRegion.get(i+1)[0].toString());;
+                   for(int j=thisStart;j<thisEnd;j++){
+                    possibleLeadRegion_transformed.add(j);
+                   }
+              }
          }
-     
-    System.out.print("test result  "+result.count());
-    return(result);        
+         // first filter then compute location
+         JavaPairRDD<String,Long> potentialRegions=temp.filter(new Function<Tuple2<String, Long>, Boolean>(){
+            @Override
+            public Boolean call(Tuple2<String, Long> keyValue){
+                Long rowNum=keyValue._2();
+                String text=keyValue._1().toUpperCase();
+                Boolean detected=true;
+                if(possibleLeadRegion_transformed.contains(Integer.parseInt(rowNum.toString()))){
+                
+
+
+
+                 if(text.indexOf("GAAAG")>=0 ||text.indexOf("GAAAC")>=0){
+                     detected= true;
+                 }
+
+                 else{
+                    detected=false;
+                }
+
+
+                }
+
+                else{
+                    detected= false;
+                }
+                return(detected);
+            }
+
+        });
+     return(potentialRegions);    
     }
+
  }
 
 
