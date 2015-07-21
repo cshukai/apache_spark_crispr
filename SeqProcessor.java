@@ -2,6 +2,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.SparkConf;
+import org.apache.spark.Accumulable;
+import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
@@ -21,14 +23,18 @@ public class SeqProcessor implements Serializable{
 		SeqProcessor proc=new SeqProcessor();
 		final double cutoff=0.70;
 
-		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Xanthomonas_campestris_pv_campestris_str_atcc_33913.GCA_000007145.1.26.dna.chromosome.Chromosome.fa");
+		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
 		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-        final ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
-        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion );
-    
-        for(int i=0;i<possibleLeadRegion.size();i++){
-            System.out.println("start"+possibleLeadRegion.get(i)[0]);
-            System.out.println("end"+possibleLeadRegion.get(i)[1]);
+        ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
+
+        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
+        JavaRDD<Integer> test= proc.findCrisprRepeats( possibleLeadRegion,  threePrimeRegions);
+
+       
+        List<Integer>testarry=test.collect();
+        for(int i=0;i<testarry.size();i++){
+            System.out.println(testarry.get(i));
+
         }
   
         threePrimeRegions.saveAsTextFile("crispr_test");
@@ -140,50 +146,6 @@ public class SeqProcessor implements Serializable{
     }
 
 
-    // public JavaPairRDD<String,Long> findCrisprRepeats(ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
-    //     //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
-    //     // assuming max size of repeat unit 100
-    //     final JavaPairRDD<String,Long[]> crispr=null;
-    //     long maxLineAway=Math.ceil(100/60);
-    //     for(int i=0;i<possibleLeadRegion.size();i++){
-    //          Long thisLeadEndLine=possibleLeadRegion.get(i)[1];
-    //          Long thisThreePrimeEndLine=thisLeadEndLine+maxLineAway;
-    //          final ArrayList<Long> nearestPossible3PrimeLines= new ArrayList<Long>();
-    //          for(int j=0;j<(thisThreePrimeEndLine-thisLeadEndLine);j++){
-    //             nearestPossible3PrimeLines.add(thisLeadEndLine+1+j);
-    //          }
-
-    //     JavaPairRDD<String,Long> firstRepeatUnitSeqLoc=threePrimeRegions.filter(new Function<Tuple2<String, Long>, Boolean>(){
-    //             @Override
-    //             public Boolean call(Tuple2<String, Long> keyValue){
-    //                 Long thisLineNum=keyValue._2();
-    //                 return nearestPossible3PrimeLines.contains(thisLineNum);
-    //             }
-    //     });
-
-
-    //     if(firstRepeatUnitSeqLoc.count.compareTo(0)){
-    //         break;      //stop if can't find 3 prime flag within reasonable range       
-    //     }
-
-    //     else{
-    //          // determine the border of repeat sequence
-    //          // format for repeat information: String:  LS_12344_LE_33234_ACTTGGG  <33235,3356787,.....>
-    //          // LS leader start , LE: leader end ,  repeat sequecnces
-    //          JavaPairRDD<String,Long[]> crispr= firstRepeatUnitSeqLoc.mapToPair(new PairFunction<Tuple2<String,Long>,String,Long[]>()){
-    //              public Tuple2<String,Long[]> call(Tuple2<String,Long> keyValue){
-    //                 Long lineDistanceFromLeadEnd=keyValue._2()-thisLeadEndLine+1;
-    //                 Long threePrimeLocInLine=keyValue._1()
-    //              }
-    //          });
-
-    //     }
-
-       
-
-    //     }
-    // }
-
 
     // use the first and last possible leader sequence to find potential lines that contain three prime flags
     public JavaPairRDD<String,Long> flagThreePrimeLoc(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
@@ -216,18 +178,20 @@ public class SeqProcessor implements Serializable{
                 Long rowNum=keyValue._2();
                 String text=keyValue._1().toUpperCase();
                 Boolean detected=true;
+   
                 if(possibleLeadRegion_transformed.contains(Integer.parseInt(rowNum.toString()))){
                 
 
 
+                    int firstThreePrimeLoc_1=text.indexOf("GAAAG");
+                    int firstThreePrimeLoc_2=text.indexOf("GAAAC");
+                    if(firstThreePrimeLoc_1>=0 ||firstThreePrimeLoc_2>=0){
+                        detected= true;       
+                    }
 
-                 if(text.indexOf("GAAAG")>=0 ||text.indexOf("GAAAC")>=0){
-                     detected= true;
-                 }
-
-                 else{
-                    detected=false;
-                }
+                    else{
+                        detected=false;
+                    }
 
 
                 }
@@ -239,7 +203,76 @@ public class SeqProcessor implements Serializable{
             }
 
         });
-     return(potentialRegions);    
+
+        return(potentialRegions);
+    }
+
+
+
+        public JavaRDD<Integer> findCrisprRepeats(ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
+            //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
+            // assuming max size of repeat unit 150 bp
+            int maxLineAway=3;
+            final ArrayList<Long> nearestPossible3PrimeLines= new ArrayList<Long>();
+            for(int i=0;i<possibleLeadRegion.size();i++){
+               Long thisLeadEndLine=possibleLeadRegion.get(i)[1];
+               Long thisThreePrimeEndLine=thisLeadEndLine+maxLineAway;
+
+               for(int j=0;j<(thisThreePrimeEndLine-thisLeadEndLine);j++){
+                nearestPossible3PrimeLines.add(thisLeadEndLine+1+j);
+                }
+            }
+
+            JavaPairRDD<String,Long> firstRepeatUnitSeqLoc=threePrimeRegions.filter(new Function<Tuple2<String, Long>, Boolean>(){
+                @Override
+                public Boolean call(Tuple2<String, Long> keyValue){
+                    Long thisLineNum=keyValue._2();
+                    return nearestPossible3PrimeLines.contains(thisLineNum);
+                }
+            });
+
+           // determine whether there are repeat happening
+              //1. first compute distance between leader sequence and first flag to propose size of repeat unit , 
+              //2. try to find repeat downstream allow shift for 2bp left or right
+            JavaRDD<Integer> firstThreePrime=firstRepeatUnitSeqLoc.flatMap(new FlatMapFunction<Tuple2<String, Long>,Integer>(){
+                @Override
+                public Iterable<Integer> call(Tuple2<String, Long> keyValue){
+                    ArrayList<Integer> threePrimeAbsLocs=new ArrayList<Integer>();
+                    int thisLine=(int)(long)keyValue._2();
+                    String thisText=keyValue._1();
+                    boolean findMore=true;
+                    int start_idx_1=0;
+                    int start_idx_2=0;
+                    while(findMore){
+                        int idx_1=thisText.indexOf("GAAAG",start_idx_1);
+                        int idx_2=thisText.indexOf("GAAAC",start_idx_2);
+                        if(idx_1>=0){
+                             threePrimeAbsLocs.add(60*(thisLine-1)+idx_1+1) ;                             
+                             start_idx_1=idx_1+5;
+                        }
+
+                        else{
+                            if(idx_2>=0){
+                                threePrimeAbsLocs.add(60*(thisLine-1)+idx_2+1) ;                             
+                                start_idx_2=idx_2+5;
+                            }
+
+                            else{
+                                findMore=false;
+                            }                               
+                        }
+
+
+                    }
+
+
+                    return(threePrimeAbsLocs);
+                }
+            });
+
+
+
+        return(firstThreePrime);
     }
 
  }
