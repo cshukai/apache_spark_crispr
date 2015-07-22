@@ -12,7 +12,10 @@ import java.io.Serializable;
 import java.util.*;
 import scala.Tuple2;
 
+/*
 
+CRISPR is an array of inverted repeats (approximately 20–50 bp each) separated by spacer sequences(approximately 20–75 bp each)[35].   
+*/
 
 
 public class SeqProcessor implements Serializable{
@@ -24,19 +27,22 @@ public class SeqProcessor implements Serializable{
 		final double cutoff=0.70;
 
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+    List<String> testseq=inputs.collect();
+
+    String test_1=proc.getSubstring(testseq,3,10);
+    String test_2=proc.getSubstring(testseq,58,65);
+    System.out.println("test result:"+ test_1+"::"+test_2);
+        
 		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
         ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
 
         JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
-        JavaRDD<Integer> test= proc.findCrisprRepeats( possibleLeadRegion,  threePrimeRegions);
-
-       
-        List<Integer>testarry=test.collect();
-        for(int i=0;i<testarry.size();i++){
-            System.out.println(testarry.get(i));
-
+        ArrayList<Integer> test= proc.findCrisprRepeats( possibleLeadRegion,  threePrimeRegions);
+        for(int i=0; i<test.size();i++){
+          System.out.println(test.get(i));
         }
-  
+        
+    
         threePrimeRegions.saveAsTextFile("crispr_test");
 
        
@@ -209,7 +215,7 @@ public class SeqProcessor implements Serializable{
 
 
 
-        public JavaRDD<Integer> findCrisprRepeats(ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
+        public ArrayList<Integer> findCrisprRepeats(ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
             //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
             // assuming max size of repeat unit 150 bp
             int maxLineAway=3;
@@ -271,8 +277,43 @@ public class SeqProcessor implements Serializable{
             });
 
 
+        List<Integer> allThreePrimeAbsStartLoc=firstThreePrime.collect();
+        ArrayList<Integer> repeatPrimeAbsStartLoc=new ArrayList<Integer>();
+        
 
-        return(firstThreePrime);
+        for(int k=0;k<allThreePrimeAbsStartLoc.size();k++){
+            boolean continue2match=true;
+    
+
+        }
+        return(repeatPrimeAbsStartLoc);
+    }
+
+    public String getSubstring(List<String> seqFile, int start_loc, int end_loc){
+        int startLine=(int)Math.ceil(start_loc/60)+1;
+        int endLine=(int)Math.ceil(end_loc/60)+1;
+        int startLocIdxInLine=start_loc-(startLine-1)*60-1;
+        int endLocIdxInLine=end_loc-(endLine-1)*60-1;
+        
+        System.out.println("debug line start:"+ startLine +"end"+endLine);
+        System.out.println("debug loc start:"+ startLocIdxInLine +"end"+endLocIdxInLine);
+        String result="";
+        String part=seqFile.get(startLine);
+        System.out.println("seq:"+ part);
+        if(startLine==endLine){
+           System.out.println("first seq:"+part);
+           result=part.substring(startLocIdxInLine,endLocIdxInLine+1);
+            System.out.println("test interval_1"+part.substring(8,9));
+        }
+        else{
+          System.out.println("first seq:"+part);
+          System.out.println("2nd seq:"+seqFile.get(endLine));
+           result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
+           System.out.println("test interval_2"+seqFile.get(endLine).substring(0,4));
+        }
+
+        return(result);
+
     }
 
  }
