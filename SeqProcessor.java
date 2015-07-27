@@ -27,14 +27,11 @@ public class SeqProcessor implements Serializable{
 		final double cutoff=0.70;
 
 		//JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-    String test="CCCGCATGAAAACGT";
-    ArrayList<Integer>result=proc.findPerfectPalindrome(test,4);
-    System.out.println("total:"+result.size()+"first:"+result.get(0)+"second:"+result.get(1)+"thrid"+result.get(2));
         
-		// JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-  //       ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
+		//JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+        //ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
 
-  //       JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
+        //JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
         // ArrayList<Integer> test= proc.findCrisprRepeats( possibleLeadRegion,  threePrimeRegions);
         // for(int i=0; i<test.size();i++){
         //   System.out.println(test.get(i));
@@ -42,8 +39,14 @@ public class SeqProcessor implements Serializable{
         
     
         //threePrimeRegions.saveAsTextFile("crispr_test");
-
-       
+        String test="ACGGGTTCCCAAAGGG";
+        ArrayList<Integer> result=proc.findImperfectPalindrome(test,3);
+        System.out.println("-------------------------------");
+        System.out.println(result.size());
+        for(int i=0; i< result.size();i++){
+          System.out.println(result.get(i));
+        }
+       System.out.println("-------------------------------");
 
 	}
     //nu_1,nu_2 are upper case 
@@ -75,10 +78,7 @@ public class SeqProcessor implements Serializable{
                 			left_hit=left_hit+1;
                 		}
                 	}
-                    
-                    
-
-                	
+              	
                 }
 
                 double left_fraction=left_hit/(seq_length/2);
@@ -104,9 +104,6 @@ public class SeqProcessor implements Serializable{
        			return result;
         	}
         }); 
- 
-        
-     
 
   		return (di_rich_regions.zipWithIndex());
 
@@ -287,6 +284,13 @@ public class SeqProcessor implements Serializable{
     //       int potential_repeat_start=thisThreePrimeAbsStart-max_repat_size;
     //       int potential_repeat_end=thisThreePrimeAbsStart-1;
     //       String potential_repeat_seq=getSubstring(fastaSeq,potential_repeat_seq,potential_repeat_end);
+          
+    //       //test if inverted structure exisit
+    //       ArrayList<Integer> palindromeInProposedRepeatSeq=findPerfectPalindrome(potential_repeat_seq,4);
+    //       if(palindromeInProposedRepeatSeq.size()==0 /* && can't find palindromic seq inside */){
+    //         break;
+    //       }
+
     //       final int lineWhereThisFlagIn=Math.ceil(thisThreePrimeAbsStart/60)+1;
     //       final int thisThreePrimeAbsStartInLine=thisThreePrimeAbsStart-(lineWhereThisFlagIn-1)*60;
 
@@ -339,6 +343,7 @@ public class SeqProcessor implements Serializable{
     //     return(repeatPrimeAbsStartLoc);
     // }
 
+    // output is 1-based start loc in input string
     public String getSubstring(List<String> seqFile, int start_loc, int end_loc){
         int startLine=(int)Math.ceil(start_loc/60)+1;
         int endLine=(int)Math.ceil(end_loc/60)+1;
@@ -361,6 +366,9 @@ public class SeqProcessor implements Serializable{
 
     }
 
+
+
+
     //Ye, C., Ji, G., Li, L., & Liang, C. (2014). detectIR: A Novel Program for Detecting Perfect and Imperfect Inverted Repeats Using Complex Numbers and Vector Calculation. PLoS ONE, 9(11), e113349. doi:10.1371/journal.pone.0113349
     public ArrayList<Integer> findPerfectPalindrome(String seq,int palindromeLen){ // min legnth =4
         seq=seq.toUpperCase();
@@ -379,10 +387,10 @@ public class SeqProcessor implements Serializable{
             transformedValue=-1;
           }
           if(thisLetter.equals('C')){
-            transformedValue=2;
+            transformedValue=7;
           }
           if(thisLetter.equals('G')){
-            transformedValue=-2;
+            transformedValue=-7;
           }
 
           if(i==0){
@@ -407,12 +415,14 @@ public class SeqProcessor implements Serializable{
           }
         }
 
+
         ArrayList<Integer> result= new ArrayList<Integer>();
         if(potential){
           for(int i=0;i<substractVec.length;i++){
             if(substractVec[i]==0){
               String proposePalin=seq.substring(i,i+3);
               if(!proposePalin.equals("ATCG")){
+
                 result.add(i);
               }
             }
@@ -423,7 +433,67 @@ public class SeqProcessor implements Serializable{
         return(result);
     } 
 
+ // output: 0-left arm start 1- left arm end  2- middle length
+ // target on even-length of spacer ; can't sum to zero
+ // intervalLength minimum 3
+ // arm-length requriment : 3 
+    public ArrayList<Integer> findImperfectPalindrome (String seq, int intervalength){
+        seq=seq.toUpperCase();
+        int []scoreVetor=new int[seq.length()]; 
+        ArrayList<Integer> PalindromeStartIdx= new ArrayList<Integer>();
+        for(int i=0;i<seq.length();i++){
 
+          Character thisChar=seq.charAt(i);
+          if(thisChar=='A'){
+            scoreVetor[i]=1;
+          }
+
+          if(thisChar=='T'){
+            scoreVetor[i]=-1;
+          }
+
+          if(thisChar=='G'){
+            scoreVetor[i]=2;
+          }          
+
+           if(thisChar=='C'){
+            scoreVetor[i]=-2;
+          }
+
+        } 
+
+
+        for(int i=0;i<seq.length();i++){
+          if(i>=intervalength-1 && i<seq.length()-4){
+            int totalSum=0;
+            int innerSum=0;
+            for(int j=0;j<intervalength;j++){
+               totalSum=totalSum+scoreVetor[i+j];
+            
+               if(j!=0 && j!=intervalength-1){
+                 innerSum=innerSum+scoreVetor[i+j];
+               }
+            }
+
+          
+            if(innerSum!=totalSum){
+                System.out.println("outer if");
+               if(scoreVetor[i-2]+ scoreVetor[i+intervalength+1] ==0 &&scoreVetor[i-1]+scoreVetor[i+intervalength]==0){ //idx i is the start idx of the middle spacer
+                  PalindromeStartIdx.add(i);
+                  System.out.println("inner if");
+               }            
+            }            
+          }
+        }
+
+        
+
+
+
+        
+      return(PalindromeStartIdx);
+        
+    }
 
  }
 
