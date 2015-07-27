@@ -25,28 +25,24 @@ public class SeqProcessor implements Serializable{
 		JavaSparkContext sc=new JavaSparkContext(conf); 		
 		SeqProcessor proc=new SeqProcessor();
 		final double cutoff=0.70;
+  //       // final Accumulator<Integer> firstAccu = sc.accumulator(0);
+  //       // final Accumulator<Integer> secondAccu = sc.accumulator(0);
+		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+   
+		// JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+  //       ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
 
-		//JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-        
-		//JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-        //ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
-
-        //JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
-        // ArrayList<Integer> test= proc.findCrisprRepeats( possibleLeadRegion,  threePrimeRegions);
-        // for(int i=0; i<test.size();i++){
-        //   System.out.println(test.get(i));
-        // }
-        
+  List<String> test=inputs.collect();
+        String result=proc.getSubstring(test,240,309);
+        System.out.println(result);
+        String result2=proc.getSubstring(test,1,6);   
+        System.out.println(result2);
+        // JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
+        // proc.findCrisprRepeats( inputs,possibleLeadRegion,  threePrimeRegions);
+      
+           
     
-        //threePrimeRegions.saveAsTextFile("crispr_test");
-        String test="ACGGGTTCCCAAAGGG";
-        ArrayList<Integer> result=proc.findImperfectPalindrome(test,3);
-        System.out.println("-------------------------------");
-        System.out.println(result.size());
-        for(int i=0; i< result.size();i++){
-          System.out.println(result.get(i));
-        }
-       System.out.println("-------------------------------");
+       
 
 	}
     //nu_1,nu_2 are upper case 
@@ -210,161 +206,284 @@ public class SeqProcessor implements Serializable{
 
 
 
-    //     public ArrayList<Integer> findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
-    //         //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
-    //         // assuming max size of repeat unit 150 bp
-    //         int maxLineAway=3;
-    //         final ArrayList<Long> nearestPossible3PrimeLines= new ArrayList<Long>();
-    //         for(int i=0;i<possibleLeadRegion.size();i++){
-    //            Long thisLeadEndLine=possibleLeadRegion.get(i)[1];
-    //            Long thisThreePrimeEndLine=thisLeadEndLine+maxLineAway;
+        public void findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
+            //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
+            // assuming max size of repeat unit 150 bp
+            int maxLineAway=3;
+            final ArrayList<Long> nearestPossible3PrimeLines= new ArrayList<Long>();
+            for(int i=0;i<possibleLeadRegion.size();i++){
+               Long thisLeadEndLine=possibleLeadRegion.get(i)[1];
+               Long thisThreePrimeEndLine=thisLeadEndLine+maxLineAway;
 
-    //            for(int j=0;j<(thisThreePrimeEndLine-thisLeadEndLine);j++){
-    //             nearestPossible3PrimeLines.add(thisLeadEndLine+1+j);
-    //             }
-    //         }
+               for(int j=0;j<(thisThreePrimeEndLine-thisLeadEndLine);j++){
+                nearestPossible3PrimeLines.add(thisLeadEndLine+1+j);
+                }
+            }
 
-    //         JavaPairRDD<String,Long> firstRepeatUnitSeqLoc=threePrimeRegions.filter(new Function<Tuple2<String, Long>, Boolean>(){
-    //             @Override
-    //             public Boolean call(Tuple2<String, Long> keyValue){
-    //                 Long thisLineNum=keyValue._2();
-    //                 return nearestPossible3PrimeLines.contains(thisLineNum);
-    //             }
-    //         });
+            JavaPairRDD<String,Long> firstRepeatUnitSeqLoc=threePrimeRegions.filter(new Function<Tuple2<String, Long>, Boolean>(){
+                @Override
+                public Boolean call(Tuple2<String, Long> keyValue){
+                    Long thisLineNum=keyValue._2();
+                    return nearestPossible3PrimeLines.contains(thisLineNum);
+                }
+            });
 
-    //        // determine whether there are repeat happening
-    //           //1. first compute distance between leader sequence and first flag to propose size of repeat unit , 
-    //           //2. try to find repeat downstream allow shift for 2bp left or right
-    //         JavaRDD<Integer> firstThreePrime=firstRepeatUnitSeqLoc.flatMap(new FlatMapFunction<Tuple2<String, Long>,Integer>(){
-    //             @Override
-    //             public Iterable<Integer> call(Tuple2<String, Long> keyValue){
-    //                 ArrayList<Integer> threePrimeAbsLocs=new ArrayList<Integer>();
-    //                 int thisLine=(int)(long)keyValue._2();
-    //                 String thisText=keyValue._1();
-    //                 boolean findMore=true;
-    //                 int start_idx_1=0;
-    //                 int start_idx_2=0;
-    //                 while(findMore){
-    //                     int idx_1=thisText.indexOf("GAAAG",start_idx_1);
-    //                     int idx_2=thisText.indexOf("GAAAC",start_idx_2);
-    //                     if(idx_1>=0){
-    //                          threePrimeAbsLocs.add(60*(thisLine-1)+idx_1+1) ;                             
-    //                          start_idx_1=idx_1+5;
-    //                     }
+           // determine whether there are repeat happening
+              //1. first compute distance between leader sequence and first flag to propose size of repeat unit , 
+              //2. try to find repeat downstream allow shift for 2bp left or right
+            JavaRDD<Integer> firstThreePrime=firstRepeatUnitSeqLoc.flatMap(new FlatMapFunction<Tuple2<String, Long>,Integer>(){
+                @Override
+                public Iterable<Integer> call(Tuple2<String, Long> keyValue){
+                    ArrayList<Integer> threePrimeAbsLocs=new ArrayList<Integer>();
+                    int thisLine=(int)(long)keyValue._2();
+                    String thisText=keyValue._1();
+                    boolean findMore=true;
+                    int start_idx_1=0;
+                    int start_idx_2=0;
+                    while(findMore){
+                        int idx_1=thisText.indexOf("GAAAG",start_idx_1);
+                        int idx_2=thisText.indexOf("GAAAC",start_idx_2);
+                        if(idx_1>=0){
+                             threePrimeAbsLocs.add(60*(thisLine-1)+idx_1+1) ;                             
+                             start_idx_1=idx_1+5;
+                        }
 
-    //                     else{
-    //                         if(idx_2>=0){
-    //                             threePrimeAbsLocs.add(60*(thisLine-1)+idx_2+1) ;                             
-    //                             start_idx_2=idx_2+5;
-    //                         }
+                        else{
+                            if(idx_2>=0){
+                                threePrimeAbsLocs.add(60*(thisLine-1)+idx_2+1) ;                             
+                                start_idx_2=idx_2+5;
+                            }
 
-    //                         else{
-    //                             findMore=false;
-    //                         }                               
-    //                     }
-
-
-    //                 }
+                            else{
+                                findMore=false;
+                            }                               
+                        }
 
 
-    //                 return(threePrimeAbsLocs);
-    //             }
-    //         });
+                    }
 
 
-    //     List<Integer> allThreePrimeAbsStartLoc=firstThreePrime.collect();
-    //     ArrayList<Integer> repeatPrimeAbsStartLoc=new ArrayList<Integer>();
-    //     int max_repat_size=70;        
-    //     List<String>fastaSeq=fastaRdd.collect();
-    //     JavaRDD<Long> threePrimeFlagLines=threePrimeRegions.values();
+                    return(threePrimeAbsLocs);
+                }
+            });
+
+        
+        List<Integer> allThreePrimeAbsStartLoc=firstThreePrime.collect();
+        ArrayList<Integer> repeatPrimeAbsStartLoc=new ArrayList<Integer>();
+        int max_repat_size=70; 
+
+       final  List<String>fastaSeq=fastaRdd.collect();
+        JavaRDD<Long> threePrimeFlagLines=threePrimeRegions.values();
 
 
-    //     for(int k=0;k<allThreePrimeAbsStartLoc.size();k++){
-    //       int thisThreePrimeAbsStart=allThreePrimeAbsStartLoc.get(i);
-    //       int potential_repeat_start=thisThreePrimeAbsStart-max_repat_size;
-    //       int potential_repeat_end=thisThreePrimeAbsStart-1;
-    //       String potential_repeat_seq=getSubstring(fastaSeq,potential_repeat_seq,potential_repeat_end);
+        for(int k=0;k<allThreePrimeAbsStartLoc.size();k++){
+          int thisThreePrimeAbsStart=allThreePrimeAbsStartLoc.get(k);
+          int potential_repeat_start=thisThreePrimeAbsStart-max_repat_size;
+          int potential_repeat_end=thisThreePrimeAbsStart-1;
+          if(potential_repeat_start<0||potential_repeat_end<0){
+             break;
+          }
+          String potential_repeat_seq=getSubstring(fastaSeq,potential_repeat_start,potential_repeat_end);
           
-    //       //test if inverted structure exisit
-    //       ArrayList<Integer> palindromeInProposedRepeatSeq=findPerfectPalindrome(potential_repeat_seq,4);
-    //       if(palindromeInProposedRepeatSeq.size()==0 /* && can't find palindromic seq inside */){
-    //         break;
-    //       }
+          //test if inverted structure exisit
+          final ArrayList<Integer> palindromeInProposedRepeatSeq=findPerfectPalindrome(potential_repeat_seq,4);
+          final ArrayList<Integer> imperfectPalindromeInProposedRepeat=findImperfectPalindrome(potential_repeat_seq,3);
+          if(palindromeInProposedRepeatSeq.size()==0  &&  imperfectPalindromeInProposedRepeat.size()<3){
+            break;
+          }
 
-    //       final int lineWhereThisFlagIn=Math.ceil(thisThreePrimeAbsStart/60)+1;
-    //       final int thisThreePrimeAbsStartInLine=thisThreePrimeAbsStart-(lineWhereThisFlagIn-1)*60;
+          final int lineWhereThisFlagIn=(int)Math.ceil(thisThreePrimeAbsStart/60)+1;
+          final int thisThreePrimeAbsStartInLine=thisThreePrimeAbsStart-(lineWhereThisFlagIn-1)*60;
 
-    //       List<Long> possibleNextThreePrimeLine=threePrimeRegions.filter(new Function<Long, Boolean>(){
-    //         public Boolean call(Long lineNum){
-    //            return(lineNum.longValue()>=lineWhereThisFlagIn)
-    //         }
-    //       }).collect();
+
+
+          JavaPairRDD<String,Long> possibleNextThreePrimeLine=threePrimeRegions.filter(new Function<Tuple2<String, Long>, Boolean>(){
+            public Boolean call(Tuple2<String, Long> keyValue){
+               int lineNum=Integer.parseInt(keyValue._2().toString());
+               String  keyLine=keyValue._1();
+               boolean palindromicHomology=false;
+               boolean continueAnalysis=true;
+               int max_repeat_size=70;
+               int thisLineAbsStart=60*lineNum+1;
+               int start_idx_1=0;
+               int start_idx_2=0;
+               while(continueAnalysis){
+                  int idx_1=keyLine.indexOf("GAAAG",start_idx_1);
+                  int idx_2=keyLine.indexOf("GAAAC",start_idx_2);
+
+                  if(idx_1>=0){                                                           
+                    int primeAbsStart=thisLineAbsStart+idx_1+1;             
+                    int possibleNextRepeatStart=primeAbsStart-max_repeat_size;
+                    int possibleNextRepeatEnd=primeAbsStart-1;
+                    if(possibleNextRepeatStart<61 || possibleNextRepeatEnd<80){
+                        break; 
+                    }
+
+                    else{
+                      String possibleNextRepat=getSubstring(fastaSeq,possibleNextRepeatStart,possibleNextRepeatEnd);
+                      ArrayList<Integer> thisPalindromStart=findPerfectPalindrome(possibleNextRepat,4);
+                      ArrayList<Integer> thisImperfectPalindromStart=findImperfectPalindrome(possibleNextRepat,3);
+
+                      if(thisImperfectPalindromStart.size()==palindromeInProposedRepeatSeq.size() && thisImperfectPalindromStart.size()==imperfectPalindromeInProposedRepeat.size()){
+                        palindromicHomology=true;
+                    }
+                    start_idx_1=idx_1+5;              
+                }
           
-    //       for(int m=0;m<possibleNextThreePrimeLine.size();m++){
-    //            long thatLine=possibleNextThreePrimeLine.get(m).longValue();
-    //            int thisLineAbsStart=60*(thatLine-1);
-    //            int thisLineAbsEnd=60*(thatLine-1)+60;
-    //            String thisLineText=getSubstring(fastaSeq,thisLineAbsStart,thisLineAbsEnd);
-    //            boolean continueAnalysis=true;
-    //            int start_idx_1=0;
-    //            int start_idx_2=0;
-    //            while(continueAnalysis){
-    //               int idx_1=thisLineText.indexOf("GAAAG",start_idx_1);
-    //               int idx_2=thisLineText.indexOf("GAAAC",start_idx_2);
 
-    //               if(idx_1>=0){                                                           
-    //                 int primeAbsStart=thisLineAbsStart+idx_1-1;             
-    //                 int possibleNextRepeatStart=primeAbsStart-max_repeat_size;
-    //                 int possibleNextRepeatEnd=primeAbsStart-1;
-    //                 String possibeNextRepat=getSubstring(fastaSeq,possibleNextRepeatStart,possibleNextRepeatEnd);
+                    }
+                  else{
+                        if(idx_2>=0){
+                        int primeAbsStart=thisLineAbsStart+idx_2-1;             
+                        int possibleNextRepeatStart=primeAbsStart-max_repeat_size;
+                        int possibleNextRepeatEnd=primeAbsStart-1;
+                            if(possibleNextRepeatStart<61 || possibleNextRepeatEnd<80){
+                            break; 
+                            }
+                            else{
+                                String possibleNextRepat=getSubstring(fastaSeq,possibleNextRepeatStart,possibleNextRepeatEnd);
+                                ArrayList<Integer> thisPalindromStart=findPerfectPalindrome(possibleNextRepat,4);
+                                ArrayList<Integer> thisImperfectPalindromStart=findImperfectPalindrome(possibleNextRepat,3);
 
-    //                 start_idx_1=idx_1+5;
+                                if(thisImperfectPalindromStart.size()==palindromeInProposedRepeatSeq.size() && thisImperfectPalindromStart.size()==imperfectPalindromeInProposedRepeat.size()){
+                                    palindromicHomology=true;
+                                }                           
+                                start_idx_2=idx_2+5;
+                            }    
+                        }
+                        
 
-    //               }
-    //               else{
-    //                         if(idx_2>=0){
-    //                             threePrimeAbsLocs.add(60*(thisLine-1)+idx_2+1) ;                             
-    //                             start_idx_2=idx_2+5;
-    //                         }
+                        else{
+                            continueAnalysis=false;
+                        }                               
+                    }
+               }
 
-    //                         else{
-    //                             continueAnalysis=false;
-    //                         }                               
-    //               }
-    //            }
+               return(lineNum>=lineWhereThisFlagIn && palindromicHomology);
+            }
+          });
+        possibleNextThreePrimeLine.saveAsTextFile("crispr_test");
 
-    //       }
+          // for(int m=0;m<possibleNextThreePrimeLine.size();m++){
+          //      long thatLine=possibleNextThreePrimeLine.get(m).longValue();
+          //      int thisLineAbsStart=60*(thatLine-1);
+          //      int thisLineAbsEnd=60*(thatLine-1)+60;
+          //      String thisLineText=getSubstring(fastaSeq,thisLineAbsStart,thisLineAbsEnd);
+          //      boolean continueAnalysis=true;
+          //      int start_idx_1=0;
+          //      int start_idx_2=0;
+          //      while(continueAnalysis){
+          //         int idx_1=thisLineText.indexOf("GAAAG",start_idx_1);
+          //         int idx_2=thisLineText.indexOf("GAAAC",start_idx_2);
+
+          //         if(idx_1>=0){                                                           
+          //           int primeAbsStart=thisLineAbsStart+idx_1-1;             
+          //           int possibleNextRepeatStart=primeAbsStart-max_repeat_size;
+          //           int possibleNextRepeatEnd=primeAbsStart-1;
+          //           String possibleNextRepat=getSubstring(fastaSeq,possibleNextRepeatStart,possibleNextRepeatEnd);
+
+          //           start_idx_1=idx_1+5;
+
+          //         }
+          //         else{
+          //                   if(idx_2>=0){
+          //                       threePrimeAbsLocs.add(60*(thisLine-1)+idx_2+1) ;                             
+          //                       start_idx_2=idx_2+5;
+          //                   }
+
+          //                   else{
+          //                       continueAnalysis=false;
+          //                   }                               
+          //         }
+          //      }
+
+          // }
 
 
 
      
 
-    //     }
-    //     return(repeatPrimeAbsStartLoc);
-    // }
+        }
+        
+    }
 
     // output is 1-based start loc in input string
     public String getSubstring(List<String> seqFile, int start_loc, int end_loc){
+
         int startLine=(int)Math.ceil(start_loc/60)+1;
         int endLine=(int)Math.ceil(end_loc/60)+1;
-        int startLocIdxInLine=start_loc-(startLine-1)*60-1;
-        int endLocIdxInLine=end_loc-(endLine-1)*60-1;
+        int startLocIdxInLine=0;
+        int endLocIdxInLine=0;
+        if(start_loc%60==0){
+            startLine=startLine-1;
+            startLocIdxInLine=59;
+        }
+        else{
+            startLocIdxInLine=start_loc-(startLine-1)*60-1;
+        }
+
+        if(end_loc%60==0){
+            endLocIdxInLine=59;
+        }
+        else{
+            endLocIdxInLine=end_loc-(endLine-1)*60-1;    
+        }
         
+        
+        
+
         
         String result="";
         String part=seqFile.get(startLine);
         
-        if(startLine==endLine){
-           result=part.substring(startLocIdxInLine,endLocIdxInLine+1);
-        }
+     if(startLine==endLine){
+        if(end_loc%60==0){
+            result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).charAt(end_loc); 
+           }
         else{
+         result=part.substring(startLocIdxInLine,endLocIdxInLine+1);   
+        }  
          
-           result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
+     }
+     else{
+        String middlePart="";
+         if(endLine-startLine>1){
+           System.out.println("start line:"+startLine);
+           System.out.println("end line:"+endLine);
+           System.out.println("start Idx:"+startLocIdxInLine);
+           System.out.println("end Idx:"+endLocIdxInLine);
+           
+           for(int n=1;n<endLine-startLine;n++){
+            middlePart=middlePart+seqFile.get(startLine+n);
+           }
+
+
+          }
+         
+      
+    
+         if(start_loc%60==0){
+           result=part.charAt(startLocIdxInLine)+middlePart+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
         }
 
-        return(result);
+       else{
+           if(end_loc%60==0){
+            result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).charAt(end_loc); 
+           }
+           else{
+            result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
+
+           }
+      }
 
     }
+
+
+// }
+
+return(result);
+
+}
 
 
 
@@ -433,8 +552,7 @@ public class SeqProcessor implements Serializable{
         return(result);
     } 
 
- // output: 0-left arm start 1- left arm end  2- middle length
- // target on even-length of spacer ; can't sum to zero
+ // output: start idx of middle spacer
  // intervalLength minimum 3
  // arm-length requriment : 3 
     public ArrayList<Integer> findImperfectPalindrome (String seq, int intervalength){
@@ -494,6 +612,12 @@ public class SeqProcessor implements Serializable{
       return(PalindromeStartIdx);
         
     }
+
+    //input : k- length of kmer
+    // public ArrayList<Integer>  evalSimilarityByInvertedStructure (String seq_1,String seq_2,int k){
+
+    // }
+
 
  }
 
