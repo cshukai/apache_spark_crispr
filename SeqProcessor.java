@@ -29,17 +29,27 @@ public class SeqProcessor implements Serializable{
   //       // final Accumulator<Integer> secondAccu = sc.accumulator(0);
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
    
-		// JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-  //       ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
+		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+        ArrayList<Long[]> possibleLeadRegion=proc.flagLeadSeq(freq_region);
 
-  List<String> test=inputs.collect();
-        String result=proc.getSubstring(test,240,309);
-        System.out.println(result);
-        String result2=proc.getSubstring(test,1,6);   
-        System.out.println(result2);
-        // JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
-        // proc.findCrisprRepeats( inputs,possibleLeadRegion,  threePrimeRegions);
-      
+
+  // List<String> test=inputs.collect();
+  //       String result=proc.getSubstring(test,240,309);
+  //       System.out.println(result);
+  //       String result2=proc.getSubstring(test,1,6);   
+  //       System.out.println(result2);
+
+
+        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLoc( inputs,  possibleLeadRegion);
+        threePrimeRegions.saveAsTextFile("crispr_test");
+        ArrayList<JavaPairRDD<String,Long>> result =proc.findCrisprRepeats( inputs,possibleLeadRegion,  threePrimeRegions);
+        JavaPairRDD<String,Long> test= result.get(0);
+        test.saveAsTextFile("crispr_test_2");
+        System.out.println("array list"+result.size());
+        for(int i=0; i<result.size();i++){
+          System.out.println("rdd size:"+result.get(i).count());
+        }
+
            
     
        
@@ -206,7 +216,7 @@ public class SeqProcessor implements Serializable{
 
 
 
-        public void findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
+        public ArrayList<JavaPairRDD<String,Long>> findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
             //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
             // assuming max size of repeat unit 150 bp
             int maxLineAway=3;
@@ -275,6 +285,7 @@ public class SeqProcessor implements Serializable{
        final  List<String>fastaSeq=fastaRdd.collect();
         JavaRDD<Long> threePrimeFlagLines=threePrimeRegions.values();
 
+        ArrayList<JavaPairRDD<String,Long>>result =new  ArrayList<JavaPairRDD<String,Long>>();
 
         for(int k=0;k<allThreePrimeAbsStartLoc.size();k++){
           int thisThreePrimeAbsStart=allThreePrimeAbsStartLoc.get(k);
@@ -296,7 +307,7 @@ public class SeqProcessor implements Serializable{
           final int thisThreePrimeAbsStartInLine=thisThreePrimeAbsStart-(lineWhereThisFlagIn-1)*60;
 
 
-
+          
           JavaPairRDD<String,Long> possibleNextThreePrimeLine=threePrimeRegions.filter(new Function<Tuple2<String, Long>, Boolean>(){
             public Boolean call(Tuple2<String, Long> keyValue){
                int lineNum=Integer.parseInt(keyValue._2().toString());
@@ -362,8 +373,7 @@ public class SeqProcessor implements Serializable{
                return(lineNum>=lineWhereThisFlagIn && palindromicHomology);
             }
           });
-        possibleNextThreePrimeLine.saveAsTextFile("crispr_test");
-
+          result.add(possibleNextThreePrimeLine);
           // for(int m=0;m<possibleNextThreePrimeLine.size();m++){
           //      long thatLine=possibleNextThreePrimeLine.get(m).longValue();
           //      int thisLineAbsStart=60*(thatLine-1);
@@ -404,6 +414,7 @@ public class SeqProcessor implements Serializable{
      
 
         }
+        return(result);
         
     }
 
@@ -468,7 +479,7 @@ public class SeqProcessor implements Serializable{
 
        else{
            if(end_loc%60==0){
-            result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).charAt(end_loc); 
+            result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).charAt(endLocIdxInLine); 
            }
            else{
             result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
@@ -595,10 +606,10 @@ return(result);
 
           
             if(innerSum!=totalSum){
-                System.out.println("outer if");
+               
                if(scoreVetor[i-2]+ scoreVetor[i+intervalength+1] ==0 &&scoreVetor[i-1]+scoreVetor[i+intervalength]==0){ //idx i is the start idx of the middle spacer
                   PalindromeStartIdx.add(i);
-                  System.out.println("inner if");
+                
                }            
             }            
           }
