@@ -34,8 +34,19 @@ public class SeqProcessor implements Serializable{
 
 
         JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLine( inputs,  possibleLeadRegion);
-        JavaPairRDD<String,Integer> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
-        test.saveAsTextFile("crispr_test");
+        JavaPairRDD<String,Iterable<Integer>> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
+        // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
+        List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
+        result=test.lookup("ATGCATCCATCC");
+        Iterable<Integer> data=result.get(0);
+        Iterator<Integer> itr=data.iterator();
+
+        while(itr.hasNext()){
+            System.out.println(itr.next());
+        }
+        
+        // JavaPairRDD<String,Integer> test2=test.groupByKey();
+        // test2.saveAsTextFile("crispr_test_2");
        // inputs.saveAsTextFile("crispr_test");
 
         // ArrayList<JavaPairRDD<String,Long>> result =proc.findCrisprRepeats( inputs,possibleLeadRegion,  threePrimeRegions);
@@ -216,7 +227,7 @@ public class SeqProcessor implements Serializable{
     }
 
 
-    public JavaPairRDD<String,Integer> getPossibleTransormedSpacerRegions(JavaRDD<String> seqs,JavaPairRDD<String,Long> threePrimeLine,int spacer_size,int windowSize){
+    public JavaPairRDD<String,Iterable<Integer>> getPossibleTransormedSpacerRegions(JavaRDD<String> seqs,JavaPairRDD<String,Long> threePrimeLine,int spacer_size,int windowSize){
            final int spacer_seg_len=spacer_size;
            final List<String> fastaSeqs=seqs.collect();
            final int rankWindowSize=windowSize;
@@ -259,8 +270,31 @@ public class SeqProcessor implements Serializable{
                     return(result);   
                 }
            });
+        
+        JavaRDD<Integer> temp=spacers.values();
+        List<Integer>spacersStarts=temp.takeOrdered((int)temp.count());
+       final  ArrayList<Integer> spacersStarts_refined=new ArrayList<Integer>();
+        for(int i=0; i<spacersStarts.size();i++){
+            int thisStart=spacersStarts.get(i);
+            
+            if(i==spacersStarts.size()-1){
+                  break;
+            }
+              if(spacersStarts.get(i+1)-thisStart<=200){
+                spacersStarts_refined.add(thisStart);
+            }  
 
-        return(spacers);
+        }
+
+        JavaPairRDD<String,Integer> spacers_filtered=spacers.filter(new Function<Tuple2<String,Integer>, Boolean>(){
+            public Boolean call(Tuple2<String,Integer> keyValue){
+                int thisStart=keyValue._2();
+                return(spacersStarts_refined.contains(thisStart));
+            }
+        });
+        
+        JavaPairRDD<String,Iterable<Integer>> result=spacers_filtered.groupByKey();
+        return(result);
 
     }
 
