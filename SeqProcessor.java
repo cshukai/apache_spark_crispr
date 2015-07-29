@@ -22,19 +22,22 @@ CRISPR is an array of inverted repeats (approximately 20–50 bp each) separated
 public class SeqProcessor implements Serializable{
 
 	public static void main(String [ ] args) throws Exception{
-		// SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
-		// JavaSparkContext sc=new JavaSparkContext(conf); 		
+		SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
+		JavaSparkContext sc=new JavaSparkContext(conf); 		
 		SeqProcessor proc=new SeqProcessor();
-		// final double cutoff=0.70;
+		final double cutoff=0.70;
 
-		// JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-   
-		// JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-  //       ArrayList<Long[]> possibleLeadRegion=proc.flagLeadLine(freq_region);
+		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+        
+		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+        ArrayList<Long[]> possibleLeadRegion=proc.flagLeadLine(freq_region);
 
 
-  //       JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLine( inputs,  possibleLeadRegion);
-  //       threePrimeRegions.saveAsTextFile("crispr_test");
+        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLine( inputs,  possibleLeadRegion);
+        JavaPairRDD<String,Integer> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
+        test.saveAsTextFile("crispr_test");
+       // inputs.saveAsTextFile("crispr_test");
+
         // ArrayList<JavaPairRDD<String,Long>> result =proc.findCrisprRepeats( inputs,possibleLeadRegion,  threePrimeRegions);
         // JavaPairRDD<String,Long> test= result.get(0);
         // test.saveAsTextFile("crispr_test_2");
@@ -44,11 +47,13 @@ public class SeqProcessor implements Serializable{
         // }
 
            
-    String test="TTGATGGCCTGCTGTAAAAT";
-    String result=proc.rankBaseByDominance(test,18);
-    System.out.println(result);
-
-       
+    // String test="TTGATGGCCTGCTGTAAAAT";
+  
+    //    List<String> seqs=inputs.collect();
+    //    String testsubstring=proc.getSubstring(seqs,24,43);
+    //    System.out.println(testsubstring);
+    //      String result=proc.rankBaseByDominance(testsubstring,18);
+    // System.out.println(result);
 
 	}
     //nu_1,nu_2 are upper case 
@@ -211,39 +216,53 @@ public class SeqProcessor implements Serializable{
     }
 
 
-    // public JavaPairRDD<String,Integer> getPossibleSpacerRegions(List<String> fastaSeqs,JavaPairRDD<String,Long> threePrimeLine,int spacer_seg_len){
-    //        JavaPairRDD<String,Integer> spacers=threePrimeLine.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>,String,Integer>(){
-    //             @Override
-    //             public Iterable<Tuple2<K,V>> call(Tuple2<String, Long> keyValue){
-    //                 Long lineNum=keyValue._2();
-    //                 String text=keyValue._1().toUpperCase();
-    //                 int start_idx_1=0;
-    //                 int start_idx_2=0;
-    //                 ArrayList<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>> ();
-    //                 while(findMore){
-    //                     int idx_1=text.indexOf("GAAAG",start_idx_1);
-    //                     int idx_2=text.indexOf("GAAAC",start_idx_2);
-    //                     if(idx_1>=0){
-    //                          String thisSeq=getSubstring(text,idx_1+1,idx_1+20)
-    //                          result.add(new Tuple2<String,Integer>(,idx_1));                           
-    //                          start_idx_1=idx_1+5;
-    //                     }
+    public JavaPairRDD<String,Integer> getPossibleTransormedSpacerRegions(JavaRDD<String> seqs,JavaPairRDD<String,Long> threePrimeLine,int spacer_size,int windowSize){
+           final int spacer_seg_len=spacer_size;
+           final List<String> fastaSeqs=seqs.collect();
+           final int rankWindowSize=windowSize;
+           JavaPairRDD<String,Integer> spacers=threePrimeLine.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>,String,Integer>(){
+                @Override
+                public Iterable<Tuple2<String,Integer>> call(Tuple2<String, Long> keyValue){
+                    Long lineNum=keyValue._2();
+                    String text=keyValue._1().toUpperCase();
+                    int start_idx_1=0;
+                    int start_idx_2=0;
+                    boolean findMore=true;
+                    ArrayList<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>> ();
+                    while(findMore){
+                        int idx_1=text.indexOf("GAAAG",start_idx_1);
+                        int idx_2=text.indexOf("GAAAC",start_idx_2);
+                        if(idx_1>=0){
+                             int thisThreePrimeAbsStart=(Integer.parseInt(lineNum.toString())-1)*60+idx_1+1;
+                             int thisThreePrimeAbsEnd=thisThreePrimeAbsStart+spacer_seg_len-1;
+                             String thisSeq=getSubstring(fastaSeqs,thisThreePrimeAbsStart,thisThreePrimeAbsEnd);
+                             String thisRank=rankBaseByDominance(thisSeq,rankWindowSize);
+                             result.add(new Tuple2<String,Integer>(thisRank,thisThreePrimeAbsStart));                           
+                             start_idx_1=idx_1+5;
+                        }
 
-    //                     else{
-    //                         if(idx_2>=0){
-    //                             threePrimeAbsLocs.add(60*(thisLine-1)+idx_2+1) ;                             
-    //                             start_idx_2=idx_2+5;
-    //                         }
+                        else{
+                            if(idx_2>=0){
+                                 int thisThreePrimeAbsStart=(Integer.parseInt(lineNum.toString())-1)*60+idx_2+1;
+                                 int thisThreePrimeAbsEnd=thisThreePrimeAbsStart+spacer_seg_len-1;
+                                 String thisSeq=getSubstring(fastaSeqs,thisThreePrimeAbsStart,thisThreePrimeAbsEnd);
+                                 String thisRank=rankBaseByDominance(thisSeq,rankWindowSize);
+                                 result.add(new Tuple2<String,Integer>(thisRank,thisThreePrimeAbsStart));                           
+                                 start_idx_2=idx_2+5;
+                            }
 
-    //                         else{
-    //                             findMore=false;
-    //                         }                               
-    //                     }
-    //                 }    
-    //             }
-    //        });
+                            else{
+                                findMore=false;
+                            }                               
+                        }
+                    } 
+                    return(result);   
+                }
+           });
 
-    // }
+        return(spacers);
+
+    }
 
 
  // public ArrayList<JavaPairRDD<String,Long>> findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
@@ -432,11 +451,13 @@ public class SeqProcessor implements Serializable{
             startLine=startLine-1;
             startLocIdxInLine=59;
         }
+
         else{
             startLocIdxInLine=start_loc-(startLine-1)*60-1;
         }
 
         if(end_loc%60==0){
+            endLine=endLine-1;
             endLocIdxInLine=59;
         }
         else{
@@ -452,9 +473,18 @@ public class SeqProcessor implements Serializable{
         
      if(startLine==endLine){
         if(end_loc%60==0){
-            result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).charAt(end_loc); 
+            System.out.println("start line:"+startLine);
+           System.out.println("end line:"+endLine);
+           System.out.println("start Idx:"+startLocIdxInLine);
+           System.out.println("end Idx:"+endLocIdxInLine);
+           // result=part.substring(startLocIdxInLine,part.length()-1)+part.charAt(endLocIdxInLine); 
+            result=part.substring(startLocIdxInLine,endLocIdxInLine+1); 
            }
         else{
+            System.out.println("start line:"+startLine);
+           System.out.println("end line:"+endLine);
+           System.out.println("start Idx:"+startLocIdxInLine);
+           System.out.println("end Idx:"+endLocIdxInLine);
          result=part.substring(startLocIdxInLine,endLocIdxInLine+1);   
         }  
          
@@ -485,7 +515,14 @@ public class SeqProcessor implements Serializable{
             result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).charAt(endLocIdxInLine); 
            }
            else{
-            result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
+                 System.out.println("start line:"+startLine);
+           System.out.println("end line:"+endLine);
+           System.out.println("start Idx:"+startLocIdxInLine);
+           System.out.println("end Idx:"+endLocIdxInLine);
+           System.out.println("resul 1:"+part.substring(startLocIdxInLine,part.length()-1));
+                      System.out.println("resul 2:"+seqFile.get(endLine).substring(0,endLocIdxInLine));
+
+            result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
 
            }
       }
@@ -661,20 +698,26 @@ return(result);
 
 
             }
-          int[] compareArry=new int[4];
-           compareArry[0]=A_count;
-           compareArry[1]=C_count;
-           compareArry[2]=G_count;
-           compareArry[3]=T_count;      
-           int[] refArry=compareArry;
+           int[] refArry=new int[4];
+           refArry[0]=A_count;
+           refArry[1]=C_count;
+           refArry[2]=G_count;
+           refArry[3]=T_count;      
            Arrays.sort(refArry);
+
+           ArrayList<Integer> search= new ArrayList<Integer> ();
+           search.add(A_count);
+           search.add(C_count);
+           search.add(G_count);
+           search.add(T_count);
            System.out.println(A_count);
            System.out.println(C_count);
            System.out.println(G_count);
            System.out.println(T_count);
            for(int m=3;m>=0;m--){
-               int alphaIndx=Arrays.binarySearch(compareArry,refArry[m]);
+               int alphaIndx=search.indexOf(refArry[m]);
                System.out.println("ref"+refArry[m]);
+               System.out.println("alphaIndx"+alphaIndx);
                if(alphaIndx==0){
                 result=result+"A";
                }
