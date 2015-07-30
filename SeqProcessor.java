@@ -15,7 +15,7 @@ import scala.Tuple2;
 
 /*
 
-CRISPR is an array of inverted repeats (approximately 20–50 bp each) separated by spacer sequences(approximately 20–75 bp each)[35].   
+CRISPR is an array of inverted repeats (approximately 20–50 bp each) separated by spacer sequences(approximately 20–75 bp each).   
 */
 
 
@@ -28,22 +28,31 @@ public class SeqProcessor implements Serializable{
 		final double cutoff=0.70;
 
 		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-        
-		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
-        ArrayList<Long[]> possibleLeadRegion=proc.flagLeadLine(freq_region);
+    JavaRDD<String> inputs_2=sc.textFile("bacteria/crispr/data/Methanobrevibacter_smithii_atcc_35061.GCA_000016525.1.26.dna.chromosome.Chromosome.fa");
 
+		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+    JavaPairRDD<String,Long>  freq_region_2=proc.computeRegionFract(inputs_2,'A','T',cutoff);
+
+    ArrayList<Long[]> possibleLeadRegion=proc.flagLeadLine(freq_region);
+    ArrayList<Long[]> possibleLeadRegion_2=proc.flagLeadLine(freq_region_2);
 
         JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLine( inputs,  possibleLeadRegion);
-        JavaPairRDD<String,Iterable<Integer>> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
-        // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
-        List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
-        result=test.lookup("ATGCATCCATCC");
-        Iterable<Integer> data=result.get(0);
-        Iterator<Integer> itr=data.iterator();
+        JavaPairRDD<String,Long> threePrimeRegions_2= proc.flagThreePrimeLine( inputs_2,  possibleLeadRegion_2);
 
-        while(itr.hasNext()){
-            System.out.println(itr.next());
-        }
+        JavaPairRDD<String,Integer> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
+        JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
+       proc.getSpacerStarts(test,test_2);
+
+        // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
+        // List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
+        // List<Integer> result= new ArrayList<Integer>();
+        // result=test.lookup("ATGCATCCATCC");
+        // Iterable<Integer> data=result.get(0);
+        // Iterator<Integer> itr=data.iterator();
+    
+        // while(itr.hasNext()){
+            // System.out.println(itr.next());
+        // }
         
         // JavaPairRDD<String,Integer> test2=test.groupByKey();
         // test2.saveAsTextFile("crispr_test_2");
@@ -227,7 +236,7 @@ public class SeqProcessor implements Serializable{
     }
 
 
-    public JavaPairRDD<String,Iterable<Integer>> getPossibleTransormedSpacerRegions(JavaRDD<String> seqs,JavaPairRDD<String,Long> threePrimeLine,int spacer_size,int windowSize){
+    public JavaPairRDD<String,Integer> getPossibleTransormedSpacerRegions(JavaRDD<String> seqs,JavaPairRDD<String,Long> threePrimeLine,int spacer_size,int windowSize){
            final int spacer_seg_len=spacer_size;
            final List<String> fastaSeqs=seqs.collect();
            final int rankWindowSize=windowSize;
@@ -280,7 +289,7 @@ public class SeqProcessor implements Serializable{
             if(i==spacersStarts.size()-1){
                   break;
             }
-              if(spacersStarts.get(i+1)-thisStart<=200){
+              if(spacersStarts.get(i+1)-thisStart<=200){//distance between two adjacent spacer should not be over 200
                 spacersStarts_refined.add(thisStart);
             }  
 
@@ -293,12 +302,41 @@ public class SeqProcessor implements Serializable{
             }
         });
         
-        JavaPairRDD<String,Iterable<Integer>> result=spacers_filtered.groupByKey();
-        return(result);
+        //JavaPairRDD<String,Iterable<Integer>> result=spacers_filtered.groupByKey();
+        return(spacers_filtered);
 
     }
 
+    // output array : 0- spacer start for spec 1 ;1-spacer start for spec 2
+    //ArrayList<Integer>[]
+    public void  getSpacerStarts(JavaPairRDD<String,Integer> spec_1_poss_spacer,JavaPairRDD<String,Integer> spec_2_poss_spacer){
+        JavaRDD<String> spec_1_key=spec_1_poss_spacer.keys();
+        JavaRDD<String> spec_2_key=spec_2_poss_spacer.keys();
+        List<String> common_keys=spec_1_key.intersection(spec_2_key).collect();
+         for(int i=0;i<common_keys.size();i++){
+          String thisCommokey=common_keys.get(i);
+          final List<Integer> pos_spec1=spec_1_poss_spacer.lookup(thisCommokey);
+          final List<Integer> pos_spec2=spec_2_poss_spacer.lookup(thisCommokey);
+          
+          JavaPairRDD<String,Integer> this_left_pos_spec1= spec_1_poss_spacer.filter(new Function<Tuple2<String, Integer>, Boolean>(){
+                @Override
+                public Boolean call(Tuple2<String,Integer> keyValue){
+                    boolean detected=false;
+                    int thisStart=keyValue._2();
+                    for(int j=0;j<pos_spec1.size();j++){
+                      if(pos_spec1.get(j)-thisStart<200 && pos_spec1.get(j)-thisStart>=20){
+                        detected=true;
+                      }
+                    }       
+                    return (detected);
+                }
+            });
 
+
+
+
+        }
+    }
  // public ArrayList<JavaPairRDD<String,Long>> findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
  //            //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
  //            // assuming max size of repeat unit 150 bp
@@ -689,11 +727,7 @@ return(result);
           }
         }
 
-        
 
-
-
-        
       return(PalindromeStartIdx);
         
     }
