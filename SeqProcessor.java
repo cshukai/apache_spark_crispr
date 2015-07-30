@@ -41,6 +41,7 @@ public class SeqProcessor implements Serializable{
 
         JavaPairRDD<String,Integer> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
         JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
+        test_2.saveAsTextFile("crispr_test");
        proc.getSpacerStarts(test,test_2);
 
         // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
@@ -310,14 +311,21 @@ public class SeqProcessor implements Serializable{
     // output array : 0- spacer start for spec 1 ;1-spacer start for spec 2
     //ArrayList<Integer>[]
     public void  getSpacerStarts(JavaPairRDD<String,Integer> spec_1_poss_spacer,JavaPairRDD<String,Integer> spec_2_poss_spacer){
+        ArrayList<Integer> spec1_result=new ArrayList<Integer>();
+        ArrayList<Integer> spec2_result=new ArrayList<Integer>();
+
+
         JavaRDD<String> spec_1_key=spec_1_poss_spacer.keys();
         JavaRDD<String> spec_2_key=spec_2_poss_spacer.keys();
         List<String> common_keys=spec_1_key.intersection(spec_2_key).collect();
+         
+
          for(int i=0;i<common_keys.size();i++){
           String thisCommokey=common_keys.get(i);
           final List<Integer> pos_spec1=spec_1_poss_spacer.lookup(thisCommokey);
           final List<Integer> pos_spec2=spec_2_poss_spacer.lookup(thisCommokey);
           
+          // filtering out impossible left position 
           JavaPairRDD<String,Integer> this_left_pos_spec1= spec_1_poss_spacer.filter(new Function<Tuple2<String, Integer>, Boolean>(){
                 @Override
                 public Boolean call(Tuple2<String,Integer> keyValue){
@@ -332,9 +340,69 @@ public class SeqProcessor implements Serializable{
                 }
             });
 
+          JavaPairRDD<String,Integer> this_left_pos_spec2= spec_2_poss_spacer.filter(new Function<Tuple2<String, Integer>, Boolean>(){
+                @Override
+                public Boolean call(Tuple2<String,Integer> keyValue){
+                    boolean detected=false;
+                    int thisStart=keyValue._2();
+                    for(int j=0;j<pos_spec2.size();j++){
+                      if(pos_spec2.get(j)-thisStart<200 && pos_spec2.get(j)-thisStart>=20){
+                        detected=true;
+                      }
+                    }       
+                    return (detected);
+                }
+            });
 
+          // find if spec 1 and spec 2 have same transition pattern in terms of rank seq
 
+          List<String> commonRankSeqs=this_left_pos_spec1.keys().intersection(this_left_pos_spec2.keys()).collect();
+          if(commonRankSeqs.size()==0){
+            System.out.println("no common rank seq");
+             break;
+             
+          }
 
+          else{
+              for(int k=0;k<commonRankSeqs.size();k++){
+                   String thisRankSeq=commonRankSeqs.get(k);
+                   List<Integer> spec1_spacers=this_left_pos_spec1.lookup(thisRankSeq);
+                   List<Integer> spec2_spacers=this_left_pos_spec2.lookup(thisRankSeq);
+
+                   for(int m=0;m<spec1_spacers.size();m++){
+                       int this_spec_1_left_pos=spec1_spacers.get(m);
+                       for(int n=0;n<pos_spec1.size();n++){
+                         int this_pos_spec_1=pos_spec1.get(n);
+                           if(this_pos_spec_1-this_spec_1_left_pos<200 && this_pos_spec_1-this_spec_1_left_pos>20 ){
+                              spec1_result.add(this_spec_1_left_pos);
+                              spec1_result.add(this_pos_spec_1);
+                           }
+                       }
+                   }
+
+                   for(int a=0;a<spec1_spacers.size();a++){
+                        int this_spec_2_left_pos=spec2_spacers.get(a);
+                       for(int n=0;n<pos_spec2.size();n++){
+                         int this_pos_spec_2=pos_spec2.get(n);
+                           if(this_pos_spec_2-this_spec_2_left_pos<200 && this_pos_spec_2-this_spec_2_left_pos>20 ){
+                              spec2_result.add(this_spec_2_left_pos);
+                              spec2_result.add(this_pos_spec_2);
+                           }
+                       }
+
+                   }
+
+              }
+          }
+
+          System.out.println("---------------------");
+          for(int h=0;h<spec1_result.size();h++){
+            System.out.println(spec1_result.get(h));
+          }
+          System.out.println("------------------");
+             for(int h=0;h<spec2_result.size();h++){
+            System.out.println(spec2_result.get(h));
+          }
         }
     }
  // public ArrayList<JavaPairRDD<String,Long>> findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
