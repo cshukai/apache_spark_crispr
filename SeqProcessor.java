@@ -13,22 +13,21 @@ import java.io.Serializable;
 import java.util.*;
 import scala.Tuple2;
 
-/*
-
-CRISPR is an array of inverted repeats (approximately 20–50 bp each) separated by spacer sequences(approximately 20–75 bp each).   
-*/
 
 
 public class SeqProcessor implements Serializable{
 
 	public static void main(String [ ] args) throws Exception{
 		SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
+
 		JavaSparkContext sc=new JavaSparkContext(conf); 		
 		SeqProcessor proc=new SeqProcessor();
-		final double cutoff=0.70;
+		final double cutoff=0.6;
 
-		JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-    JavaRDD<String> inputs_2=sc.textFile("bacteria/crispr/data/Methanobrevibacter_smithii_atcc_35061.GCA_000016525.1.26.dna.chromosome.Chromosome.fa");
+		// JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+  //   JavaRDD<String> inputs_2=sc.textFile("bacteria/crispr/data/Methanobrevibacter_smithii_atcc_35061.GCA_000016525.1.26.dna.chromosome.Chromosome.fa");
+    JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Escherichia_coli_bl21_de3_gca_000009565_2.GCA_000009565.2.26.dna.genome.fa");
+    JavaRDD<String> inputs_2=sc.textFile("bacteria/crispr/data/Escherichia_coli_bl21_de3_gca_000022665_2.GCA_000022665.2.26.dna.genome.fa");
 
 		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
     JavaPairRDD<String,Long>  freq_region_2=proc.computeRegionFract(inputs_2,'A','T',cutoff);
@@ -359,7 +358,8 @@ public class SeqProcessor implements Serializable{
            
           List<String> commonRankSeqs=this_left_pos_spec1.keys().intersection(this_left_pos_spec2.keys()).collect();
           if(commonRankSeqs.size()==0){
-            System.out.println("no common rank seq");
+   
+
              break;
              
           }
@@ -388,15 +388,11 @@ public class SeqProcessor implements Serializable{
                                     if(this_pos_spec_2-this_spec_2_left_pos<200 && this_pos_spec_2-this_spec_2_left_pos>=20 ){
                                         String left_string_2=getSubstring(seqs_string_2,this_spec_2_left_pos,this_spec_2_left_pos+20);
                                         String thisString_2=getSubstring(seqs_string_2,this_pos_spec_2,this_pos_spec_2+20);
-                                        // System.out.println("===================================================================================");
-                                        // System.out.println("start:"+this_spec_2_left_pos);
-                                        // System.out.println("===================================================================================");
+                                      
                                          int alignmentScore=0;
                                          int alingmentScore_left=0;
                                          
-                                          // System.out.println("===================================================================================");
-                                          //     System.out.println("string:"+thisString_1+"  String:"+thisString_2);
-                                          //     System.out.println("===================================================================================");
+                                          
                                        for(int t=0;t<thisString_1.length();t++){
 
                                           if(thisString_1.charAt(t)==thisString_2.charAt(t)){
@@ -412,12 +408,7 @@ public class SeqProcessor implements Serializable{
                                           }
                                       }
 
-                                              System.out.println("===================================================================================");
-                                              System.out.println("this string align:"+alignmentScore);
-                                              System.out.println("===================================================================================");
-                                               System.out.println("===================================================================================");
-                                              System.out.println("left align:"+alingmentScore_left);
-                                              System.out.println("===================================================================================");        
+                                             
                                       
                                       if(alignmentScore>=18 &&alingmentScore_left>=18){
                                        spec1_result.add(this_spec_1_left_pos);
