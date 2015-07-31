@@ -42,7 +42,7 @@ public class SeqProcessor implements Serializable{
         JavaPairRDD<String,Integer> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
         JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
         test_2.saveAsTextFile("crispr_test");
-       proc.getSpacerStarts(test,test_2);
+       proc.getSpacerStarts(inputs,inputs_2,test,test_2);
 
         // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
         // List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
@@ -310,16 +310,17 @@ public class SeqProcessor implements Serializable{
 
     // output array : 0- spacer start for spec 1 ;1-spacer start for spec 2
     //ArrayList<Integer>[]
-    public void  getSpacerStarts(JavaPairRDD<String,Integer> spec_1_poss_spacer,JavaPairRDD<String,Integer> spec_2_poss_spacer){
+    public void  getSpacerStarts(JavaRDD<String> seqs,JavaRDD<String> seqs_2,JavaPairRDD<String,Integer> spec_1_poss_spacer,JavaPairRDD<String,Integer> spec_2_poss_spacer){
         ArrayList<Integer> spec1_result=new ArrayList<Integer>();
         ArrayList<Integer> spec2_result=new ArrayList<Integer>();
-
-
+        
+        List<String> seqs_string=seqs.collect();
+        List<String> seqs_string_2=seqs_2.collect();
         JavaRDD<String> spec_1_key=spec_1_poss_spacer.keys();
         JavaRDD<String> spec_2_key=spec_2_poss_spacer.keys();
         List<String> common_keys=spec_1_key.intersection(spec_2_key).collect();
          
-
+         
          for(int i=0;i<common_keys.size();i++){
           String thisCommokey=common_keys.get(i);
           final List<Integer> pos_spec1=spec_1_poss_spacer.lookup(thisCommokey);
@@ -355,7 +356,7 @@ public class SeqProcessor implements Serializable{
             });
 
           // find if spec 1 and spec 2 have same transition pattern in terms of rank seq
-
+           
           List<String> commonRankSeqs=this_left_pos_spec1.keys().intersection(this_left_pos_spec2.keys()).collect();
           if(commonRankSeqs.size()==0){
             System.out.println("no common rank seq");
@@ -365,45 +366,86 @@ public class SeqProcessor implements Serializable{
 
           else{
               for(int k=0;k<commonRankSeqs.size();k++){
+              
                    String thisRankSeq=commonRankSeqs.get(k);
                    List<Integer> spec1_spacers=this_left_pos_spec1.lookup(thisRankSeq);
                    List<Integer> spec2_spacers=this_left_pos_spec2.lookup(thisRankSeq);
 
                    for(int m=0;m<spec1_spacers.size();m++){
                        int this_spec_1_left_pos=spec1_spacers.get(m);
+
                        for(int n=0;n<pos_spec1.size();n++){
-                         int this_pos_spec_1=pos_spec1.get(n);
-                           if(this_pos_spec_1-this_spec_1_left_pos<200 && this_pos_spec_1-this_spec_1_left_pos>20 ){
-                              spec1_result.add(this_spec_1_left_pos);
-                              spec1_result.add(this_pos_spec_1);
+                           int this_pos_spec_1=pos_spec1.get(n);
+                           if(this_pos_spec_1-this_spec_1_left_pos<200 && this_pos_spec_1-this_spec_1_left_pos>=20 ){
+                            String left_string_1=getSubstring(seqs_string,this_spec_1_left_pos,this_spec_1_left_pos+20);
+                            String thisString_1=getSubstring(seqs_string,this_pos_spec_1,this_pos_spec_1+20);
+
+                              for(int a=0;a<spec2_spacers.size();a++){
+                                 int this_spec_2_left_pos=spec2_spacers.get(a);
+                                 for(int q=0;q<pos_spec2.size();q++){
+
+                                    int this_pos_spec_2=pos_spec2.get(q);
+                                    if(this_pos_spec_2-this_spec_2_left_pos<200 && this_pos_spec_2-this_spec_2_left_pos>=20 ){
+                                        String left_string_2=getSubstring(seqs_string_2,this_spec_2_left_pos,this_spec_2_left_pos+20);
+                                        String thisString_2=getSubstring(seqs_string_2,this_pos_spec_2,this_pos_spec_2+20);
+                                        // System.out.println("===================================================================================");
+                                        // System.out.println("start:"+this_spec_2_left_pos);
+                                        // System.out.println("===================================================================================");
+                                         int alignmentScore=0;
+                                         int alingmentScore_left=0;
+                                         
+                                          // System.out.println("===================================================================================");
+                                          //     System.out.println("string:"+thisString_1+"  String:"+thisString_2);
+                                          //     System.out.println("===================================================================================");
+                                       for(int t=0;t<thisString_1.length();t++){
+
+                                          if(thisString_1.charAt(t)==thisString_2.charAt(t)){
+                                              alignmentScore=alignmentScore+1;
+                                                                
+                                          }
+                                       }   
+                                      
+                                      for(int w=0;w<left_string_1.length();w++){
+                                          if(left_string_1.charAt(w)==left_string_2.charAt(w)){
+                                              alingmentScore_left=alingmentScore_left+1;
+                                                                   
+                                          }
+                                      }
+
+                                              System.out.println("===================================================================================");
+                                              System.out.println("this string align:"+alignmentScore);
+                                              System.out.println("===================================================================================");
+                                               System.out.println("===================================================================================");
+                                              System.out.println("left align:"+alingmentScore_left);
+                                              System.out.println("===================================================================================");        
+                                      
+                                      if(alignmentScore>=18 &&alingmentScore_left>=18){
+                                       spec1_result.add(this_spec_1_left_pos);
+                                       spec1_result.add(this_pos_spec_1);
+                                       spec2_result.add(this_spec_2_left_pos);
+                                       spec2_result.add(this_pos_spec_2);
+                                    }
+                            
+                              }
+                           
+                            
+                             
                            }
                        }
                    }
 
-                   for(int a=0;a<spec1_spacers.size();a++){
-                        int this_spec_2_left_pos=spec2_spacers.get(a);
-                       for(int n=0;n<pos_spec2.size();n++){
-                         int this_pos_spec_2=pos_spec2.get(n);
-                           if(this_pos_spec_2-this_spec_2_left_pos<200 && this_pos_spec_2-this_spec_2_left_pos>20 ){
-                              spec2_result.add(this_spec_2_left_pos);
-                              spec2_result.add(this_pos_spec_2);
-                           }
-                       }
+                 
+
+                
 
                    }
 
               }
           }
 
-          System.out.println("---------------------");
-          for(int h=0;h<spec1_result.size();h++){
-            System.out.println(spec1_result.get(h));
-          }
-          System.out.println("------------------");
-             for(int h=0;h<spec2_result.size();h++){
-            System.out.println(spec2_result.get(h));
-          }
         }
+        
+      } 
     }
  // public ArrayList<JavaPairRDD<String,Long>> findCrisprRepeats(JavaRDD<String> fastaRdd,ArrayList<Long[]> possibleLeadRegion,JavaPairRDD<String,Long> threePrimeRegions){
  //            //determine whether the first three prime flag can be found within reasonable distance from specified leader sequence
@@ -613,18 +655,11 @@ public class SeqProcessor implements Serializable{
         
      if(startLine==endLine){
         if(end_loc%60==0){
-            System.out.println("start line:"+startLine);
-           System.out.println("end line:"+endLine);
-           System.out.println("start Idx:"+startLocIdxInLine);
-           System.out.println("end Idx:"+endLocIdxInLine);
-           // result=part.substring(startLocIdxInLine,part.length()-1)+part.charAt(endLocIdxInLine); 
+ 
             result=part.substring(startLocIdxInLine,endLocIdxInLine+1); 
            }
         else{
-            System.out.println("start line:"+startLine);
-           System.out.println("end line:"+endLine);
-           System.out.println("start Idx:"+startLocIdxInLine);
-           System.out.println("end Idx:"+endLocIdxInLine);
+        
          result=part.substring(startLocIdxInLine,endLocIdxInLine+1);   
         }  
          
@@ -632,10 +667,7 @@ public class SeqProcessor implements Serializable{
      else{
         String middlePart="";
          if(endLine-startLine>1){
-           System.out.println("start line:"+startLine);
-           System.out.println("end line:"+endLine);
-           System.out.println("start Idx:"+startLocIdxInLine);
-           System.out.println("end Idx:"+endLocIdxInLine);
+    
            
            for(int n=1;n<endLine-startLine;n++){
             middlePart=middlePart+seqFile.get(startLine+n);
@@ -655,12 +687,7 @@ public class SeqProcessor implements Serializable{
             result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).charAt(endLocIdxInLine); 
            }
            else{
-                 System.out.println("start line:"+startLine);
-           System.out.println("end line:"+endLine);
-           System.out.println("start Idx:"+startLocIdxInLine);
-           System.out.println("end Idx:"+endLocIdxInLine);
-           System.out.println("resul 1:"+part.substring(startLocIdxInLine,part.length()-1));
-                      System.out.println("resul 2:"+seqFile.get(endLine).substring(0,endLocIdxInLine));
+             
 
             result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
 
