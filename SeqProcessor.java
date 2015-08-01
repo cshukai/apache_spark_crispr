@@ -35,13 +35,10 @@ public class SeqProcessor implements Serializable{
     ArrayList<Long[]> possibleLeadRegion=proc.flagLeadLine(freq_region);
     ArrayList<Long[]> possibleLeadRegion_2=proc.flagLeadLine(freq_region_2);
 
-        JavaPairRDD<String,Long> threePrimeRegions= proc.flagThreePrimeLine( inputs,  possibleLeadRegion);
-        JavaPairRDD<String,Long> threePrimeRegions_2= proc.flagThreePrimeLine( inputs_2,  possibleLeadRegion_2);
-
-        JavaPairRDD<String,Integer> test= proc.getPossibleTransormedSpacerRegions( inputs,threePrimeRegions,20, 18);
-        JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
-        test_2.saveAsTextFile("crispr_test");
-       proc.getSpacerStarts(inputs,inputs_2,test,test_2);
+      
+        JavaPairRDD<String,Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
+        // JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
+        test.saveAsTextFile("crispr_test");
 
         // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
         // List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
@@ -175,8 +172,10 @@ public class SeqProcessor implements Serializable{
 
 
 
-    // use the first and last possible leader sequence to find potential lines that contain three prime flags
-    public JavaPairRDD<String,Long> flagThreePrimeLine(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
+    // use the first and last possible leader sequence to find potential repeat and spacer locus
+    // use rank-based seqeunce to separate repeat and spacer seqeunce
+
+    public JavaPairRDD<String,Integer> flagPossibleRepeat(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
          final JavaPairRDD<String,Long> temp=input.zipWithIndex();
         
          //generate possibe regeions based on locaiotn of leader sequences
@@ -199,40 +198,48 @@ public class SeqProcessor implements Serializable{
                    }
               }
          }
-         // first filter then compute location
+
          JavaPairRDD<String,Long> potentialRegions=temp.filter(new Function<Tuple2<String, Long>, Boolean>(){
             @Override
             public Boolean call(Tuple2<String, Long> keyValue){
                 Long rowNum=keyValue._2();
                 String text=keyValue._1().toUpperCase();
-                Boolean detected=true;
-   
-                if(possibleLeadRegion_transformed.contains(Integer.parseInt(rowNum.toString()))){
-                
-
-
-                    int firstThreePrimeLoc_1=text.indexOf("GAAAG");
-                    int firstThreePrimeLoc_2=text.indexOf("GAAAC");
-                    if(firstThreePrimeLoc_1>=0 ||firstThreePrimeLoc_2>=0){
-                        detected= true;       
-                    }
-
-                    else{
-                        detected=false;
-                    }
-
-
-                }
-
-                else{
-                    detected= false;
-                }
-                return(detected);
+                return(possibleLeadRegion_transformed.contains(Integer.parseInt(rowNum.toString())));
             }
 
         });
 
-        return(potentialRegions);
+         // for every element in potetinalRegions, rank seq basesd on 20 mers  and calculate location  
+         // return a JavaPairRDD to record ranked-seq and start location of that rank-seq
+          JavaPairRDD<String,Integer> rankSeqOfRepeatSpacer=potentialRegions.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Long>,String,Integer>(){
+                @Override
+                public Iterable<Tuple2<String,Integer>> call(Tuple2<String, Long> keyValue){
+                    int lineNum=Integer.parseInt(keyValue._2().toString());
+                    String text=keyValue._1().toUpperCase();  
+                    String front=text.substring(0,29);
+                    String middle=text.substring(20,49);
+                    String back=text.substring(30,59); 
+
+                    String front_ranked=rankBaseByDominance(front,18); 
+                    String middle_ranked=rankBaseByDominance(middle,18); 
+                    String back_ranked=rankBaseByDominance(back,18); 
+
+                    int front_start=(lineNum-1)*60+1;
+                    int middle_start=(lineNum-1)*60+21;
+                    int back_start=(lineNum-1)*60+41;
+
+                    ArrayList<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>> ();
+                    result.add(new Tuple2<String,Integer>(front_ranked,front_start));
+                    result.add(new Tuple2<String,Integer>(middle_ranked,middle_start));
+                    result.add(new Tuple2<String,Integer>(back_ranked,back_start));
+
+
+
+
+                    return(result);   
+                }
+           });
+        return(rankSeqOfRepeatSpacer);
     }
 
 
