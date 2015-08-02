@@ -17,19 +17,19 @@ import scala.Tuple2;
 
 public class SeqProcessor implements Serializable{
 
-	public static void main(String [ ] args) throws Exception{
-		SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
+  public static void main(String [ ] args) throws Exception{
+    SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
 
-		JavaSparkContext sc=new JavaSparkContext(conf); 		
-		SeqProcessor proc=new SeqProcessor();
-		final double cutoff=0.6;
+    JavaSparkContext sc=new JavaSparkContext(conf);     
+    SeqProcessor proc=new SeqProcessor();
+    final double cutoff=0.6;
 
-		// JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+    // JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
   //   JavaRDD<String> inputs_2=sc.textFile("bacteria/crispr/data/Methanobrevibacter_smithii_atcc_35061.GCA_000016525.1.26.dna.chromosome.Chromosome.fa");
     JavaRDD<String> inputs=sc.textFile("bacteria/crispr/data/Escherichia_coli_bl21_de3_gca_000009565_2.GCA_000009565.2.26.dna.genome.fa");
     JavaRDD<String> inputs_2=sc.textFile("bacteria/crispr/data/Escherichia_coli_bl21_de3_gca_000022665_2.GCA_000022665.2.26.dna.genome.fa");
 
-		JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
+    JavaPairRDD<String,Long>  freq_region=proc.computeRegionFract(inputs,'A','T',cutoff);
     JavaPairRDD<String,Long>  freq_region_2=proc.computeRegionFract(inputs_2,'A','T',cutoff);
 
     ArrayList<Long[]> possibleLeadRegion=proc.flagLeadLine(freq_region);
@@ -37,9 +37,11 @@ public class SeqProcessor implements Serializable{
 
       
         JavaPairRDD<String,Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
-        // JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
+         // JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
         test.saveAsTextFile("crispr_test");
+        inputs.zipWithIndex().saveAsTextFile("crispr_test_2");
 
+        //AGGCCGGGTTTGCTTTTATGCAGCCGGCTTTTTTATGAAGAAATTATGGAGAAAAACGAC
         // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
         // List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
         // List<Integer> result= new ArrayList<Integer>();
@@ -64,27 +66,25 @@ public class SeqProcessor implements Serializable{
         // }
 
            
-    // String test="TTGATGGCCTGCTGTAAAAT";
   
-    //    List<String> seqs=inputs.collect();
-    //    String testsubstring=proc.getSubstring(seqs,24,43);
-    //    System.out.println(testsubstring);
-    //      String result=proc.rankBaseByDominance(testsubstring,18);
-    // System.out.println(result);
+       List<String> seqs=inputs.collect();
+       String testsubstring="AGGCCGGGTTTGCTTTTATG";
+         String result=proc.rankBaseByDominance(testsubstring,18);
+    System.out.println(result);
 
-	}
+  }
     //nu_1,nu_2 are upper case 
     //0-poor 1-rich
     //01,1  second line has right region enriched
   
-	public JavaPairRDD<String,Long> computeRegionFract(JavaRDD<String>  seqFiles, Character base_1,Character base_2, double cutoff ){
+  public JavaPairRDD<String,Long> computeRegionFract(JavaRDD<String>  seqFiles, Character base_1,Character base_2, double cutoff ){
         final double cut=cutoff;
         final Character nu_1=base_1;
         final Character nu_2=base_2;
         JavaRDD<String> di_rich_regions=seqFiles.map(new Function<String,String> (){
-        	@Override
-        	public String call(String line) {
-        		                               
+          @Override
+          public String call(String line) {
+                                           
                 line=line.toUpperCase();
                 
                 double left_hit=0.00;
@@ -92,17 +92,17 @@ public class SeqProcessor implements Serializable{
                 double seq_length=line.length();
                 String result="";
                 for(int i=0;i<seq_length;i++){
-                	
-                	Character thisLetter=line.charAt(i);     
-                	if(thisLetter.equals(nu_1)||thisLetter.equals(nu_2)){
-                		if(i>(seq_length/2)){
-                			right_hit=right_hit+1;
-                		}
-                		else{
-                			left_hit=left_hit+1;
-                		}
-                	}
-              	
+                  
+                  Character thisLetter=line.charAt(i);     
+                  if(thisLetter.equals(nu_1)||thisLetter.equals(nu_2)){
+                    if(i>(seq_length/2)){
+                      right_hit=right_hit+1;
+                    }
+                    else{
+                      left_hit=left_hit+1;
+                    }
+                  }
+                
                 }
 
                 double left_fraction=left_hit/(seq_length/2);
@@ -125,14 +125,14 @@ public class SeqProcessor implements Serializable{
                     result="01";
                 }                  
 
-       			return result;
-        	}
+            return result;
+          }
         }); 
 
-  		return (di_rich_regions.zipWithIndex());
+      return (di_rich_regions.zipWithIndex());
 
 
-	}
+  }
     
     // output :[start_line_num,end_line_number]
     public  ArrayList<Long[]> flagLeadLine(JavaPairRDD<String,Long> freq_region){
@@ -140,7 +140,7 @@ public class SeqProcessor implements Serializable{
         List<Long> left_rich_regions=freq_region.lookup("10");
         List<Long> right_rich_regions=freq_region.lookup("01");
 
-  		//extend full regions 
+      //extend full regions 
         ArrayList<Long[]> result= new ArrayList<Long[]>();  
         
         for(int i=0; i<full_regions.size();i++){
@@ -167,7 +167,7 @@ public class SeqProcessor implements Serializable{
             result.add(this_result);
         }
 
-  		return(result);
+      return(result);
     }
 
 
@@ -216,17 +216,17 @@ public class SeqProcessor implements Serializable{
                 public Iterable<Tuple2<String,Integer>> call(Tuple2<String, Long> keyValue){
                     int lineNum=Integer.parseInt(keyValue._2().toString());
                     String text=keyValue._1().toUpperCase();  
-                    String front=text.substring(0,29);
-                    String middle=text.substring(20,49);
-                    String back=text.substring(30,59); 
+                    String front=text.substring(0,19);
+                    String middle=text.substring(20,39);
+                    String back=text.substring(40,59); 
 
-                    String front_ranked=rankBaseByDominance(front,18); 
-                    String middle_ranked=rankBaseByDominance(middle,18); 
-                    String back_ranked=rankBaseByDominance(back,18); 
+                    String front_ranked=rankBaseByDominance(front,17); 
+                    String middle_ranked=rankBaseByDominance(middle,17); 
+                    String back_ranked=rankBaseByDominance(back,17); 
 
-                    int front_start=(lineNum-1)*60+1;
-                    int middle_start=(lineNum-1)*60+21;
-                    int back_start=(lineNum-1)*60+41;
+                    int front_start=lineNum*60+1;
+                    int middle_start=lineNum*60+21;
+                    int back_start=lineNum*60+41;
 
                     ArrayList<Tuple2<String, Integer>> result = new ArrayList<Tuple2<String, Integer>> ();
                     result.add(new Tuple2<String,Integer>(front_ranked,front_start));
@@ -235,10 +235,27 @@ public class SeqProcessor implements Serializable{
 
 
 
-
                     return(result);   
                 }
            });
+
+
+// JavaPairRDD<String,Integer> debug=potentialRegions.mapToPair(new PairFunction<Tuple2<String, Long>,String,Integer>(){
+//                 @Override
+//                 public Tuple2<String,Integer> call(Tuple2<String, Long> keyValue){
+//                     int lineNum=Integer.parseInt(keyValue._2().toString());
+//                     String text=keyValue._1().toUpperCase();  
+//                     // String front=text.substring(0,19);
+//                     // String middle=text.substring(20,39);
+//                     // String back=text.substring(40,59); 
+
+                    
+
+
+
+//                     return(new Tuple2(text,lineNum));   
+//                 }
+//            });
         return(rankSeqOfRepeatSpacer);
     }
 
