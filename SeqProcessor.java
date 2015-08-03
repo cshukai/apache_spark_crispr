@@ -36,20 +36,19 @@ public class SeqProcessor implements Serializable{
     ArrayList<Long[]> possibleLeadRegion_2=proc.flagLeadLine(freq_region_2);
 
       
-        ArrayList<Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
-         // JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
-        System.out.println(test.size());
-        for(int i=0;i<10;i++){
-          System.out.println(i);
-        }
-        //AGGCCGGGTTTGCTTTTATGCAGCCGGCTTTTTTATGAAGAAATTATGGAGAAAAACGAC
-        // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
-        // List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
-        // List<Integer> result= new ArrayList<Integer>();
-        // result=test.lookup("ATGCATCCATCC");
-        // Iterable<Integer> data=result.get(0);
-        // Iterator<Integer> itr=data.iterator();
-    
+       ArrayList<Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
+          //test.saveAsTextFile("crispr_test");
+        //  JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
+        // System.out.println(test.size());
+        // for(int i=0;i<10;i++){
+        //   System.out.println(i);
+        // }
+    System.out.println("========================================");   
+    System.out.println(test.size());
+    System.out.println("========================================");
+      for(int i=0;i<test.size();i++){
+         System.out.println(test.get(i));
+      }
         // while(itr.hasNext()){
             // System.out.println(itr.next());
         // }
@@ -221,9 +220,9 @@ public class SeqProcessor implements Serializable{
                     String middle=text.substring(20,39);
                     String back=text.substring(40,59); 
 
-                    String front_ranked=rankBaseByDominance(front,17); 
-                    String middle_ranked=rankBaseByDominance(middle,17); 
-                    String back_ranked=rankBaseByDominance(back,17); 
+                    String front_ranked=rankBaseByDominance(front,19); 
+                    String middle_ranked=rankBaseByDominance(middle,19); 
+                    String back_ranked=rankBaseByDominance(back,19); 
 
                     int front_start=lineNum*60+1;
                     int middle_start=lineNum*60+21;
@@ -241,14 +240,13 @@ public class SeqProcessor implements Serializable{
            });
 
 
-        JavaRDD<String> rankSeqs=rankSeqOfRepeatSpacer.keys();
-        List<String> keys=rankSeqs.takeOrdered((int)rankSeqs.count());
+        List<String> keys=rankSeqOfRepeatSpacer.groupByKey().keys().collect();
         ArrayList<Integer>repeatStarts=new ArrayList<Integer>();
         List<String> fastaseqs=input.collect();
         for(int a=0;a<keys.size();a++){
-            System.out.println("=============================================");
-            System.out.println(a);
-            System.out.println("=============================================");
+             System.out.println("========================================");   
+             System.out.println(keys.size());
+              System.out.println("========================================");
             List<Integer> suggestedPositionOfThisRepeat=rankSeqOfRepeatSpacer.lookup(keys.get(a));
             for(int b=0;b<suggestedPositionOfThisRepeat.size();b++){
                 if(b!=suggestedPositionOfThisRepeat.size()-1){
