@@ -36,11 +36,12 @@ public class SeqProcessor implements Serializable{
     ArrayList<Long[]> possibleLeadRegion_2=proc.flagLeadLine(freq_region_2);
 
       
-        JavaPairRDD<String,Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
+        ArrayList<Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
          // JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
-        test.saveAsTextFile("crispr_test");
-        inputs.zipWithIndex().saveAsTextFile("crispr_test_2");
-
+        System.out.println(test.size());
+        for(int i=0;i<10;i++){
+          System.out.println(i);
+        }
         //AGGCCGGGTTTGCTTTTATGCAGCCGGCTTTTTTATGAAGAAATTATGGAGAAAAACGAC
         // // JavaPairRDD<Tuple2<String,Integer>,Long> test2=test.zipWithIndex();
         // List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
@@ -67,10 +68,10 @@ public class SeqProcessor implements Serializable{
 
            
   
-       List<String> seqs=inputs.collect();
-       String testsubstring="AGGCCGGGTTTGCTTTTATG";
-         String result=proc.rankBaseByDominance(testsubstring,18);
-    System.out.println(result);
+    //    List<String> seqs=inputs.collect();
+    //    String testsubstring="AGGCCGGGTTTGCTTTTATG";
+    //      String result=proc.rankBaseByDominance(testsubstring,18);
+    // System.out.println(result);
 
   }
     //nu_1,nu_2 are upper case 
@@ -175,7 +176,7 @@ public class SeqProcessor implements Serializable{
     // use the first and last possible leader sequence to find potential repeat and spacer locus
     // use rank-based seqeunce to separate repeat and spacer seqeunce
 
-    public JavaPairRDD<String,Integer> flagPossibleRepeat(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
+    public ArrayList<Integer> flagPossibleRepeat(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
          final JavaPairRDD<String,Long> temp=input.zipWithIndex();
         
          //generate possibe regeions based on locaiotn of leader sequences
@@ -240,23 +241,40 @@ public class SeqProcessor implements Serializable{
            });
 
 
-// JavaPairRDD<String,Integer> debug=potentialRegions.mapToPair(new PairFunction<Tuple2<String, Long>,String,Integer>(){
-//                 @Override
-//                 public Tuple2<String,Integer> call(Tuple2<String, Long> keyValue){
-//                     int lineNum=Integer.parseInt(keyValue._2().toString());
-//                     String text=keyValue._1().toUpperCase();  
-//                     // String front=text.substring(0,19);
-//                     // String middle=text.substring(20,39);
-//                     // String back=text.substring(40,59); 
+        JavaRDD<String> rankSeqs=rankSeqOfRepeatSpacer.keys();
+        List<String> keys=rankSeqs.takeOrdered((int)rankSeqs.count());
+        ArrayList<Integer>repeatStarts=new ArrayList<Integer>();
+        List<String> fastaseqs=input.collect();
+        for(int a=0;a<keys.size();a++){
+            System.out.println("=============================================");
+            System.out.println(a);
+            System.out.println("=============================================");
+            List<Integer> suggestedPositionOfThisRepeat=rankSeqOfRepeatSpacer.lookup(keys.get(a));
+            for(int b=0;b<suggestedPositionOfThisRepeat.size();b++){
+                if(b!=suggestedPositionOfThisRepeat.size()-1){
+                  int first_start=suggestedPositionOfThisRepeat.get(b);
+                  int second_start=suggestedPositionOfThisRepeat.get(b+1);
+                  int proposedDist=second_start-first_start+1;
+                  if(proposedDist>40 && proposedDist<126){ 
+                     String firstUnit=getSubstring(fastaseqs,first_start,first_start+20);
+                     String secondUnit=getSubstring(fastaseqs,second_start,second_start+20);
+                     int alignmentScore=0;
+                     for(int c=0;c<firstUnit.length();c++){
+                        if(firstUnit.charAt(c)==secondUnit.charAt(c)){
+                           alignmentScore=alignmentScore+1;
+                        }
+                     }
+                     if(alignmentScore>18){
+                         repeatStarts.add(first_start);
+                         repeatStarts.add(second_start);
+                     }
 
-                    
+                  }
+                }
+            }
+        }
 
-
-
-//                     return(new Tuple2(text,lineNum));   
-//                 }
-//            });
-        return(rankSeqOfRepeatSpacer);
+        return(repeatStarts);
     }
 
 
@@ -888,14 +906,10 @@ return(result);
            search.add(C_count);
            search.add(G_count);
            search.add(T_count);
-           System.out.println(A_count);
-           System.out.println(C_count);
-           System.out.println(G_count);
-           System.out.println(T_count);
+       
            for(int m=3;m>=0;m--){
                int alphaIndx=search.indexOf(refArry[m]);
-               System.out.println("ref"+refArry[m]);
-               System.out.println("alphaIndx"+alphaIndx);
+               
                if(alphaIndx==0){
                 result=result+"A";
                }
