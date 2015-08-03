@@ -36,22 +36,19 @@ public class SeqProcessor implements Serializable{
     ArrayList<Long[]> possibleLeadRegion_2=proc.flagLeadLine(freq_region_2);
 
       
-       ArrayList<Integer> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
-          //test.saveAsTextFile("crispr_test");
-        //  JavaPairRDD<String,Integer> test_2= proc.getPossibleTransormedSpacerRegions( inputs_2,threePrimeRegions,20, 18);
-        // System.out.println(test.size());
-        // for(int i=0;i<10;i++){
-        //   System.out.println(i);
-        // }
-    System.out.println("========================================");   
-    System.out.println(test.size());
-    System.out.println("========================================");
-      for(int i=0;i<test.size();i++){
-         System.out.println(test.get(i));
-      }
-        // while(itr.hasNext()){
-            // System.out.println(itr.next());
-        // }
+      JavaPairRDD<String,Iterable<Integer>> test= proc.flagPossibleRepeat(inputs,possibleLeadRegion);
+
+        List<Iterable<Integer>> result= new ArrayList<Iterable<Integer>>();
+        result=test.lookup("TCGATCGATCGA");
+        Iterable<Integer> data=result.get(0);
+        Iterator<Integer> itr=data.iterator();
+
+        while(itr.hasNext()){
+            System.out.println(itr.next());
+        }
+       
+
+  
         
         // JavaPairRDD<String,Integer> test2=test.groupByKey();
         // test2.saveAsTextFile("crispr_test_2");
@@ -175,7 +172,7 @@ public class SeqProcessor implements Serializable{
     // use the first and last possible leader sequence to find potential repeat and spacer locus
     // use rank-based seqeunce to separate repeat and spacer seqeunce
 
-    public ArrayList<Integer> flagPossibleRepeat(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
+    public JavaPairRDD<String,Iterable<Integer>> flagPossibleRepeat(JavaRDD<String> input, ArrayList<Long[]>  possibleLeadRegion ){
          final JavaPairRDD<String,Long> temp=input.zipWithIndex();
         
          //generate possibe regeions based on locaiotn of leader sequences
@@ -220,9 +217,9 @@ public class SeqProcessor implements Serializable{
                     String middle=text.substring(20,39);
                     String back=text.substring(40,59); 
 
-                    String front_ranked=rankBaseByDominance(front,19); 
-                    String middle_ranked=rankBaseByDominance(middle,19); 
-                    String back_ranked=rankBaseByDominance(back,19); 
+                    String front_ranked=rankBaseByDominance(front,17); 
+                    String middle_ranked=rankBaseByDominance(middle,17); 
+                    String back_ranked=rankBaseByDominance(back,17); 
 
                     int front_start=lineNum*60+1;
                     int middle_start=lineNum*60+21;
@@ -240,39 +237,13 @@ public class SeqProcessor implements Serializable{
            });
 
 
-        List<String> keys=rankSeqOfRepeatSpacer.groupByKey().keys().collect();
-        ArrayList<Integer>repeatStarts=new ArrayList<Integer>();
-        List<String> fastaseqs=input.collect();
-        for(int a=0;a<keys.size();a++){
-             System.out.println("========================================");   
-             System.out.println(keys.size());
-              System.out.println("========================================");
-            List<Integer> suggestedPositionOfThisRepeat=rankSeqOfRepeatSpacer.lookup(keys.get(a));
-            for(int b=0;b<suggestedPositionOfThisRepeat.size();b++){
-                if(b!=suggestedPositionOfThisRepeat.size()-1){
-                  int first_start=suggestedPositionOfThisRepeat.get(b);
-                  int second_start=suggestedPositionOfThisRepeat.get(b+1);
-                  int proposedDist=second_start-first_start+1;
-                  if(proposedDist>40 && proposedDist<126){ 
-                     String firstUnit=getSubstring(fastaseqs,first_start,first_start+20);
-                     String secondUnit=getSubstring(fastaseqs,second_start,second_start+20);
-                     int alignmentScore=0;
-                     for(int c=0;c<firstUnit.length();c++){
-                        if(firstUnit.charAt(c)==secondUnit.charAt(c)){
-                           alignmentScore=alignmentScore+1;
-                        }
-                     }
-                     if(alignmentScore>18){
-                         repeatStarts.add(first_start);
-                         repeatStarts.add(second_start);
-                     }
+        JavaPairRDD<String,Iterable<Integer>> result=rankSeqOfRepeatSpacer.groupByKey();
+        final List<String> fastaseqs=input.collect();
+        
+        
 
-                  }
-                }
-            }
-        }
 
-        return(repeatStarts);
+        return(result);
     }
 
 
