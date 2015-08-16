@@ -58,7 +58,7 @@ public class MRSMRS implements Serializable{
 
 
     // output : Integer : interval length  ;  left arm start -location is 5'->3' 
-    public  JavaPairRDD <Integer,Integer> fetchPalindromeArms(JavaPairRDD <String, Integer> parsedMRSMRSresult,int min_interval_len,int max_interval_len,int armlen){
+    public  JavaPairRDD <Integer, Integer> fetchPalindromeArms(JavaPairRDD <String, Integer> parsedMRSMRSresult,int min_interval_len,int max_interval_len,int armlen){
            final  int min_dist=2*armlen+min_interval_len;
            final  int max_dist=2*armlen+max_interval_len;
            final  int arm_len=armlen;
@@ -71,7 +71,7 @@ public class MRSMRS implements Serializable{
 
             });
     	 	JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult_filtered.groupByKey();
-            JavaPairRDD<Integer,Integer> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer,Integer>(){
+            JavaPairRDD<Integer, Integer> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer, Integer>(){
                 @Override
                 public Iterable<Tuple2<Integer,Integer>> call(Tuple2<String, Iterable<Integer>> keyValue){
                  Iterable<Integer>data =keyValue._2();
@@ -114,7 +114,10 @@ public class MRSMRS implements Serializable{
                                             int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
                                             int thisPosLoc_corrected=thisPosLoc+1;
                                             int thisNegLoc_corrected=thisNegLoc-2;
+                                            // String negSide=thisNegLoc_corrected+":"+keyValue._1();
+                                            // String posSide=thisPosLoc_corrected+":"+keyValue._1();
                                             possibleRepeatUnits.add(new Tuple2<Integer,Integer>(thisNegLoc_corrected,thisPosLoc_corrected));
+                                            // possibleRepeatUnits.add(new Tuple2<String,String>(negSide,posSide));
                                         }   
                                     }
                                           
@@ -134,6 +137,8 @@ public class MRSMRS implements Serializable{
             });
 
         return(result);
+
+            
 
     }
 
