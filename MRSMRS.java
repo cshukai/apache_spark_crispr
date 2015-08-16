@@ -22,12 +22,13 @@ public class MRSMRS implements Serializable{
         MRSMRS mrsmrs=new MRSMRS();
         JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRStextOutput(input);
         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6);
-
+        test.saveAsTextFile("crispr_test");
         test_2.saveAsTextFile("crispr_test5");
     	
         System.out.println(test_2.first());
 
-    	
+    	// JavaPairRDD<String,Integer> test3=sc.sequenceFile("protist/CoarseGrain/word20",String.class,Integer.class);
+     //    test3.saveAsTextFile("crispr_test_2");
 
 
     }
@@ -61,7 +62,15 @@ public class MRSMRS implements Serializable{
            final  int min_dist=2*armlen+min_interval_len;
            final  int max_dist=2*armlen+max_interval_len;
            final  int arm_len=armlen;
-    	 	JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
+            JavaPairRDD <String, Integer> parsedMRSMRSresult_filtered=parsedMRSMRSresult.filter(new Function<Tuple2<String, Integer>, Boolean>(){
+                @Override
+                public Boolean call(Tuple2<String,Integer> keyValue){
+                    
+                    return(keyValue._1().length()==arm_len);
+                }
+
+            });
+    	 	JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult_filtered.groupByKey();
             JavaPairRDD<Integer,Integer> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer,Integer>(){
                 @Override
                 public Iterable<Tuple2<Integer,Integer>> call(Tuple2<String, Iterable<Integer>> keyValue){
@@ -84,16 +93,38 @@ public class MRSMRS implements Serializable{
 
                  Collections.sort(locs_on_postiveStrand);
                  Collections.sort(locs_on_negStrand);
-                 for(int j=0;j<locs_on_postiveStrand.size();j++){
+                 int iterationNum=locs_on_postiveStrand.size();
+                 for(int j=0;j<iterationNum;j++){
                      int thisPosLoc=locs_on_postiveStrand.get(j);
-                     for(int k=0;k<locs_on_negStrand.size();k++){
-                         int thisNegLoc=locs_on_negStrand.get(k);
-                         int size=thisNegLoc-thisPosLoc;
-                         if(size>=min_dist|| size<max_dist){
-                            int intervalSize=thisNegLoc-thisPosLoc+arm_len*2;
-                            possibleRepeatUnits.add(new Tuple2<Integer,Integer>(intervalSize,thisPosLoc));
-                         }
+                     if(j<iterationNum-2){
+                        int nextPosLoc=locs_on_postiveStrand.get(j+1);
+                        int nextTwoPosLoc=locs_on_postiveStrand.get(j+2); 
+                        int firstDist_pos=nextPosLoc-thisPosLoc;
+                        int secondDist_pos=nextTwoPosLoc-nextPosLoc;
+                        if(firstDist_pos<140 && secondDist_pos<140){
+                            int iterationNum_neg=locs_on_negStrand.size();
+                            for(int k=0;k<iterationNum_neg;k++){
+                                int thisNegLoc=locs_on_negStrand.get(k);
+                                if(k<iterationNum_neg-2){
+                                    int firstDist_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
+                                    int secondDist_neg=locs_on_negStrand.get(k+2)-locs_on_negStrand.get(k+1);
+                                    if(firstDist_neg<140 && secondDist_neg<140){
+                                        int size=thisNegLoc-thisPosLoc;
+                                        if(size>=min_dist && size<=max_dist){
+                                            int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
+                                            int thisPosLoc_corrected=thisPosLoc+1;
+                                            int thisNegLoc_corrected=thisNegLoc-2;
+                                            possibleRepeatUnits.add(new Tuple2<Integer,Integer>(thisNegLoc_corrected,thisPosLoc_corrected));
+                                        }   
+                                    }
+                                          
+                                }
+                           
+                            }
+                            
+                        }
                      }
+               
                  }
 
                  return(possibleRepeatUnits);
