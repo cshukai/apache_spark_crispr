@@ -19,13 +19,29 @@ public class MRSMRS implements Serializable{
     	JavaSparkContext sc=new JavaSparkContext(conf);   
   
         JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
+        // input.saveAsTextFile("crispr_test");
+        // JavaRDD<String> input_1=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/part-r-00042");
+        // input_1.saveAsTextFile("crispr_test_2");
         MRSMRS mrsmrs=new MRSMRS();
+
+
+        // JavaPairRDD<String,Integer> input=sc.sequenceFile("bacteria/crispr/test/limeload",String.class,Integer.class);
+        // input.saveAsTextFile("crispr_test");
+
         JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRStextOutput(input);
         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6);
+        // JavaPairRDD <Integer,Integer> test_10=mrsmrs.parsedMRSMRSresult()
         test.saveAsTextFile("crispr_test");
         test_2.saveAsTextFile("crispr_test5");
-    	
-        System.out.println(test_2.first());
+    	JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+        JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
+
+        test_3.saveAsTextFile("crispr_test_2");
+
+        System.out.println(test_2.count());
+        System.out.println(test_3.count());
+
+
 
     	// JavaPairRDD<String,Integer> test3=sc.sequenceFile("protist/CoarseGrain/word20",String.class,Integer.class);
      //    test3.saveAsTextFile("crispr_test_2");
@@ -62,15 +78,9 @@ public class MRSMRS implements Serializable{
            final  int min_dist=2*armlen+min_interval_len;
            final  int max_dist=2*armlen+max_interval_len;
            final  int arm_len=armlen;
-            JavaPairRDD <String, Integer> parsedMRSMRSresult_filtered=parsedMRSMRSresult.filter(new Function<Tuple2<String, Integer>, Boolean>(){
-                @Override
-                public Boolean call(Tuple2<String,Integer> keyValue){
-                    
-                    return(keyValue._1().length()==arm_len);
-                }
+   
+           JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
 
-            });
-    	 	JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult_filtered.groupByKey();
             JavaPairRDD<Integer, Integer> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer, Integer>(){
                 @Override
                 public Iterable<Tuple2<Integer,Integer>> call(Tuple2<String, Iterable<Integer>> keyValue){
@@ -114,10 +124,8 @@ public class MRSMRS implements Serializable{
                                             int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
                                             int thisPosLoc_corrected=thisPosLoc+1;
                                             int thisNegLoc_corrected=thisNegLoc-2;
-                                            // String negSide=thisNegLoc_corrected+":"+keyValue._1();
-                                            // String posSide=thisPosLoc_corrected+":"+keyValue._1();
+                                          
                                             possibleRepeatUnits.add(new Tuple2<Integer,Integer>(thisNegLoc_corrected,thisPosLoc_corrected));
-                                            // possibleRepeatUnits.add(new Tuple2<String,String>(negSide,posSide));
                                         }   
                                     }
                                           
@@ -142,7 +150,162 @@ public class MRSMRS implements Serializable{
 
     }
 
+    // filter out incorrect repeat happenning in limeload step in MRSMRS
+    public JavaPairRDD <Integer, Integer> filterOutBadMrsMrsResult(JavaRDD<String> fasta_seqs,JavaPairRDD <Integer, Integer> unfiltered_result,int armLen){
+           final List<String> fastaSeqs=fasta_seqs.collect();
+           final int totalArmLen=armLen;
+           JavaPairRDD <Integer, Integer> result_filtered=unfiltered_result.filter(new Function<Tuple2<Integer,Integer>, Boolean>(){
+            @Override
+            public Boolean call(Tuple2<Integer,Integer> keyValue){
+                boolean isAccurate=false;
+                int thisPosLoc_start=keyValue._2();
+                int thisNegLoc_start=keyValue._1();
+                int thisPosLoc_end=thisPosLoc_start+totalArmLen-1;
+                int thisNegLoc_end=thisNegLoc_start+totalArmLen-1;
 
+                String thisLeftArmSeq=getSubstring(fastaSeqs,thisPosLoc_start,thisPosLoc_end);
+                String thisRightArmSeq=getSubstring(fastaSeqs,thisNegLoc_start,thisNegLoc_end);
+
+                
+                int left_balance=0;
+                int right_balance=0;
+                for(int j=0;j<thisLeftArmSeq.length();j++){
+                    Character left_chr=thisLeftArmSeq.charAt(j);
+                    Character right_chr=thisRightArmSeq.charAt(j);
+                    if(left_chr=='A'){
+                       left_balance=left_balance+1;
+                    }
+
+                    if(left_chr=='T'){
+                       left_balance=left_balance-1;
+                    }
+
+                    if(left_balance=='C'){
+                        left_balance=left_balance+2;
+                    }
+
+                    if(left_balance=='G'){
+                        left_balance=left_balance-2;
+                    }
+
+
+                    if(right_chr=='A'){
+                       right_balance=right_balance+1;
+                    }
+
+                    if(right_chr=='T'){
+                       right_balance=right_balance-1;
+                    }
+
+                    if(right_balance=='C'){
+                        right_balance=right_balance+2;
+                    }
+
+                    if(right_balance=='G'){
+                        right_balance=right_balance-2;
+                    }
+
+
+                }
+
+                int tot_balance=left_balance+right_balance;
+                if(tot_balance==0){
+                    isAccurate=true;
+                }
+               
+                return(isAccurate);
+            }
+
+        });
+
+        return(result_filtered);
+
+    }
+
+
+    public String getSubstring(List<String> seqFile, int start_loc, int end_loc){
+
+        int startLine=(int)Math.ceil(start_loc/60)+1;
+        int endLine=(int)Math.ceil(end_loc/60)+1;
+        int startLocIdxInLine=0;
+        int endLocIdxInLine=0;
+        if(start_loc%60==0){
+            startLine=startLine-1;
+            startLocIdxInLine=59;
+        }
+
+        else{
+            startLocIdxInLine=start_loc-(startLine-1)*60-1;
+        }
+
+        if(end_loc%60==0){
+            endLine=endLine-1;
+            endLocIdxInLine=59;
+        }
+        else{
+            endLocIdxInLine=end_loc-(endLine-1)*60-1;    
+        }
+        
+        
+        
+
+        
+        String result="";
+        String part=seqFile.get(startLine);
+        
+        if(startLine==endLine){
+            if(end_loc%60==0){
+
+                result=part.substring(startLocIdxInLine,endLocIdxInLine+1); 
+            }
+            else{
+
+               result=part.substring(startLocIdxInLine,endLocIdxInLine+1);   
+           }  
+
+       }
+       else{
+        String middlePart="";
+        if(endLine-startLine>1){
+
+
+         for(int n=1;n<endLine-startLine;n++){
+            middlePart=middlePart+seqFile.get(startLine+n);
+        }
+
+
+    }
+
+
+    
+    if(start_loc%60==0){
+     result=part.charAt(startLocIdxInLine)+middlePart+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
+ }
+
+ else{
+     if(end_loc%60==0){
+        result=part.substring(startLocIdxInLine,part.length())+middlePart+seqFile.get(endLine).charAt(endLocIdxInLine); 
+    }
+    else{
+
+
+        result=part.substring(startLocIdxInLine,part.length())+seqFile.get(endLine).substring(0,endLocIdxInLine+1);
+
+    }
+}
+
+}
+
+
+// }
+
+return(result);
+
+}
+
+    // public JavaPairRDD<String,ArrayList<Integer>>  determineCrispr(JavaPairRDD <Integer, Integer> listOfPalindromes, JavaPairRDD<String, Integer> listOfRepeats ){
+        
+    // }
 
 
 }
