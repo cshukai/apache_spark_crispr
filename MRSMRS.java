@@ -19,9 +19,7 @@ public class MRSMRS implements Serializable{
     	JavaSparkContext sc=new JavaSparkContext(conf);   
   
         JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
-        // input.saveAsTextFile("crispr_test");
-        // JavaRDD<String> input_1=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/part-r-00042");
-        // input_1.saveAsTextFile("crispr_test_2");
+        JavaRDD<String> input_2=sc.textFile("bacteria/crispr/test2/CoarseGrain/word10/");
         MRSMRS mrsmrs=new MRSMRS();
 
 
@@ -29,24 +27,20 @@ public class MRSMRS implements Serializable{
         // input.saveAsTextFile("crispr_test");
 
         JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRStextOutput(input);
-        JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6);
+
+        // JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6); // 80782 error is here
+        JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,3);
         // JavaPairRDD <Integer,Integer> test_10=mrsmrs.parsedMRSMRSresult()
         test.saveAsTextFile("crispr_test");
         test_2.saveAsTextFile("crispr_test5");
     	JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
         JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
-
-        test_3.saveAsTextFile("crispr_test_2");
-
-        System.out.println(test_2.count());
-        System.out.println(test_3.count());
+        // test_3.saveAsTextFile("crispr_test_2");
 
 
-
-    	// JavaPairRDD<String,Integer> test3=sc.sequenceFile("protist/CoarseGrain/word20",String.class,Integer.class);
-     //    test3.saveAsTextFile("crispr_test_2");
-
-
+        JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
+        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_2);
+        test_5.saveAsTextFile("crispr_test_2");
     }
 
 
@@ -297,13 +291,54 @@ public class MRSMRS implements Serializable{
 }
 
 
-// }
-
 return(result);
 
 }
+    //output :  left: start location of a specific repat unit with a particular length  right: arm start locations in a specific repat unit with a particular length
+    public JavaPairRDD <String,Integer> flagMrsMrsRepeatWithArmInside (JavaPairRDD <String, Integer> mrsmrs_repeats,int mrsmrs_repeat_len,JavaPairRDD <Integer,Integer> arm_start_locs){
+    
 
-    // public JavaPairRDD<String,ArrayList<Integer>>  determineCrispr(JavaPairRDD <Integer, Integer> listOfPalindromes, JavaPairRDD<String, Integer> listOfRepeats ){
+        // filter out mrsmrs repeat that doesn't have arm inside
+        final List<Integer> left_arm_starts=arm_start_locs.keys().collect();
+        final List<Integer> right_arm_starts=arm_start_locs.values().collect();
+        final int repeat_len=mrsmrs_repeat_len;
+        JavaPairRDD<String,Integer> mrsmrs_repeats_filtered=mrsmrs_repeats.filter(new Function<Tuple2<String, Integer>, Boolean>(){
+            @Override
+            public Boolean call(Tuple2<String, Integer> keyValue){
+                int repeat_unit_start=keyValue._2();
+                int repeat_unit_end=repeat_unit_start+repeat_len;
+                boolean containArm=false;
+                for(int j=repeat_unit_start;j<=repeat_unit_end;j++){
+                    if(left_arm_starts.contains(j)){
+                        containArm=true;
+                    }
+
+                    if(right_arm_starts.contains(j)){
+                        containArm=true;
+                    }
+
+                }
+
+
+                return(containArm);
+            }
+
+        });
+        return(mrsmrs_repeats_filtered);
+        // JavaPairRDD <String,Iterable<Integer>>mrsmrs_repeats_sorted=mrsmrs_repeats_filtered.groupByKey();
+        
+
+
+        // mrsmrs_repeats_sorted.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<Integer>>,String,ArrayList<Integer>>(){
+        //     @Override
+        //     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<Integer>> keyValue){
+
+        //     }
+        // });
+
+    }
+ 
+    // public JavaPairRDD<String,ArrayList<Integer>>  determineCrispr(JavaPairRDD <Integer, Integer> listOfPalindromes ){
         
     // }
 
