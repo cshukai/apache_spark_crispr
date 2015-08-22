@@ -31,7 +31,7 @@ public class MRSMRS implements Serializable{
         // JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6); // 80782 error is here
         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,3);
         // JavaPairRDD <Integer,Integer> test_10=mrsmrs.parsedMRSMRSresult()
-        test.saveAsTextFile("crispr_test");
+        // test.saveAsTextFile("crispr_test");
         test_2.saveAsTextFile("crispr_test5");
     	JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
         JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
@@ -41,6 +41,11 @@ public class MRSMRS implements Serializable{
         JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
         JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_2);
         test_5.saveAsTextFile("crispr_test_2");
+
+
+        JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
+        test6.saveAsTextFile("crispr_test");
+
     }
 
 
@@ -325,22 +330,42 @@ return(result);
 
         });
         return(mrsmrs_repeats_filtered);
-        // JavaPairRDD <String,Iterable<Integer>>mrsmrs_repeats_sorted=mrsmrs_repeats_filtered.groupByKey();
+        
         
 
-
-        // mrsmrs_repeats_sorted.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<Integer>>,String,ArrayList<Integer>>(){
-        //     @Override
-        //     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<Integer>> keyValue){
-
-        //     }
-        // });
 
     }
+
+
  
-    // public JavaPairRDD<String,ArrayList<Integer>>  determineCrispr(JavaPairRDD <Integer, Integer> listOfPalindromes ){
-        
-    // }
+    public JavaPairRDD<String,ArrayList<Integer>>  suggestCrisprBorder(JavaPairRDD <String, Integer> completeListOfFlaggedRepeats ){
+        JavaPairRDD <String,Iterable<Integer>>flaggedRepeats_sorted=completeListOfFlaggedRepeats.groupByKey();   
+
+
+        JavaPairRDD<String,ArrayList<Integer>> cirsprs=flaggedRepeats_sorted.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<Integer>>,String,ArrayList<Integer>>(){
+            @Override
+            public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<Integer>> keyValue){
+                Iterable<Integer> mrsmrs_repeat_locs=keyValue._2();
+                Iterator<Integer> itr=mrsmrs_repeat_locs.iterator();
+                ArrayList<Integer> repeat_locs=new ArrayList<Integer>();
+                 while(itr.hasNext()){
+                     repeat_locs.add(itr.next());
+                }
+
+                Collections.sort(repeat_locs);
+                ArrayList<Tuple2<String, ArrayList<Integer>>> result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                result.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),repeat_locs));
+
+                return(result);
+
+            }
+
+
+        });
+
+
+        return(cirsprs);
+    }
 
 
 }
