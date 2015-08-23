@@ -24,14 +24,12 @@ public class MRSMRS implements Serializable{
 
 
         // JavaPairRDD<String,Integer> input=sc.sequenceFile("bacteria/crispr/test/limeload",String.class,Integer.class);
-        // input.saveAsTextFile("crispr_test");
 
         JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRStextOutput(input);
 
         // JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6); // 80782 error is here
         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,3);
         // JavaPairRDD <Integer,Integer> test_10=mrsmrs.parsedMRSMRSresult()
-        // test.saveAsTextFile("crispr_test");
         test_2.saveAsTextFile("crispr_test5");
     	JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
         JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
@@ -352,9 +350,14 @@ return(result);
                      repeat_locs.add(itr.next());
                 }
 
-                Collections.sort(repeat_locs);
+                
                 ArrayList<Tuple2<String, ArrayList<Integer>>> result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
-                result.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),repeat_locs));
+                if(repeat_locs.size()>1){
+                    Collections.sort(repeat_locs);
+                    result.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),repeat_locs));
+
+                }
+                
 
                 return(result);
 
