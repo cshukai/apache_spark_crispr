@@ -352,9 +352,19 @@ return(result);
 
                 
                 ArrayList<Tuple2<String, ArrayList<Integer>>> result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                ArrayList<Integer> reasonableRepeatsLocs=new ArrayList<Integer>();
                 if(repeat_locs.size()>1){
                     Collections.sort(repeat_locs);
-                    result.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),repeat_locs));
+                    for(int j=0;j<repeat_locs.size(); j++){
+                        if(j!=repeat_locs.size()-1){
+                             int thisMrsMrsLoc=repeat_locs.get(j);
+                             int distance_between_units=repeat_locs.get(j+1)-thisMrsMrsLoc;
+                             if(distance_between_units<=300){
+                                reasonableRepeatsLocs.add(thisMrsMrsLoc);
+                             }
+                        }
+                    }
+                    result.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),reasonableRepeatsLocs));
 
                 }
                 
@@ -372,3 +382,4 @@ return(result);
 
 
 }
+
