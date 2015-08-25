@@ -27,16 +27,84 @@ public class MRSMRS implements Serializable{
 
         JavaPairRDD<Text,Text> input=sc.sequenceFile("bacteria/crispr/test/limeload",Text.class,Text.class);
 
-        // JavaRDD<Text> see=input.keys();
-        // see.saveAsTextFile("crispr_test_3");
-
-        // JavaRDD<String> see2=input.values();
-        // see2.saveAsTextFile("crispr_test_4");
         JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRSBinaryOutput(input);
-        test.saveAsTextFile("crispr_test5");
-        input.saveAsTextFile("crispr_test_2");
-     //    JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,3);
-     //    test_2.saveAsTextFile("crispr_test5");
+         // test.saveAsTextFile("crispr_test_4");
+    
+        JavaPairRDD<String,Iterable<Integer>> test3=test.groupByKey();
+        test3.saveAsTextFile("crispr_test_3");
+
+
+        JavaPairRDD<Integer, Integer> result= test3.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer, Integer>(){
+                @Override
+                public Iterable<Tuple2<Integer,Integer>> call(Tuple2<String, Iterable<Integer>> keyValue){
+                 Iterable<Integer>data =keyValue._2();
+                 Iterator<Integer> itr=data.iterator();
+                 ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
+                 ArrayList<Integer> locs_on_negStrand=new ArrayList<Integer>();
+                 ArrayList<Tuple2<Integer, Integer>> possibleRepeatUnits = new ArrayList<Tuple2<Integer, Integer>> ();
+
+                 while(itr.hasNext()){
+                   int thisLoc=itr.next();
+                   if(thisLoc>0){
+                      locs_on_postiveStrand.add(thisLoc);
+                   }
+                   else{
+                      locs_on_negStrand.add(Math.abs(thisLoc));
+                   }
+
+                 }
+
+                 Collections.sort(locs_on_postiveStrand);
+                 Collections.sort(locs_on_negStrand);
+                 int iterationNum=locs_on_postiveStrand.size();
+                 for(int j=0;j<iterationNum;j++){
+
+                     int thisPosLoc=locs_on_postiveStrand.get(j);
+                     if(j<iterationNum-2){
+                        int nextPosLoc=locs_on_postiveStrand.get(j+1);
+                        int nextTwoPosLoc=locs_on_postiveStrand.get(j+2); 
+                        int firstDist_pos=nextPosLoc-thisPosLoc;
+                        int secondDist_pos=nextTwoPosLoc-nextPosLoc;
+                        if(firstDist_pos<200 && secondDist_pos<200){
+                            int iterationNum_neg=locs_on_negStrand.size();
+                            for(int k=0;k<iterationNum_neg;k++){
+                                int thisNegLoc=locs_on_negStrand.get(k);
+                                if(k<iterationNum_neg-2){
+                                    int firstDist_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
+                                    int secondDist_neg=locs_on_negStrand.get(k+2)-locs_on_negStrand.get(k+1);
+                                    if(firstDist_neg<200 && secondDist_neg<200){
+                                        int size=thisNegLoc-thisPosLoc;
+                                         possibleRepeatUnits.add(new Tuple2<Integer,Integer>(size,size));
+                                        // if(size>=min_dist && size<=max_dist){
+                                        //     int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
+                                        //     int thisPosLoc_corrected=thisPosLoc+1;
+                                        //     int thisNegLoc_corrected=thisNegLoc-2;
+                                          
+                                        //     possibleRepeatUnits.add(new Tuple2<Integer,Integer>(thisNegLoc_corrected,thisPosLoc_corrected));
+                                        // }   
+                                    }
+                                          
+                                }
+                           
+                            }
+                            
+                        }
+                     }
+               
+                 }
+
+                 return(possibleRepeatUnits);
+
+                }
+
+            });
+
+
+            result.saveAsTextFile("crispr_test5");
+
+         // JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,4,3);
+        // test_2.saveAsTextFile("crispr_test5");
+
     	// JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
      //    JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
      //    test_3.saveAsTextFile("crispr_test_3");
@@ -142,14 +210,14 @@ public class MRSMRS implements Serializable{
                         int nextTwoPosLoc=locs_on_postiveStrand.get(j+2); 
                         int firstDist_pos=nextPosLoc-thisPosLoc;
                         int secondDist_pos=nextTwoPosLoc-nextPosLoc;
-                        if(firstDist_pos<140 && secondDist_pos<140){
+                        if(firstDist_pos<200 && secondDist_pos<200){
                             int iterationNum_neg=locs_on_negStrand.size();
                             for(int k=0;k<iterationNum_neg;k++){
                                 int thisNegLoc=locs_on_negStrand.get(k);
                                 if(k<iterationNum_neg-2){
                                     int firstDist_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
                                     int secondDist_neg=locs_on_negStrand.get(k+2)-locs_on_negStrand.get(k+1);
-                                    if(firstDist_neg<140 && secondDist_neg<140){
+                                    if(firstDist_neg<200 && secondDist_neg<200){
                                         int size=thisNegLoc-thisPosLoc;
                                         if(size>=min_dist && size<=max_dist){
                                             int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
