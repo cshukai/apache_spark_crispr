@@ -12,38 +12,72 @@ import org.apache.spark.api.java.function.PairFlatMapFunction;
 import java.io.Serializable;
 import java.util.*;
 import scala.Tuple2;
+import org.apache.hadoop.io.Text;
 
 public class MRSMRS implements Serializable{
 	public static void main(String [ ] args) throws Exception{
     	SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
     	JavaSparkContext sc=new JavaSparkContext(conf);   
   
-        JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
+        // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
+
         JavaRDD<String> input_2=sc.textFile("bacteria/crispr/test2/CoarseGrain/word10/");
         MRSMRS mrsmrs=new MRSMRS();
 
 
-        // JavaPairRDD<String,Integer> input=sc.sequenceFile("bacteria/crispr/test/limeload",String.class,Integer.class);
+        JavaPairRDD<Text,Text> input=sc.sequenceFile("bacteria/crispr/test/limeload",Text.class,Text.class);
 
-        JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRStextOutput(input);
+        // JavaRDD<Text> see=input.keys();
+        // see.saveAsTextFile("crispr_test_3");
 
-        // JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,6); // 80782 error is here
-        JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,3);
-        // JavaPairRDD <Integer,Integer> test_10=mrsmrs.parsedMRSMRSresult()
-        test_2.saveAsTextFile("crispr_test5");
-    	JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-        JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
-        // test_3.saveAsTextFile("crispr_test_2");
+        // JavaRDD<String> see2=input.values();
+        // see2.saveAsTextFile("crispr_test_4");
+        JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRSBinaryOutput(input);
+        test.saveAsTextFile("crispr_test5");
+        input.saveAsTextFile("crispr_test_2");
+     //    JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,6,3);
+     //    test_2.saveAsTextFile("crispr_test5");
+    	// JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+     //    JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
+     //    test_3.saveAsTextFile("crispr_test_3");
 
 
-        JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
-        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_2);
-        test_5.saveAsTextFile("crispr_test_2");
+     //    JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
+     //    JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_2);
+     //    test_5.saveAsTextFile("crispr_test_2");
 
 
-        JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
-        test6.saveAsTextFile("crispr_test");
+     //    JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
+     //    test6.saveAsTextFile("crispr_test");
 
+    }
+
+
+    public JavaPairRDD<String, Integer> parseMRSMRSBinaryOutput(JavaPairRDD<Text,Text> mrsmrs_output){
+         JavaPairRDD <String, Integer> result=mrsmrs_output.flatMapToPair(new PairFlatMapFunction<Tuple2<Text,Text>,String,Integer>(){
+            @Override
+            public Iterable<Tuple2<String,Integer>> call(Tuple2<Text,Text> keyValue){
+                ArrayList<Tuple2<String, Integer>> parse_result = new ArrayList<Tuple2<String, Integer>> ();
+                String[] temp=keyValue._1().toString().split(":");
+
+                String[] temp_2=keyValue._2().toString().split(";");
+                for(int j=0;j<temp_2.length;j++){
+                    String thisPos=temp_2[j];
+                    if(thisPos.equals("")){
+                        break;
+                    }
+                    else{
+                       parse_result.add(new Tuple2<String,Integer>(temp[1],Integer.parseInt(thisPos)));
+                    }
+
+                }
+
+                return(parse_result);
+            }
+
+        });
+        
+        return(result);
     }
 
 
