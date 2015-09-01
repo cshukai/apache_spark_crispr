@@ -16,94 +16,31 @@ import org.apache.hadoop.io.Text;
 
 public class MRSMRS implements Serializable{
 	public static void main(String [ ] args) throws Exception{
-    	SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
+    	// SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
+        SparkConf conf=new SparkConf().setAppName("spark-crispr");
     	JavaSparkContext sc=new JavaSparkContext(conf);   
   
-        // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
+         // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
+        JavaRDD<String> input=sc.textFile("crispr_results");
 
-        JavaRDD<String> input_2=sc.textFile("bacteria/crispr/test2/CoarseGrain/word10/");
+        // JavaRDD<String> input_2=sc.textFile("bacteria/crispr/test2/CoarseGrain/word10/");
         MRSMRS mrsmrs=new MRSMRS();
 
-
-        JavaPairRDD<Text,Text> input=sc.sequenceFile("bacteria/crispr/test/limeload",Text.class,Text.class);
-
-        JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRSBinaryOutput(input);
-         // test.saveAsTextFile("crispr_test_4");
+        JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
+        // JavaPairRDD<Text,Text> input=sc.sequenceFile("bacteria/crispr/test/limeload",Text.class,Text.class);
+        input.saveAsTextFile("crispr_test_4");
+        test.saveAsTextFile("crispr_test");
+        // input_2.saveAsTextFile("crispr_test_6");
+        // JavaPairRDD <String, Integer> test=mrsmrs.parseMRSMRSBinaryOutput(input);
+        //  test.saveAsTextFile("crispr_test_4");
     
-        JavaPairRDD<String,Iterable<Integer>> test3=test.groupByKey();
-        test3.saveAsTextFile("crispr_test_3");
+     //    JavaPairRDD<String,Iterable<Integer>> test3=test.groupByKey();
+     //    test3.saveAsTextFile("crispr_test_3");
 
 
-        JavaPairRDD<Integer, Integer> result= test3.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer, Integer>(){
-                @Override
-                public Iterable<Tuple2<Integer,Integer>> call(Tuple2<String, Iterable<Integer>> keyValue){
-                 Iterable<Integer>data =keyValue._2();
-                 Iterator<Integer> itr=data.iterator();
-                 ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
-                 ArrayList<Integer> locs_on_negStrand=new ArrayList<Integer>();
-                 ArrayList<Tuple2<Integer, Integer>> possibleRepeatUnits = new ArrayList<Tuple2<Integer, Integer>> ();
 
-                 while(itr.hasNext()){
-                   int thisLoc=itr.next();
-                   if(thisLoc>0){
-                      locs_on_postiveStrand.add(thisLoc);
-                   }
-                   else{
-                      locs_on_negStrand.add(Math.abs(thisLoc));
-                   }
-
-                 }
-
-                 Collections.sort(locs_on_postiveStrand);
-                 Collections.sort(locs_on_negStrand);
-                 int iterationNum=locs_on_postiveStrand.size();
-                 for(int j=0;j<iterationNum;j++){
-
-                     int thisPosLoc=locs_on_postiveStrand.get(j);
-                     if(j<iterationNum-2){
-                        int nextPosLoc=locs_on_postiveStrand.get(j+1);
-                        int nextTwoPosLoc=locs_on_postiveStrand.get(j+2); 
-                        int firstDist_pos=nextPosLoc-thisPosLoc;
-                        int secondDist_pos=nextTwoPosLoc-nextPosLoc;
-                        if(firstDist_pos<200 && secondDist_pos<200){
-                            int iterationNum_neg=locs_on_negStrand.size();
-                            for(int k=0;k<iterationNum_neg;k++){
-                                int thisNegLoc=locs_on_negStrand.get(k);
-                                if(k<iterationNum_neg-2){
-                                    int firstDist_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
-                                    int secondDist_neg=locs_on_negStrand.get(k+2)-locs_on_negStrand.get(k+1);
-                                    if(firstDist_neg<200 && secondDist_neg<200){
-                                        int size=thisNegLoc-thisPosLoc;
-                                         possibleRepeatUnits.add(new Tuple2<Integer,Integer>(size,size));
-                                        // if(size>=min_dist && size<=max_dist){
-                                        //     int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
-                                        //     int thisPosLoc_corrected=thisPosLoc+1;
-                                        //     int thisNegLoc_corrected=thisNegLoc-2;
-                                          
-                                        //     possibleRepeatUnits.add(new Tuple2<Integer,Integer>(thisNegLoc_corrected,thisPosLoc_corrected));
-                                        // }   
-                                    }
-                                          
-                                }
-                           
-                            }
-                            
-                        }
-                     }
-               
-                 }
-
-                 return(possibleRepeatUnits);
-
-                }
-
-            });
-
-
-            result.saveAsTextFile("crispr_test5");
-
-         // JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,4,3);
-        // test_2.saveAsTextFile("crispr_test5");
+     //     JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,10,3);
+     //    test_2.saveAsTextFile("crispr_test5");
 
     	// JavaRDD<String> fasta=sc.textFile("bacteria/crispr/data/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
      //    JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,6);
@@ -120,6 +57,29 @@ public class MRSMRS implements Serializable{
 
     }
 
+
+    public JavaPairRDD<String, Integer> parseDevinOutput(JavaRDD<String> devin_output){
+         JavaPairRDD <String, Integer> result=devin_output.flatMapToPair(new PairFlatMapFunction<String,String,Integer>(){
+            @Override
+            public Iterable<Tuple2<String,Integer>> call(String line){
+                ArrayList<Tuple2<String, Integer>> parse_result = new ArrayList<Tuple2<String, Integer>> ();
+                String[] temp=line.replaceAll("[()]","").split("CompactBuffer");
+                String[] front=temp[0].split(",");
+                String[] back=temp[1].split(",");
+                for(int j=0;j<back.length;j++){
+                
+                    parse_result.add(new Tuple2<String,Integer>(front[0],Integer.parseInt(back[j].replaceAll(" ",""))));
+
+                }
+
+                return(parse_result);
+            }
+
+        });
+        
+        return(result);
+
+    }
 
     public JavaPairRDD<String, Integer> parseMRSMRSBinaryOutput(JavaPairRDD<Text,Text> mrsmrs_output){
          JavaPairRDD <String, Integer> result=mrsmrs_output.flatMapToPair(new PairFlatMapFunction<Tuple2<Text,Text>,String,Integer>(){
