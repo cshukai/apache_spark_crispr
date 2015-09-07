@@ -33,13 +33,13 @@ public class MRSMRS implements Serializable{
          JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,10,2);
         // test_2.saveAsTextFile("crispr_test5");
 
-    	JavaRDD<String> fasta=sc.textFile("Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-        JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,4);
+    	// JavaRDD<String> fasta=sc.textFile("Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
+     //    JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,4);
         // test_3.saveAsTextFile("crispr_test_3");
 
 
         JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
-        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_3);
+        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_2);
         // test_5.saveAsTextFile("crispr_test_2");
 
 
@@ -365,13 +365,13 @@ return(result);
                 int repeat_unit_end=repeat_unit_start+repeat_len;
                 boolean containArm=false;
                 for(int j=repeat_unit_start;j<=repeat_unit_end;j++){
-                    if(left_arm_starts.contains(j)){
+                    if(left_arm_starts.contains(j) && right_arm_starts.contains(j)){
                         containArm=true;
                     }
 
-                    if(right_arm_starts.contains(j)){
-                        containArm=true;
-                    }
+                    // if(right_arm_starts.contains(j)){
+                    //     containArm=true;
+                    // }
 
                 }
 
@@ -414,6 +414,11 @@ return(result);
                              int distance_between_units=repeat_locs.get(j+1)-thisMrsMrsLoc;
                              if(distance_between_units<=300){
                                 reasonableRepeatsLocs.add(thisMrsMrsLoc);
+                             }
+
+                             else{
+                                reasonableRepeatsLocs.add(thisMrsMrsLoc);
+                                break;
                              }
                         }
                     }
