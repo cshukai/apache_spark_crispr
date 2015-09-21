@@ -157,33 +157,40 @@ object PalindromeFinder {
 			// global setup
 			val path1 = i + "1"
 			val path4 = i + "4"
+			var chrID1="1"
+			var chrID4="1"
 			val speciesName = path1.split('/')(2).split('.')(0)
+			var shift1 =0
+			val shift=189
+			val file1 = sc.textFile(path1, 80)
+			val file4 = sc.textFile(path4, 80)
 
 			// find all possible palindromic structure with shortest legnth of each arm =2 bp
 			val initWindowSize = 4
-
-			var shift1 =0
-			val file1 = sc.textFile(path1, 80)
+		
 			
-			var chrID1="1"
 			val words1 = file1.zipWithIndex.flatMap( l => ( l._1.sliding(initWindowSize).zipWithIndex.filter(seq => filterSeqs(seq._1, initWindowSize)).map( f => ((( f._1, chrID1)),shift1 + ((f._2+1)+(198*(l._2))).toInt))))
 			val compWords1 = words1.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
-
-		
-
-			val shift=189
-			val file4 = sc.textFile(path4, 80)
-			var chrID4="1"
+			
+			
 			val words4 = file4.zipWithIndex.flatMap( l => ( l._1.sliding(initWindowSize).zipWithIndex.filter(position => position._2 <= 8 && position._2 >= 4).filter(seq => filterSeqs(seq._1, initWindowSize)).map( f => ((( f._1, chrID4)),shift + ((f._2+1)+(198*(l._2))).toInt))))
 			val compWords4 = words4.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
 
-			//all the words of length equal to initWindowSize
-			val allWords = sc.union(words1,compWords1,words4,compWords4).groupByKey
-			
+			val allWords = sc.union(words1,compWords1,words4,compWords4).groupByKey		
 			allWords.saveAsTextFile("tb/complimentary/"+speciesName)
 		
+			// find repeat unit with length 20
+			val unitSize = 20
+			val repeat1 = file1.zipWithIndex.flatMap( l => ( l._1.sliding(unitSize).zipWithIndex.filter(seq => filterSeqs(seq._1, unitSize)).map( f => ((( f._1, chrID1)),shift1 + ((f._2+1)+(198*(l._2))).toInt))))			
+			val compRepeat1 = repeat1.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
 
-		}//end loop through arguments
+			val repeat4 = file4.zipWithIndex.flatMap( l => ( l._1.sliding(unitSize).zipWithIndex.filter(seq => filterSeqs(seq._1, unitSize)).map( f => ((( f._1, chrID4)),shift1 + ((f._2+1)+(198*(l._2))).toInt))))			
+			val compRepeat4 = repeat4.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
+
+			val allRepeats=sc.union(repeat1,compRepeat1,repeat4,compRepeat4).groupByKey
+			allRepeats.saveAsTextFile("tb/mrsmrs/"+speciesName)
+
+		}
 
 	}
 
