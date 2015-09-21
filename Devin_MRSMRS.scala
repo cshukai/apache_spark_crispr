@@ -151,37 +151,28 @@ object PalindromeFinder {
 		
 		val sc = new SparkContext()
 
-		//the arguments passed in are the sequence files without a "1" or "4" in the last position
-		//specific to our implementation and pipeline.
-		var counter=0;
+		
 		for(i <- args) {
-			// to find all the palindromic structure
+
+			// global setup
 			val path1 = i + "1"
+			val path4 = i + "4"
+			val speciesName = path1.split('/')(2).split('.')(0)
+
+			// find all possible palindromic structure with shortest legnth of each arm =2 bp
 			val initWindowSize = 4
 
-			//if the file is shifted, add the shift to the positiion (*.txt4)
-			// var shift1 = 0
-			// if(path1.takeRight(1) == "4") 
 			var shift1 =0
 			val file1 = sc.textFile(path1, 80)
-			//species name
-			val speciesName = path1.split('/')(2).split('.')(0)
-			// val chrID1 = speciesName + "_" + path1.split('/')(2).split(".fa.txt")(0).split("dna.")(1).replace(".", "_")
+			
 			var chrID1="1"
 			val words1 = file1.zipWithIndex.flatMap( l => ( l._1.sliding(initWindowSize).zipWithIndex.filter(seq => filterSeqs(seq._1, initWindowSize)).map( f => ((( f._1, chrID1)),shift1 + ((f._2+1)+(198*(l._2))).toInt))))
 			val compWords1 = words1.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
 
-			val path4 = i + "4"
-			// val path4="crispr/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa.txt4"
-
-			//if the file is shifted, add the shift to the positiion (*.txt4)
-			// var shift = 0
-			// if(path4.takeRight(1) == "4") shift = 189
+		
 
 			val shift=189
 			val file4 = sc.textFile(path4, 80)
-			//species name
-			// val chrID4 = speciesName + "_" + path4.split('/')(2).split(".fa.txt")(0).split("dna.")(1).replace(".", "_")
 			var chrID4="1"
 			val words4 = file4.zipWithIndex.flatMap( l => ( l._1.sliding(initWindowSize).zipWithIndex.filter(position => position._2 <= 8 && position._2 >= 4).filter(seq => filterSeqs(seq._1, initWindowSize)).map( f => ((( f._1, chrID4)),shift + ((f._2+1)+(198*(l._2))).toInt))))
 			val compWords4 = words4.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
@@ -189,77 +180,8 @@ object PalindromeFinder {
 			//all the words of length equal to initWindowSize
 			val allWords = sc.union(words1,compWords1,words4,compWords4).groupByKey
 			
-			allWords.saveAsTextFile("tb/"+counter)
-			counter=counter+1
-			// val smallestPalindromes = extractPalindromes(allWords, initWindowSize)
-			// if(!smallestPalindromes.isEmpty) {
-			// 	smallestPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize + "/" + speciesName + "_" + chrID1)
-
-			// 	val doubleLengthWords = coarseGrainedAggregation(sc.union(applyPositionToSequence(allWords)), initWindowSize)
-			// 	val doublePalindromes = extractPalindromes(doubleLengthWords, initWindowSize * 2)	
-			// 	if(!doublePalindromes.isEmpty) {
-			// 		doublePalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 2 + "/" + speciesName + "_" + chrID1)
-
-			// 		val fourTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(doubleLengthWords), initWindowSize * 2)
-			// 		val fourTimesPalindromes = extractPalindromes(fourTimesLengthWords, initWindowSize * 4)		
-			// 		if(!fourTimesPalindromes.isEmpty) {
-			// 			fourTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 4 + "/" + speciesName + "_" + chrID1)
-
-			// 			val eightTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(fourTimesLengthWords), initWindowSize * 4)
-			// 			val eightTimesPalindromes = extractPalindromes(eightTimesLengthWords, initWindowSize * 8)
-			// 			if(!eightTimesPalindromes.isEmpty) {
-			// 				eightTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 8 + "/" + speciesName + "_" + chrID1)
-
-			// 				val sixteenTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(eightTimesLengthWords), initWindowSize * 8)
-			// 				val sixteenTimesPalindromes = extractPalindromes(sixteenTimesLengthWords, initWindowSize * 16)
-			// 				if(!sixteenTimesPalindromes.isEmpty) {
-			// 					sixteenTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 16 + "/" + speciesName + "_" + chrID1)
-
-			// 					val thirtytwoTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(sixteenTimesLengthWords), initWindowSize * 16)
-			// 					val thirtytwoTimesPalindromes = extractPalindromes(thirtytwoTimesLengthWords, initWindowSize * 32)
-			// 					if(!thirtytwoTimesPalindromes.isEmpty) {
-			// 						thirtytwoTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 32 + "/" + speciesName + "_" + chrID1)
-
-			// 						val sixtyfourTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(thirtytwoTimesLengthWords), initWindowSize * 32)
-			// 						val sixtyfourTimesPalindromes = extractPalindromes(sixtyfourTimesLengthWords, initWindowSize * 64)
-			// 						if(!sixtyfourTimesPalindromes.isEmpty) {
-			// 							sixtyfourTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 64 + "/" + speciesName + "_" + chrID1)
-
-			// 							val onetwentyeightTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(sixtyfourTimesLengthWords), initWindowSize * 64)
-			// 							val onetwentyeightTimesPalindromes = extractPalindromes(onetwentyeightTimesLengthWords, initWindowSize * 128)
-			// 							if(!onetwentyeightTimesPalindromes.isEmpty) {
-			// 								onetwentyeightTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 128 + "/" + speciesName + "_" + chrID1)
-
-			// 								val twofiftysixTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(onetwentyeightTimesLengthWords), initWindowSize * 128)
-			// 								val twofiftysixTimesPalindromes = extractPalindromes(twofiftysixTimesLengthWords, initWindowSize * 256)
-			// 								if(!twofiftysixTimesPalindromes.isEmpty) {
-			// 									twofiftysixTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 256 + "/" + speciesName + "_" + chrID1)
-
-			// 									val fivetwelveTimesLengthWords = coarseGrainedAggregation(applyPositionToSequence(twofiftysixTimesLengthWords), initWindowSize * 256)
-			// 									val fivetwelveTimesPalindromes = extractPalindromes(fivetwelveTimesLengthWords, initWindowSize * 512)
-			// 									if(!fivetwelveTimesPalindromes.isEmpty) { 
-			// 										fivetwelveTimesPalindromes.saveAsObjectFile("results/palindromes/" + initWindowSize * 512 + "/" + speciesName + "_" + chrID1)
-												
-												
-			// 									}//512TimePal
-
-			// 								}//256TimePal
-
-			// 							}//128TimePal
-
-			// 						}//sixtyfourTimePal
-
-			// 					}//thirtytwoTimePal
-
-			// 				}//sixteenTimePal
-
-			// 			}//eightTimePal
-
-			// 		}//fourTimePal
-
-			// 	}//doublePal
-
-			// }//smallestPal
+			allWords.saveAsTextFile("tb/complimentary/"+speciesName)
+		
 
 		}//end loop through arguments
 
