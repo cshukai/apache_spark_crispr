@@ -19,18 +19,23 @@ public class MRSMRS implements Serializable{
     	// SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
         SparkConf conf=new SparkConf().setAppName("spark-crispr");
     	JavaSparkContext sc=new JavaSparkContext(conf);   
-  
-         // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
-        JavaRDD<String> input=sc.textFile("crispr_results");
+        String path1=args[0];
+        String path2=args[1];
 
-        JavaRDD<String> input_2=sc.textFile("word10");
+         // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
+        // JavaRDD<String> input=sc.textFile("novel_crispr_1/complimentary/Desulfurococcus_fermentans_dsm_16532");
+
+         JavaRDD<String> input=sc.textFile(path1);
+        JavaRDD<String> input_2=sc.textFile(path2);
+
+        // JavaRDD<String> input_2=sc.textFile("novel_crispr_1/mrsmrs_20/Desulfurococcus_fermentans_dsm_16532");
         MRSMRS mrsmrs=new MRSMRS();
 
         JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
   
 
 
-         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,10,2);
+         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,2,9,3);
         // test_2.saveAsTextFile("crispr_test5");
 
     	// JavaRDD<String> fasta=sc.textFile("Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
@@ -38,13 +43,36 @@ public class MRSMRS implements Serializable{
         // test_3.saveAsTextFile("crispr_test_3");
 
 
-        JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
-        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,10, test_2);
+        // JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
+         JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
+        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,20, test_2);
         // test_5.saveAsTextFile("crispr_test_2");
 
 
         JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
-        test6.saveAsTextFile("crispr_test");
+        JavaPairRDD<String,ArrayList<Integer>> test7=mrsmrs.refineResult(test6);
+        test7.saveAsTextFile("crispr_novel_test");
+
+    }
+
+
+    public JavaPairRDD<String,ArrayList<Integer>>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ){
+        // filtering out arrays having insufficient repat units
+        final int min_repeat_unit=3;
+        JavaPairRDD<String,ArrayList<Integer>> result_have_enoughUnits= rawResult.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
+            @Override
+            public Boolean call(Tuple2<String,ArrayList<Integer>> keyValue){
+                ArrayList<Integer> unit_start_locs=keyValue._2();
+                boolean isResultFine=true;
+                if(unit_start_locs.size()<min_repeat_unit){
+                     isResultFine=false;
+                }
+                return (isResultFine);
+            }
+        });
+
+
+        return (result_have_enoughUnits);
 
     }
 
@@ -365,13 +393,17 @@ return(result);
                 int repeat_unit_end=repeat_unit_start+repeat_len;
                 boolean containArm=false;
                 for(int j=repeat_unit_start;j<=repeat_unit_end;j++){
-                    if(left_arm_starts.contains(j) && right_arm_starts.contains(j)){
+                    // if(left_arm_starts.contains(j) && right_arm_starts.contains(j)){
+                    //     containArm=true;
+                    // }
+
+                     if(left_arm_starts.contains(j)){
                         containArm=true;
                     }
 
-                    // if(right_arm_starts.contains(j)){
-                    //     containArm=true;
-                    // }
+                    if(right_arm_starts.contains(j)){
+                        containArm=true;
+                    }
 
                 }
 
