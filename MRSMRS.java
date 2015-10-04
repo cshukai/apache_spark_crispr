@@ -50,15 +50,16 @@ public class MRSMRS implements Serializable{
 
 
         JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
-        JavaPairRDD<String,ArrayList<Integer>> test7=mrsmrs.refineResult(test6);
+        JavaRDD<String> test7=mrsmrs.refineResult(test6,3);
         test7.saveAsTextFile("crispr_novel_test");
 
     }
 
 
-    public JavaPairRDD<String,ArrayList<Integer>>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ){
+    public JavaRDD<String>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ,int unitNum){
         // filtering out arrays having insufficient repat units
-        final int min_repeat_unit=3;
+        final int min_repeat_unit=unitNum;
+
         JavaPairRDD<String,ArrayList<Integer>> result_have_enoughUnits= rawResult.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
             @Override
             public Boolean call(Tuple2<String,ArrayList<Integer>> keyValue){
@@ -71,8 +72,36 @@ public class MRSMRS implements Serializable{
             }
         });
 
+        JavaRDD<String> result_refined= result_have_enoughUnits.map(new ResultParser());
 
-        return (result_have_enoughUnits);
+        return (result_refined);
+
+    }
+
+
+    class ResultParser implements Function<Tuple2<String,ArrayList<Integer>>,String> {
+        @Override
+        public String call(Tuple2<String,ArrayList<Integer>> seq_locs) {
+          String result=null;
+          // seq, rep_unit_num, crispr_start, crispr_end, spacer_start-spacer_end;spacer_start2-spacer-end2 
+          String seq=seq_locs._1();
+          ArrayList<Integer> locs=seq_locs._2();
+          int crispr_start=locs.get(0);
+          int crispr_end=locs.get(locs.size()-1)+seq.length()-1;
+          String spacer_positions="";
+          for(int i=0; i<locs.size()-1;i++){
+
+            int this_sp_head=locs.get(i)+seq.length();
+            int this_sp_end=locs.get(i+1)-1;
+
+            spacer_positions=spacer_positions+this_sp_head+"-"+this_sp_end+";";
+
+          }
+
+          result=crispr_start+","+crispr_end+spacer_positions;
+
+          return(result);
+        }
 
     }
 
