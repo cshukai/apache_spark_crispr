@@ -98,7 +98,7 @@ public class MRSMRS implements Serializable{
 
           }
 
-          result=crispr_start+","+crispr_end+spacer_positions;
+          result=crispr_start+","+crispr_end+","+ spacer_positions;
 
           return(result);
         }
