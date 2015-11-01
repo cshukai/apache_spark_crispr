@@ -18,24 +18,25 @@ public class MRSMRS implements Serializable{
 	public static void main(String [ ] args) throws Exception{
     	// SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
         SparkConf conf=new SparkConf().setAppName("spark-crispr");
-    	JavaSparkContext sc=new JavaSparkContext(conf);   
-        String path1=args[0];
-        String path2=args[1];
+    	  JavaSparkContext sc=new JavaSparkContext(conf);   
+        MRSMRS mrsmrs=new MRSMRS();
+        // String path1=args[0];
+        // String path2=args[1];
 
          // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
         // JavaRDD<String> input=sc.textFile("novel_crispr_1/complimentary/Desulfurococcus_fermentans_dsm_16532");
 
-         JavaRDD<String> input=sc.textFile(path1);
-        JavaRDD<String> input_2=sc.textFile(path2);
+        //  JavaRDD<String> input=sc.textFile(path1);
+        // JavaRDD<String> input_2=sc.textFile(path2);
 
         // JavaRDD<String> input_2=sc.textFile("novel_crispr_1/mrsmrs_20/Desulfurococcus_fermentans_dsm_16532");
-        MRSMRS mrsmrs=new MRSMRS();
+        // MRSMRS mrsmrs=new MRSMRS();
 
-        JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
+        // JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
   
 
 
-         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,2,9,3);
+        //  JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,2,9,4);
         // test_2.saveAsTextFile("crispr_test5");
 
     	// JavaRDD<String> fasta=sc.textFile("Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
@@ -44,14 +45,25 @@ public class MRSMRS implements Serializable{
 
 
         // JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
-         JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
-        JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,20, test_2);
+        //  JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
+        // JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,20, test_2);
         // test_5.saveAsTextFile("crispr_test_2");
 
 
-        JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
-        JavaRDD<String> test7=mrsmrs.refineResult(test6,3);
-        test7.saveAsTextFile("crispr_novel_test");
+        // JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
+        // JavaRDD<String> test7=mrsmrs.refineResult(test6,3);
+        // test7.saveAsTextFile("crispr_novel_test");
+
+
+
+
+        // the process for discovery of all possible imperfect palindromic structure
+         
+         String path1="Yersinia_pestis_biovar_microtus_str_91001chromosome_Chromosome";
+         JavaRDD<String> input=sc.textFile(path1);
+         JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
+         JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.fetchImperfectPalindromeAcrossGenomes( test,10);
+         test_2.saveAsTextFile("imperfectPalin_test");
 
     }
 
@@ -179,7 +191,7 @@ public class MRSMRS implements Serializable{
 
      }
 
-
+    // specifically designed for palindromic structuer  inside repeat unit
     // output : Integer : interval length  ;  left arm start -location is 5'->3' 
     public  JavaPairRDD <Integer, Integer> fetchPalindromeArms(JavaPairRDD <String, Integer> parsedMRSMRSresult,int min_interval_len,int max_interval_len,int armlen){
            final  int min_dist=2*armlen+min_interval_len;
@@ -256,6 +268,124 @@ public class MRSMRS implements Serializable{
             
 
     }
+
+    //  grab all the possible imperfect palindromic structure with each arm is a kmer 
+    //  need to consider merging later  to extend  arm in case of adjacent arms  or overlap arms across 
+    // differnt kmers
+    public  JavaPairRDD <String, ArrayList<Integer>> fetchImperfectPalindromeAcrossGenomes(JavaPairRDD <String, Integer> parsedMRSMRSresult,int armlen){
+        
+           final  int arm_len=armlen;
+   
+           JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
+
+            JavaPairRDD<String, ArrayList<Integer>> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String, ArrayList<Integer>>(){
+                @Override
+                public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<Integer>> keyValue){
+                 Iterable<Integer>data =keyValue._2();
+                 String kmer_seq=keyValue._1();
+                 Iterator<Integer> itr=data.iterator();
+                 ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
+                 ArrayList<Integer> locs_on_negStrand=new ArrayList<Integer>();
+                 ArrayList<Tuple2<String, ArrayList<Integer>>> imperfect = new ArrayList<Tuple2<String, ArrayList<Integer>>> (); 
+                 
+                 while(itr.hasNext()){
+                   int thisLoc=itr.next();
+                   if(thisLoc>0){
+                      locs_on_postiveStrand.add(thisLoc);
+                   }
+                   else{
+                      locs_on_negStrand.add(Math.abs(thisLoc));
+                   }
+
+                 }
+
+                 Collections.sort(locs_on_postiveStrand);
+                 Collections.sort(locs_on_negStrand);
+
+                 int iterationNum=locs_on_postiveStrand.size();
+                 for(int j=0;j<iterationNum;j++){
+                     int thisPosStartLoc=locs_on_postiveStrand.get(j);
+                     int iterationNum_neg=locs_on_negStrand.size();
+                     for(int k=0;k<iterationNum_neg;k++){
+                         int thisNegStartLoc=locs_on_negStrand.get(k);
+                         int junction_distance=thisNegStartLoc-(thisPosStartLoc+arm_len-1);
+                         if(junction_distance>1){
+                            ArrayList<Integer> posStart_junctionDistance=new ArrayList<Integer>();
+                            posStart_junctionDistance.add(thisPosStartLoc);
+                            posStart_junctionDistance.add(junction_distance);
+                            imperfect.add(new Tuple2<String,ArrayList<Integer>>(kmer_seq,posStart_junctionDistance));
+                         } 
+                     }
+
+                 }
+               
+                 // int iterationNum=locs_on_postiveStrand.size();
+                 // for(int j=0;j<iterationNum;j++){
+                 //     int thisPosStartLoc=locs_on_postiveStrand.get(j);
+                 //     if(j<iterationNum-1){
+                 //        int thisPosEndLoc=thisPosStartLoc+arm_len;
+                 //        int nextPosStartLoc=locs_on_postiveStrand.get(j+1);
+                        
+
+                        // for merging adjacent and overlap arms to extend 
+                        // boolean is_pos_overlap=false;
+                        // boolean is_pos_adjacent=false;
+
+                        // int dist_two_pos_loc=nextPosStartLoc-thisPosEndLoc;
+                        
+                        // if(dist_two_pos_loc==0){
+                        //   is_pos_adjacent=true;
+                        // }
+
+                        // if(dist_two_pos_loc<0){
+                        //   is_pos_overlap=true;
+                        // }
+
+
+
+                        // int iterationNum_neg=locs_on_negStrand.size();
+                        // for(int k=0;k<iterationNum_neg;k++){
+                        //         int thisNegLoc=locs_on_negStrand.get(k);
+                        //         if(k<iterationNum_neg-1){
+                        //             int dist_two_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
+                        //           // for merging adjacent and overlap arms to extend 
+                        //           boolean is_neg_overlap=false;
+                        //           boolean is_neg_adjacent=false;
+
+                        
+                        //           if(dist_two_neg==0){
+                        //             is_neg_adjacent=true;
+                        //           }
+          
+                        //           if(dist_two_neg<0){
+                        //            is_neg_overlap=true;
+                        //           }
+
+
+                             
+                              
+
+                                          
+                        //         }
+                           
+                        //     }
+                            
+             
+
+                 return(imperfect);
+
+                }
+
+            });
+
+        return(result);
+
+            
+
+    }
+
+
+
 
     // filter out incorrect repeat happenning in limeload step in MRSMRS
     public JavaPairRDD <Integer, Integer> filterOutBadMrsMrsResult(JavaRDD<String> fasta_seqs,JavaPairRDD <Integer, Integer> unfiltered_result,int armLen){
