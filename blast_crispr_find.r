@@ -18,16 +18,46 @@ max_arm_len=20
 ips_arm_len_cum=NULL
 for(i in 1:length(all_repeat_seqs)){
     d=unlist(all_repeat_seqs[i])
+    seq_txt=toString(d)
     lens=NULL
     for(j in min_arm_len:max_arm_len){
         palind=findComplementedPalindromes(d,max.looplength=43,min.armlength =j)
         palind_num=length(unlist(strsplit(toString(palind),split=",")))
         lens=c(lens,palind_num)
+
     }
+    ips_arm_len_cum=rbind(ips_arm_len_cum,c(seq_txt,as.character(lens)))
+   
     
 }
+colnames(ips_arm_len_cum)=c("repeat_seq",as.character(min_arm_len:max_arm_len))
 
-#length distrubtion
+
+#get exact count rather than cumulative count
+arm_len=matrix(0,nrow =nrow(ips_arm_len_cum), ncol =ncol(ips_arm_len_cum)-1)
+for(i in 1:ncol(arm_len)){
+  arm_len[,i]=as.numeric(ips_arm_len_cum[,i+1])
+}
+colnames(arm_len)=colnames(ips_arm_len_cum)[2:ncol(ips_arm_len_cum)]
+
+for(i in 1:ncol(arm_len)){
+  if(i!=ncol(arm_len)){
+   if(i!=ncol(arm_len)-1){
+      start_idx=i+1
+      end_idx=ncol(arm_len)
+      arm_len[,i]=arm_len[,i]-rowSums(arm_len[,start_idx:end_idx])
+   }
+   
+   else{
+    arm_len[,i]=arm_len[,i]-arm_len[,i+1]
+   }
+   
+  }
+  
+  
+}
+
+
 #
 #pairwiseAlignment(pattern = , subject = "suuuuucdfasdfdsfsaeexxexxd",type="local")
 #http://stackoverflow.com/questions/9328519/how-to-read-from-multiple-fasta-files-with-r
