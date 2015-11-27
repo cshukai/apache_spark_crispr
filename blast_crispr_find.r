@@ -6,6 +6,7 @@ require(ggplot2)
 crispr_db_repeat_path="repeat_list.fa"
 db_repeat=readFasta(crispr_db_repeat_path)
 db_repeat_ids=id(db_repeat)
+all_repeat_seqs=sread(db_repeat)
 
 crispr_db_spacer_path="/home/shchang/data/crisprdb/spacer_list.fa"
 db_spacer=readFasta(crispr_db_spacer_path)
@@ -15,9 +16,12 @@ target_genomes_path="/home/shchang/data/bacteria_0_collection/methanocaldococcus
 target_genome=readFasta(target_genomes_path)
 crispr_ref_id="NC_000909"
 #alingment between repeats and genomes
-
-
-
+repeat_id=as.character(db_repeat_ids)
+target_rep_seq_idx=grep(crispr_ref_id,repeat_id)
+target_rep_seq=NULL
+for(i in 1:length(target_rep_seq_idx)){
+target_rep_seq=c(target_rep_seq,toString(unlist(all_repeat_seqs[target_rep_seq_idx[i]])))
+}
 #alignment between spacers adn genoms
 
 
@@ -28,7 +32,7 @@ png("boxplot")
 dev.off()
 
 # analysis of imperfect palindromic structure inside repeat
-all_repeat_seqs=sread(db_repeat)
+
 min_arm_len=4
 max_arm_len=20
 ips_arm_len_cum=NULL
