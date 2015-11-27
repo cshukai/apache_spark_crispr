@@ -10,6 +10,17 @@ db_repeat_ids=id(db_repeat)
 crispr_db_spacer_path="/home/shchang/data/crisprdb/spacer_list.fa"
 db_spacer=readFasta(crispr_db_spacer_path)
 db_spacer_ids=id(db_spacer)
+
+target_genomes_path="/home/shchang/data/bacteria_0_collection/methanocaldococcus_jannaschii_dsm_2661/dna/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.29.dna.chromosome.Chromosome.fa"
+target_genome=readFasta(target_genomes_path)
+crispr_ref_id="NC_000909"
+#alingment between repeats and genomes
+
+
+
+#alignment between spacers adn genoms
+
+
 #analysis of repeat length
 repeat_lens=width(sread(db_repeat))
 png("boxplot")
