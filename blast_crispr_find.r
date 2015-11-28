@@ -10,10 +10,14 @@ all_repeat_seqs=sread(db_repeat)
 
 crispr_db_spacer_path="/home/shchang/data/crisprdb/spacer_list.fa"
 db_spacer=readFasta(crispr_db_spacer_path)
+all_spacer_seqs=sread(db_spacer)
 db_spacer_ids=id(db_spacer)
 
 target_genomes_path="/home/shchang/data/bacteria_0_collection/methanocaldococcus_jannaschii_dsm_2661/dna/Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.29.dna.chromosome.Chromosome.fa"
 target_genome=readFasta(target_genomes_path)
+target_genome_txt=toString(unlist(sread(target_genome)[1]))
+
+
 crispr_ref_id="NC_000909"
 #alingment between repeats and genomes
 repeat_id=as.character(db_repeat_ids)
@@ -22,6 +26,61 @@ target_rep_seq=NULL
 for(i in 1:length(target_rep_seq_idx)){
 target_rep_seq=c(target_rep_seq,toString(unlist(all_repeat_seqs[target_rep_seq_idx[i]])))
 }
+
+
+
+
+repeat_alignment_report=NULL
+
+for(i in 1:length(target_rep_seq)){
+window_size=floor(length(target_rep_seq[i]))
+   for(j in 1: nchar(target_genome_txt)){
+     if(j<nchar(target_genome_txt)-length(target_rep_seq[i])){
+      this_start=j
+      this_end=j+nchar(target_rep_seq[i])-1
+      this_section=substr(target_genome_txt,start=this_start,stop=this_end)
+      this_score=score(pairwiseAlignment(pattern =target_rep_seq[i] , subject = this_section,type="local"))
+      repeat_alignment_report=rbind(repeat_alignment_report,c(target_rep_seq[i],this_start,this_end,this_score))
+      j=j+window_size-1
+     }  
+      
+   }
+}
+
+
+#alingment between spacer and target genome
+
+crispr_ref_id="NC_000909"
+#alingment between repeats and genomes
+repeat_id=as.character(db_repeat_ids)
+target_rep_seq_idx=grep(crispr_ref_id,repeat_id)
+target_rep_seq=NULL
+for(i in 1:length(target_rep_seq_idx)){
+target_rep_seq=c(target_rep_seq,toString(unlist(all_repeat_seqs[target_rep_seq_idx[i]])))
+}
+
+
+
+spacer_alignment_report=NULL
+
+for(i in 1:length(target_rep_seq)){
+window_size=floor(length(target_rep_seq[i]))
+   for(j in 1: nchar(target_genome_txt)){
+     if(j<nchar(target_genome_txt)-length(target_rep_seq[i])){
+      this_start=j
+      this_end=j+length(target_rep_seq[i])-1
+      this_section=substr(target_genome_txt,start=this_start,stop=this_end)
+      this_score=score(pairwiseAlignment(pattern =target_rep_seq[i] , subject = this_section,type="local"))
+      repeat_alignment_report=rbind(repeat_alignment_report,c(target_rep_seq[i],this_start,this_end,this_score))
+      j=j+window_size-1
+     }  
+      
+   }
+}
+
+
+
+
 #alignment between spacers adn genoms
 
 
@@ -71,5 +130,3 @@ colnames(result_len)=c("repeat_seq",as.character(min_arm_len:max_arm_len))
 
 write.csv(result_len,file="result_len.csv",row.names=F)
 
-#pairwiseAlignment(pattern = , subject = "suuuuucdfasdfdsfsaeexxexxd",type="local")
-#http://stackoverflow.com/questions/9328519/how-to-read-from-multiple-fasta-files-with-r
