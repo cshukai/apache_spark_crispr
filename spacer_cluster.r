@@ -12,5 +12,8 @@ spacer_id=as.character(db_spacer_ids)
 spacers=NULL
 for(i in 1:length(spacer_id)){
    temp=unlist(strsplit(spacer_id[i],split="\\|"))
+   for(j in 1:length(temp)){
+   
+   }
    
 }
