@@ -3,7 +3,7 @@ library(ShortRead)
 require(ggplot2)
 
 ##processing and analysis of crispr db result##
-crispr_db_repeat_path="repeat_list.fa"
+crispr_db_repeat_path="/home/shchang/data/crisprdb/repeat_list.fa"
 db_repeat=readFasta(crispr_db_repeat_path)
 db_repeat_ids=id(db_repeat)
 all_repeat_seqs=sread(db_repeat)
@@ -18,8 +18,8 @@ target_genome=readFasta(target_genomes_path)
 target_genome_txt=toString(unlist(sread(target_genome)[1]))
 
 
-crispr_ref_id="NC_000909"
 #alingment between repeats and genomes
+crispr_ref_id="NC_000909"
 repeat_id=as.character(db_repeat_ids)
 target_rep_seq_idx=grep(crispr_ref_id,repeat_id)
 target_rep_seq=NULL
@@ -27,15 +27,12 @@ for(i in 1:length(target_rep_seq_idx)){
 target_rep_seq=c(target_rep_seq,toString(unlist(all_repeat_seqs[target_rep_seq_idx[i]])))
 }
 
-
-
-
 repeat_alignment_report=NULL
 
 for(i in 1:length(target_rep_seq)){
-window_size=floor(length(target_rep_seq[i]))
-   for(j in 1: nchar(target_genome_txt)){
-     if(j<nchar(target_genome_txt)-length(target_rep_seq[i])){
+  window_size=floor(nchar(target_rep_seq[i])/2)
+  j=1 
+  while(j<nchar(target_genome_txt)-length(target_rep_seq[i])){
       this_start=j
       this_end=j+nchar(target_rep_seq[i])-1
       this_section=substr(target_genome_txt,start=this_start,stop=this_end)
@@ -44,38 +41,38 @@ window_size=floor(length(target_rep_seq[i]))
       j=j+window_size-1
      }  
       
-   }
+   
 }
 
 
 #alingment between spacer and target genome
 
 crispr_ref_id="NC_000909"
-#alingment between repeats and genomes
-repeat_id=as.character(db_repeat_ids)
-target_rep_seq_idx=grep(crispr_ref_id,repeat_id)
-target_rep_seq=NULL
-for(i in 1:length(target_rep_seq_idx)){
-target_rep_seq=c(target_rep_seq,toString(unlist(all_repeat_seqs[target_rep_seq_idx[i]])))
+#alingment between spacer and genomes
+spacer_id=as.character(db_spacer_ids)
+target_spacer_seq_idx=grep(crispr_ref_id,spacer_id)
+target_spacer_seq=NULL
+for(i in 1:length(target_spacer_seq_idx)){
+target_spacer_seq=c(target_spacer_seq,toString(unlist(all_spacer_seqs[target_spacer_seq_idx[i]])))
 }
 
 
 
 spacer_alignment_report=NULL
 
-for(i in 1:length(target_rep_seq)){
-window_size=floor(length(target_rep_seq[i]))
-   for(j in 1: nchar(target_genome_txt)){
-     if(j<nchar(target_genome_txt)-length(target_rep_seq[i])){
+for(i in 1:length(target_spacer_seq)){
+  window_size=floor(nchar(target_spacer_seq[i])/2)
+  j=1 
+     while(j<nchar(target_genome_txt)-length(target_spacer_seq[i])){
       this_start=j
-      this_end=j+length(target_rep_seq[i])-1
+      this_end=j+nchar(target_spacer_seq[i])-1
       this_section=substr(target_genome_txt,start=this_start,stop=this_end)
-      this_score=score(pairwiseAlignment(pattern =target_rep_seq[i] , subject = this_section,type="local"))
-      repeat_alignment_report=rbind(repeat_alignment_report,c(target_rep_seq[i],this_start,this_end,this_score))
+      this_score=score(pairwiseAlignment(pattern =target_spacer_seq[i] , subject = this_section,type="local"))
+      spacer_alignment_report=rbind(spacer_alignment_report,c(target_spacer_seq[i],this_start,this_end,this_score))
       j=j+window_size-1
      }  
       
-   }
+   
 }
 
 
