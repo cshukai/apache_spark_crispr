@@ -1,7 +1,7 @@
 FILES="$1/dna/*.chromosome.Chromosome.fa"
 for f in $FILES
 do
-    sh /home/sc724/perlscrip/mergelines.sh $f
+    sh /home/sc724/perlscript/mergelines.sh $f
 
 done
 

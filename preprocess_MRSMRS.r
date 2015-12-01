@@ -23,15 +23,24 @@ for(i in 1:length(unzipped_genome_paths)){
 
 }
 
-
+# generation of txt1 and txt4 for MRSMRS
 for(i in 1:length(fa_upper_folder)){
   cmd=paste("sh /home/sc724/perlscript/runmerge.sh ", fa_upper_folder[i],sep=" ")
   system(cmd)
 }
 
+for(i in 1:length(fa_upper_folder)){
+  cmd=paste("sh /home/sc724/perlscript/runsplit.sh ", fa_upper_folder[i],sep=" ")
+  system(cmd)
+}
+
+#upalod to hdfs 
+
+
 
 save.image("crispr.RData")
-
+txt1_4_path=
+hdfs_path=
 
 
 
