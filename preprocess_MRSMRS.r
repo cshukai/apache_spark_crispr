@@ -17,4 +17,53 @@ system(cmd)
 
 unzipped_genome_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa"))
 
+fa_upper_folder=NULL
+for(i in 1:length(unzipped_genome_paths)){
+  fa_upper_folder=c(fa_upper_folder,unlist(strsplit(unzipped_genome_paths[i],split="dna"))[1])
+
+}
+
+
+for(i in 1:length(fa_upper_folder)){
+  cmd=paste("sh /home/sc724/perlscript/runmerge.sh ", fa_upper_folder[i],sep=" ")
+  system(cmd)
+}
+
+
 save.image("crispr.RData")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
