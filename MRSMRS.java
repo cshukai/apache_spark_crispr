@@ -16,7 +16,6 @@ import org.apache.hadoop.io.Text;
 
 public class MRSMRS implements Serializable{
 	public static void main(String [ ] args) throws Exception{
-    	// SparkConf conf=new SparkConf().setAppName("spark-crispr").setMaster("spark://masterb.nuc:7077");
         SparkConf conf=new SparkConf().setAppName("spark-crispr");
     	  JavaSparkContext sc=new JavaSparkContext(conf);   
         MRSMRS mrsmrs=new MRSMRS();
@@ -54,16 +53,6 @@ public class MRSMRS implements Serializable{
         // JavaRDD<String> test7=mrsmrs.refineResult(test6,3);
         // test7.saveAsTextFile("crispr_novel_test");
 
-
-
-
-        // the process for discovery of all possible imperfect palindromic structure
-         
-         String path1="Yersinia_pestis_biovar_microtus_str_91001chromosome_Chromosome";
-         JavaRDD<String> input=sc.textFile(path1);
-         JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
-         JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.fetchImperfectPalindromeAcrossGenomes( test,10);
-         test_2.saveAsTextFile("imperfectPalin_test");
 
     }
 
