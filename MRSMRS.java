@@ -17,7 +17,7 @@ import org.apache.hadoop.io.Text;
 public class MRSMRS implements Serializable{
 	public static void main(String [ ] args) throws Exception{
         SparkConf conf=new SparkConf().setAppName("spark-crispr");
-    	  JavaSparkContext sc=new JavaSparkContext(conf);   
+    	JavaSparkContext sc=new JavaSparkContext(conf);   
         MRSMRS mrsmrs=new MRSMRS();
         // String path1=args[0];
         // String path2=args[1];

@@ -48,7 +48,6 @@ for(i in 1:length(target_rep_seq)){
 #alingment between spacer and target genome
 
 crispr_ref_id="NC_000909"
-#alingment between spacer and genomes
 spacer_id=as.character(db_spacer_ids)
 target_spacer_seq_idx=grep(crispr_ref_id,spacer_id)
 target_spacer_seq=NULL
@@ -56,7 +55,7 @@ for(i in 1:length(target_spacer_seq_idx)){
 target_spacer_seq=c(target_spacer_seq,toString(unlist(all_spacer_seqs[target_spacer_seq_idx[i]])))
 }
 
-
+write.csv(repeat_alignment_report,"repeat_alignment_report.csv",row.names=F)
 
 spacer_alignment_report=NULL
 
@@ -75,11 +74,7 @@ for(i in 1:length(target_spacer_seq)){
    
 }
 
-
-
-
-#alignment between spacers adn genoms
-
+write.csv(spacer_alignment_report,file="spacer_alignment_report.csv",row.names=F)
 
 #analysis of repeat length
 repeat_lens=width(sread(db_repeat))
