@@ -44,6 +44,9 @@ for(i in  1:length(txt1_4_path)){
     system(cmd)
 }
 
+# formulate the script to run spark-submit
+
+
 save.image("crispr.RData")
 
 
