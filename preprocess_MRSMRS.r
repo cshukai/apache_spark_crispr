@@ -45,7 +45,12 @@ for(i in  1:length(txt1_4_path)){
 }
 
 # formulate the script to run spark-submit
-
+txt_1_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","hadoop","*.txt1"))
+for(i in 1:length(txt_1_path)){
+ tmp=unlist(strsplit(txt_1_path,split="/"))
+ tmp2=tmp[length(tmp)]
+ # tmp3=tmp2  remove the last character
+}
 
 save.image("crispr.RData")
 

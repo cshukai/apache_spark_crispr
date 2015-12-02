@@ -174,7 +174,7 @@ object PalindromeFinder {
 			val compRepeat4 = repeat4.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
 
 			val allRepeats=sc.union(repeat1,compRepeat1,repeat4,compRepeat4).groupByKey
-			allRepeats.saveAsTextFile("animal/10mer/"+speciesName+"/"+chrID);
+			allRepeats.saveAsTextFile("bac_26/10mer/"+speciesName+"/"+chrID);
 
 
 
