@@ -46,12 +46,18 @@ for(i in  1:length(txt1_4_path)){
 
 # formulate the script to run spark-submit
 txt_1_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","hadoop","*.txt1"))
+argu=NULL
 for(i in 1:length(txt_1_path)){
- tmp=unlist(strsplit(txt_1_path,split="/"))
+ tmp=unlist(strsplit(txt_1_path[i],split="/"))
  tmp2=tmp[length(tmp)]
- # tmp3=tmp2  remove the last character
+ tmp3=substr(tmp2,1,nchar(tmp2)-1)
+ tmp4=paste(tmp3,"",sep=" ")
+ argu=paste(argu,tmp4,sep=" ")
 }
 
+tmp5='spark-submit  --class "PalindromeFinder" target/scala-2.10/palindromefinder_2.10-0.1.jar'
+cmd=paste(tmp5,argu,sep=" ")
+cat(cmd,file="run.sh")
 save.image("crispr.RData")
 
 
