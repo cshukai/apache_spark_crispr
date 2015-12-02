@@ -35,17 +35,16 @@ for(i in 1:length(fa_upper_folder)){
 }
 
 #upalod to hdfs 
+txt1_4_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","hadoop","*.txt[14]"))
+hdfs_path="bac_26"
 
-
+for(i in  1:length(txt1_4_path)){
+    tmp=paste("hadoop fs -put",txt1_4_path[i],sep=" ")
+    cmd=paste(tmp,hdfs_path,sep=" ")
+    system(cmd)
+}
 
 save.image("crispr.RData")
-txt1_4_path=
-hdfs_path=
-
-
-
-
-
 
 
 
