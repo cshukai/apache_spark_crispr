@@ -19,6 +19,7 @@ object PalindromeFinder {
 		}
 		return true
 	}
+
 	//
 	//ensures that there is a positive and negative value in the list
 	//
@@ -37,7 +38,7 @@ object PalindromeFinder {
 	}
 
 	//
-	//Coarse Grained function to check if there is an occurrence of the string on both strands
+	//function to verify palindromic, checks the candidates against each other
 	//
 	def verifyPalindromic(list: Iterable[Int], length: Int): Iterable[((Int,Int))] = {
 		val negVals = list.filter(_ < 0)
@@ -86,6 +87,7 @@ object PalindromeFinder {
 		}
 		return false
 	}
+
 	//
 	//gets the full palindromic sequence based on the overlap
 	//
@@ -150,38 +152,21 @@ object PalindromeFinder {
 	def main(args: Array[String]) = {
 		
 		val sc = new SparkContext()
+		val initWindowSize = args(1).toInt
+		val file = sc.textFile(args(0), 80)
+		val chrID = args(0).split("/").last //the filename is also the chromosome id, for a unique storage name
+		//200 is the length of our lines output from the pipeline
+		val line_length = 200 //this is hardcoded to avoid a miscount on the last line of the file
 
-		
-		for(i <- args) {
+		val words = file.zipWithIndex.flatMap( l => ( l._1.sliding(initWindowSize).zipWithIndex.filter(seq => filterSeqs(seq._1, initWindowSize)).map( f => ((( f._1, chrID)),((f._2+1)+((line_length)*(l._2 - 1))).toInt))))
+		val compWords = words.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
 
-			// global setup
-			val path1 = i + "1"
-			val path4 = i + "4"
-			// val chrID= path1.split('/')(1).split(".fa.txt")(0).split("dna.")(1).replace(".", "_")
-            val chrID= path1.split(".fa.txt")(0).split("dna.")(1).replace(".", "_")
-			
-			// val speciesName = path1.split('/')(1).split('.')(0)
-			val speciesName = path1.split('.')(0)
-
-			var shift1 =0
-			val shift=189
-			val file1 = sc.textFile("bac_26/"+path1, 80)
-			val file4 = sc.textFile("bac_26/"+path4, 80)
-
-			// find repeat unit with length 10
-			val unitSize = 20
-			val repeat1 = file1.zipWithIndex.flatMap( l => ( l._1.sliding(unitSize).zipWithIndex.filter(seq => filterSeqs(seq._1, unitSize)).map( f => ((( f._1, chrID)),shift1 + ((f._2+1)+(198*(l._2))).toInt))))			
-			val compRepeat1 = repeat1.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
-
-			val repeat4 = file4.zipWithIndex.flatMap( l => ( l._1.sliding(unitSize).zipWithIndex.filter(seq => filterSeqs(seq._1, unitSize)).map( f => ((( f._1, chrID)),shift1 + ((f._2+1)+(198*(l._2))).toInt))))			
-			val compRepeat4 = repeat4.map(f => ((complement(f._1), -1 * (f._2 + f._1._1.length))))
-
-			val allRepeats=sc.union(repeat1,compRepeat1,repeat4,compRepeat4).groupByKey
-			allRepeats.saveAsTextFile("bac_26/20mer/"+speciesName+"/"+chrID);
-
-
-
-		}
+		//all the words of length equal to initWindowSize
+		val allWords = sc.union(words,compWords).groupByKey
+		var palindromes = allWords
+		var repeated_sequences = allWords
+        repeated_sequences.saveAsTextFile("bac_26"+"/newMRSMRS/"+"10mer")
+	
 
 	}
 

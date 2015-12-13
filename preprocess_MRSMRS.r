@@ -1,11 +1,10 @@
-library(snow)
 
 bac_collectoin_home="/home/sc724/data/seq/bacteria/ftp.ensemblgenomes.org/pub/bacteria/release-26/fasta"
 MRSMRS_perscript_home="/home/sc724/perlscript"
 
 #unzip raw data
 
-strain_path=paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna"))
+strain_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna"))
 gz_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.gz"))
 genome_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa.gz"))
 top_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.toplevel.fa.gz"))
@@ -45,7 +44,9 @@ for(i in  1:length(txt1_4_path)){
 }
 
 # formulate the script to run spark-submit
-txt_1_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","hadoop","*.txt1"))
+txt_0_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","hadoop","*.txt1"))
+mal_form_idx= grep("/_",txt_0_path)
+txt_1_path=txt_0_path[-mal_form_idx]
 argu=NULL
 for(i in 1:length(txt_1_path)){
  tmp=unlist(strsplit(txt_1_path[i],split="/"))
