@@ -22,21 +22,16 @@ public class MRSMRS implements Serializable{
         // String path1=args[0];
         // String path2=args[1];
 
-         // JavaRDD<String> input=sc.textFile("bacteria/crispr/test/CoarseGrain/word3/");
-        // JavaRDD<String> input=sc.textFile("novel_crispr_1/complimentary/Desulfurococcus_fermentans_dsm_16532");
+         JavaRDD<String> input=sc.textFile("Yersinia_pestis_biovar_microtus_str_91001chromosome_Chromosome");
 
         //  JavaRDD<String> input=sc.textFile(path1);
         // JavaRDD<String> input_2=sc.textFile(path2);
 
         // JavaRDD<String> input_2=sc.textFile("novel_crispr_1/mrsmrs_20/Desulfurococcus_fermentans_dsm_16532");
-        // MRSMRS mrsmrs=new MRSMRS();
 
-        // JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
-  
-
-
-        //  JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,2,9,4);
-        // test_2.saveAsTextFile("crispr_test5");
+         JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
+         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,30,10);
+         test_2.saveAsTextFile("crispr_test5");
 
     	// JavaRDD<String> fasta=sc.textFile("Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
      //    JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,4);
@@ -227,7 +222,7 @@ public class MRSMRS implements Serializable{
                                     int firstDist_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
                                     int secondDist_neg=locs_on_negStrand.get(k+2)-locs_on_negStrand.get(k+1);
                                     if(firstDist_neg<200 && secondDist_neg<200){
-                                        int size=thisNegLoc-thisPosLoc;
+                                        int size=thisNegLoc-thisPosLoc; // size is referred to distance between head of left arm and tail of right arm
                                         if(size>=min_dist && size<=max_dist){
                                             int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
                                             int thisPosLoc_corrected=thisPosLoc+1;
