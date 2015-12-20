@@ -50,12 +50,44 @@ for(i in 1:length(species)){
  }
 } 
 
-empty_idx=union(which(names(result) ==""),which(is.na(names(result))))
+
+#################summarization################################
+
+# identify  perfect palindrome
+perfect_palindrome_species=NULL
+result_refined=NULL
+for(i in 1:length(result)){
+    this_structure=result[[i]]
+    if(this_structure[1]==0){
+    perfect_palindrome_species=c(perfect_palindrome_species,names(result)[i])
+    }
+    if(this_structure[1]>=50){
+    result[[i]]=NULL
+    }
+
+}
+
+perfect_palindrome_species=unique(perfect_palindrome_species)
+
+
+list_labels=names(result)
+species_with_putative_CRISPR_array=names(table(list_labels))
 
 
 
 
-
-
+for(i in 1:length(species_with_putative_CRISPR_array)){
+    this_spec=species_with_putative_CRISPR_array[i]
+    target_list_idx=grep(x=list_labels,pattern=this_spec)
+    for(j in 1 :length(target_list_idx) ){
+       this_target=result[target_list_idx[j]]
+       this_jun_dis=this_target[1]
+       if(this_jun_dis<50){
+          
+       }
+    }
+    
+}
 save.image("palind_crispr_result.RData")
+
 
