@@ -53,39 +53,36 @@ for(i in 1:length(species)){
 
 #################summarization################################
 
-# identify  perfect palindrome
+# identify  perfect palindrome and way-too-largee jucntion distance
 perfect_palindrome_species=NULL
-result_refined=NULL
+impossible_idx=NULL
 for(i in 1:length(result)){
     this_structure=result[[i]]
     if(this_structure[1]==0){
     perfect_palindrome_species=c(perfect_palindrome_species,names(result)[i])
     }
     if(this_structure[1]>=50){
-    result[[i]]=NULL
+    impossible_idx=c(impossible_idx,i)
     }
-
 }
+
+
 
 perfect_palindrome_species=unique(perfect_palindrome_species)
 
+# summary of repeat sequence
+species_with_putative_crispr=NULL
 
-list_labels=names(result)
-species_with_putative_CRISPR_array=names(table(list_labels))
-
-
-
-
-for(i in 1:length(species_with_putative_CRISPR_array)){
-    this_spec=species_with_putative_CRISPR_array[i]
-    target_list_idx=grep(x=list_labels,pattern=this_spec)
-    for(j in 1 :length(target_list_idx) ){
-       this_target=result[target_list_idx[j]]
-       this_jun_dis=this_target[1]
-       if(this_jun_dis<50){
-          
-       }
+for(i in 1:length(result)){
+    if(length(which(impossible_idx == i))==0){
+        this_list=result[[i]]
+        this_spec_name=names(result)[[i]]
+        left_arm_positions=sort(this_list[2:length(this_list)])
+        for(j in 1:length(left_arm_positions)){
+           cat("")
+        }
     }
+    
     
 }
 save.image("palind_crispr_result.RData")
