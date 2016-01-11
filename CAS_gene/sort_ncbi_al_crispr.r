@@ -13,7 +13,11 @@ dir.create(target_names[i])
 temp_cas1_idx=intersect(grep(pattern="cas1",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
 
 cas2_idx=intersect(grep(pattern="cas2",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
-
+if(length(cas2_idx)>0){
+ cas2_result=ref_aa[cas2_idx]
+ result_path=paste(target_names,"cas2.ref.fasta",sep="/")
+ writeXStringSet(cas2_result,append=T,filepath=result_path)
+}
 
 cas3_idx=intersect(grep(pattern="cas3",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
 cas5_idx=intersect(grep(pattern="cas5",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
