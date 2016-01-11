@@ -1,4 +1,5 @@
 library("ballgown")
+library("biomaRt")
 bac_collectoin_home="/home/shchang/data/ensemble/bac_r_29/ftp.ensemblgenomes.org/pub/release-29/bacteria/gtf"
 
 #unzip raw annotation data
@@ -22,6 +23,8 @@ for(i in 1:length(target_species)){
    }
 }
 
+
+ensembl = useMart("ensembl")
 protein_id_list=list()
 for(i in 1:length(targetIdx)){
    target_gtf=unzip_gtf_path[targetIdx[i]]
@@ -30,6 +33,7 @@ for(i in 1:length(targetIdx)){
    target_protein_id=getAttributeField(gtf_tbl_CDS$attributes,field = "protein_id")
    target_protein_id=gsub(pattern="\"",replacement="",x=target_protein_id)
    protein_id_list[[i]]=target_protein_id
+   #epost -db protein -format acc   -id AAV61620,AAV61621 |efetch -format fasta
 }
 
 names(protein_id_list)=target_species
