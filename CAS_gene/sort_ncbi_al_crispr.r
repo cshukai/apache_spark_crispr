@@ -1,31 +1,38 @@
-library(ShortRead) # shortread package doesn't retrieve sequence correctly , used for process header only
 library(Biostrings)
-ref_seq=readFasta("crispr_protein.fasta")
-ref_id=as.character(id(ref_seq)) 
 ref_aa=readAAStringSet("crispr_protein.fasta",format="fasta")
-
-# sort by cas type
-cas1_id=ref_id[grep(pattern="cas1",ignore.case=T,x=ref_id)]
-cas2_id=ref_id[grep(pattern="cas2",ignore.case=T,x=ref_id)]
-cas3_id=ref_id[grep(pattern="cas3",ignore.case=T,x=ref_id)]
-cas5_id=ref_id[grep(pattern="cas5",ignore.case=T,x=ref_id)]
-
-cas6_id=ref_id[grep(pattern="cas6",ignore.case=T,x=ref_id)]
-cas7_id=ref_id[grep(pattern="cas7",ignore.case=T,x=ref_id)]
-cas9_id=ref_id[grep(pattern="cas9",ignore.case=T,x=ref_id)]
-cas10_id=ref_id[grep(pattern="cas10",ignore.case=T,x=ref_id)]
-
-csf1_id=ref_id[grep(pattern="csf1",ignore.case=T,x=ref_id)]
-cpf1_id=ref_id[grep(pattern="cpf1",ignore.case=T,x=ref_id)]
-c2c1_id=ref_id[grep(pattern="c2c1",ignore.case=T,x=ref_id)]
-c2c2_id=ref_id[grep(pattern="c2c2",ignore.case=T,x=ref_id)]
-
+ref_id=names(ref_aa)
 
 target_species=c("streptococcus thermophilus")
+target_names=c("streptococcus_thermophilus")
+
+#fetch type- and species-specific protein sequence
+for(i in 1:length(target_species)){
+
+dir.create(target_names[i])
+
+temp_cas1_idx=intersect(grep(pattern="cas1",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+
+cas2_idx=intersect(grep(pattern="cas2",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
 
 
-################fetch species-specific reference profiles############
+cas3_idx=intersect(grep(pattern="cas3",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+cas5_idx=intersect(grep(pattern="cas5",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
 
-#type II
-cas9_id[grep(pattern="streptococcus thermophilus",ignore.case=T,cas9_id)]
+cas6_idx=intersect(grep(pattern="cas6",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+cas7_idx=intersect(grep(pattern="cas7",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+cas9_idx=intersect(grep(pattern="cas9",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+cas10_idx=intersect(grep(pattern="cas10",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+cas1_idx=setdiff(temp_cas1_idx,cas10_idx)
+
+csf1_idx=intersect(grep(pattern="csf1",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+cpf1_idx=intersect(grep(pattern="cpf1",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+c2c1_idx=intersect(grep(pattern="c2c1",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+c2c2_idx=intersect(grep(pattern="c2c2",ignore.case=T,x=ref_id),grep(pattern=target_species[i],ignore.case=T,x=ref_id))
+
+
+
+}
+
+
+
 save.image("all_ref_cas.RData")
