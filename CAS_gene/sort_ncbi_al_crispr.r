@@ -1,7 +1,8 @@
-library(ShortRead)
+library(ShortRead) # shortread package doesn't retrieve sequence correctly , used for process header only
+library(Biostrings)
 ref_seq=readFasta("crispr_protein.fasta")
-ref_id=as.character(id(ref_seq))
-
+ref_id=as.character(id(ref_seq)) 
+ref_aa=readAAStringSet("crispr_protein.fasta",format="fasta")
 
 # sort by cas type
 cas1_id=ref_id[grep(pattern="cas1",ignore.case=T,x=ref_id)]
@@ -22,6 +23,9 @@ c2c2_id=ref_id[grep(pattern="c2c2",ignore.case=T,x=ref_id)]
 
 target_species=c("streptococcus thermophilus")
 
-#type II
 
+################fetch species-specific reference profiles############
+
+#type II
+cas9_id[grep(pattern="streptococcus thermophilus",ignore.case=T,cas9_id)]
 save.image("all_ref_cas.RData")
