@@ -1,5 +1,4 @@
 library("ballgown")
-library("biomaRt")
 bac_collectoin_home="/home/shchang/data/ensemble/bac_r_29/ftp.ensemblgenomes.org/pub/release-29/bacteria/gtf"
 
 #unzip raw annotation data
@@ -26,7 +25,6 @@ for(i in 1:length(target_species)){
 }
 
 
-ensembl = useMart("ensembl")
 protein_id_list=list()
 for(i in 1:length(targetIdx)){
    target_gtf=unzip_gtf_path[targetIdx[i]]
