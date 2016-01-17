@@ -35,8 +35,13 @@ for(i in 1:length(top_match_list)){
      this_cas_type=names(top_match_list)[i]
      for(j in 1:length(this_group_result)){
          temp=as.character(this_group_result[j])
-         temp2=unlist(strsplit(split="|",x=temp))
-          
+         temp2=unlist(strsplit(split="\\|",x=temp))
+         this_protein_id=temp2[length(temp2)]
+         thisRow=c(this_cas_type,this_protein_id)
+         match_ref_region=rbind(match_ref_region,thisRow)
+         tmp_cmd=paste("perl protein2gene.pl",this_protein_id, sep=" "); 
+         cmd=paste(tmp_cmd,this_protein_id,sep=">") # use protien id as filename for subsequent retrieval
+         system(cmd)
      }    
    }
 }
