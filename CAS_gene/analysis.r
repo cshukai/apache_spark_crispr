@@ -27,8 +27,8 @@ write.csv(result_statistics,file="result.statistics.csv",row.names=F)
 names(top_match_list)=cas_type
 save.image("analysis.RData")
 ################match by location #############
-top_match_list_transformed=top_match_list
 match_ref_region=NULL
+# using e-utilies to fetch location information of coding region
 for(i in 1:length(top_match_list)){
    this_group_result=top_match_list[[i]]
    if(length(this_group_result)>0){
@@ -45,3 +45,21 @@ for(i in 1:length(top_match_list)){
      }    
    }
 }
+
+
+# parsing the result returned from ncbi
+top_match_list_transformed=NULL
+for(i in 1:nrow(match_ref_region)){
+    thisProtein=match_ref_region[i,2]
+    thisNcbiReturn=readLines(file(thisProtein))
+    tmp=thisNcbiReturn[grep(pattern="coded",x=thisNcbiReturn)]
+    tmp2=unlist(strsplit(x=tmp,split=":"))
+    tmp3=unlist(strsplit(x=tmp2[length(tmp2)],split="\\.\\."))
+    thisRegionStart=tmp3[1]
+    thisRegionEnd=tmp3[2]
+    top_match_list_transformed=rbind(top_match_list_transformed,c(match_ref_region[i,],thisRegionStart,thisRegionEnd))     
+    
+}
+
+
+
