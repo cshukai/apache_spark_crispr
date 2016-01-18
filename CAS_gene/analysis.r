@@ -63,10 +63,15 @@ for(i in 1:nrow(match_ref_region)){
 
 # arrange gene architecture by distance
 cas= names(table(top_match_list_transformed[,1]))
-cas_location_list=list()
+cas_startLocation_list=list()
+cas_endLocation_list=list()
 for(i in 1:length(cas)){
 thisCas=cas[i]
 theseLocStarts=sort(unique(top_match_list_transformed[which(top_match_list_transformed[,1]==thisCas ),3 ]))
-cas_location_list[[i]]=theseLocStarts
+theseLocEnds=sort(unique(top_match_list_transformed[which(top_match_list_transformed[,1]==thisCas ),4 ]))
+
+cas_startLocation_list[[i]]=theseLocStarts
+cas_endLocation_list[[i]]=theseLocEnds
+
 }
 names(cas_location_list)=cas
