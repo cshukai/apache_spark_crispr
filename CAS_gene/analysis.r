@@ -22,7 +22,7 @@ for(i in  1: length(cas_type)){
 }
 
 names(top_match_list)=cas_type
-
+colnames(result_statistics)=c("cas_type","max_seq_identity","max_alignment_score","e-value")
 write.csv(result_statistics,file="result.statistics.csv",row.names=F)
 names(top_match_list)=cas_type
 save.image("analysis.RData")
@@ -61,5 +61,12 @@ for(i in 1:nrow(match_ref_region)){
     
 }
 
-
-
+# arrange gene architecture by distance
+cas= names(table(top_match_list_transformed[,1]))
+cas_location_list=list()
+for(i in 1:length(cas)){
+thisCas=cas[i]
+theseLocStarts=sort(unique(top_match_list_transformed[which(top_match_list_transformed[,1]==thisCas ),3 ]))
+cas_location_list[[i]]=theseLocStarts
+}
+names(cas_location_list)=cas
