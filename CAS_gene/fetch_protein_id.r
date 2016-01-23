@@ -13,7 +13,11 @@ unzip_gtf_path=gz_paths=Sys.glob(file.path(bac_collectoin_home, "*","*","*.gtf")
 
 #extract target species 
 
-target_species=c("streptococcus_thermophilus_cnrz")
+# type I, IV , III , V , VI-1, VI-2
+target_species=c("clostridium_kluyveri_dsm_555","acidithiobacillus_ferrooxidans_atcc_23270","staphylococcus_epidermidis_rp62a","francisella_cf_novicida_fx1","alicyclobacillus_acidoterrestris_atcc_49025","listeria_seeligeri_serovar_1_2b_str_slcc3954")
+#type I 
+#"bacillus_halodurans_c_125"
+#"cyanothece_sp_pcc_8802"
 target_name=NULL
 targetIdx=NULL
 for(i in 1:length(target_species)){

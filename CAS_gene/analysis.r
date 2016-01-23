@@ -74,4 +74,11 @@ cas_startLocation_list[[i]]=theseLocStarts
 cas_endLocation_list[[i]]=theseLocEnds
 
 }
-names(cas_location_list)=cas
+names(cas_startLocation_list)=cas
+names(cas_endLocation_list)=cas
+
+
+##temporary  process for validation regarding crispr array
+fasta_collectoin_home="/home/shchang/data/bac_29_fasta/ftp.ensemblgenomes.org/pub/release-29/bacteria/fasta"
+strain_path=Sys.glob(file.path(fasta_collectoin_home, "*", "*cnrz*","dna"))
+ 
