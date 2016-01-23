@@ -38,8 +38,8 @@ for(i in 1:length(targetIdx)){
    target_protein_id=gsub(pattern="\"",replacement="",x=target_protein_id)
    protein_id_list[[i]]=target_protein_id
    id_set=paste(target_protein_id,collapse=",")
-   tmp= paste( "epost -db protein -format acc   -id" ,id_set,sep=" ") 
-   tmp2=paste(tmp,"efetch -format fasta",sep="|")
+   tmp= paste( "sh epost -db protein -format acc   -id" ,id_set,sep=" ") 
+   tmp2=paste(tmp,"sh efetch -format fasta",sep="|")
    file_name=target_name[i]
    cmd=paste(tmp2,file_name,sep=">")
    system(cmd)
