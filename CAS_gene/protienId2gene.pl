@@ -20,9 +20,9 @@ my $gb = new Bio::DB::GenBank;
 
 # Gi, Acc, séquence, Annotations, Organisme, Espèce, Genre ...
 
-my $proteinID=$ARGV[0]
+my $proteinID=$ARGV[0];
 
-my @Acc =$proteinID; #Accession number de la séquence à traiter
+my @Acc = $proteinID; #Accession number de la séquence à traiter
 
 my $seq1 = $gb->get_Seq_by_acc(@Acc);
 
