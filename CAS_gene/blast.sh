@@ -1,13 +1,13 @@
 #1.build ref db                                                                             
-/share/sw/blast/2.2.30+/bin/makeblastdb -in streptococcus_thermophilus_cnrz   -dbtype prot\
- -parse_seqids  -logfile log.txt -out blastdb/ref.db                                        
+/share/sw/blast/2.2.30+/bin/makeblastdb -in ../tmp/francisella_cf_novicida_fx1   -dbtype prot -parse_seqids  -logfile log.txt -out blastdb/ref.db                                        
 
 #2. blastp                                                                                  
-/share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query cas1.ref.fasta -out cas1.bl\
-astp.out.txt  -outfmt 6                                                                     
+/share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query cas1.ref.fasta -out cas1.blastp.out.txt  -outfmt 6                                                                     
 
-/share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query cas2.ref.fasta -out cas2.bla\
-stp.out.txt  -outfmt 6
+/share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query cas2.ref.fasta -out cas2.blastp.out.txt  -outfmt 6                                                                     
+
+
+/share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query other.ref.fasta -out other.blastp.out.txt  -outfmt 6
 
 /share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query cas3.ref.fasta -out cas3.bla\
 stp.out.txt  -outfmt 6
@@ -29,3 +29,5 @@ stp.out.txt  -outfmt 6
 lastp.out.txt  -outfmt 6
 
 
+/share/sw/blast/2.2.30+/bin/blastp  -db blastdb/ref.db  -query cpf1.ref.fasta -out cpf1.bla\
+stp.out.txt  -outfmt 6
