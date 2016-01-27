@@ -1,5 +1,5 @@
 ####################match by sequence similarity###########
-output_home="/home/shchang/scratch/cas_blast/streptococcus_thermophilus"
+output_home="/home/shchang/scratch/cas_blast/francisella_cf_novicida_fx1"
 result_paths=Sys.glob(file.path(output_home, "*.out.txt"))
 cas_type=NULL
 for(i in 1:length(result_paths)){
@@ -25,7 +25,6 @@ names(top_match_list)=cas_type
 colnames(result_statistics)=c("cas_type","max_seq_identity","max_alignment_score","e-value")
 write.csv(result_statistics,file="result.statistics.csv",row.names=F)
 names(top_match_list)=cas_type
-save.image("analysis.RData")
 ################match by location #############
 match_ref_region=NULL
 # using e-utilies to fetch location information of coding region
@@ -77,8 +76,5 @@ cas_endLocation_list[[i]]=theseLocEnds
 names(cas_startLocation_list)=cas
 names(cas_endLocation_list)=cas
 
-
-##temporary  process for validation regarding crispr array
-fasta_collectoin_home="/home/shchang/data/bac_29_fasta/ftp.ensemblgenomes.org/pub/release-29/bacteria/fasta"
-strain_path=Sys.glob(file.path(fasta_collectoin_home, "*", "*cnrz*","dna"))
  
+save.image("analysis.RData")
