@@ -22,13 +22,6 @@ system(cmd)
 unzipped_genome_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa"))
 unzipped_top_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.toplevel.fa"))
 
-fa_upper_folder=NULL
-for(i in 1:length(unzipped_genome_paths)){
-  fa_upper_folder=c(fa_upper_folder,unlist(strsplit(unzipped_genome_paths[i],split="dna"))[1])
-
-}
-
-
  # generation single line fasta files
  pwd=getwd()
  setwd(MRSMRS_perscript_home)
@@ -38,8 +31,23 @@ for(i in 1:length(unzipped_genome_paths)){
  }
  setwd(pwd)
 
+ pwd=getwd()
+ setwd(MRSMRS_perscript_home)
+ for(i in 1:length(unzipped_top_paths)){
+   cmd=paste("sh /home/shchang/sw/MRSRMSR/perlscript/runmerge.sh ", unzipped_top_paths[i],sep=" ")
+   system(cmd)
+ }
+ setwd(pwd)
+
+
 single_line_genomes=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa.txt"))
 for(i in 1:length(single_line_genomes)){
     file.copy(from=single_line_genomes[i],to=getwd())
 }
+
+top_line_genomes=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.toplevel.fa.txt"))
+for(i in 1:length(top_line_genomes)){
+    file.copy(from=top_line_genomes[i],to=getwd())
+}
+
 save.image("MRSMRS_preprocessing.RData")
