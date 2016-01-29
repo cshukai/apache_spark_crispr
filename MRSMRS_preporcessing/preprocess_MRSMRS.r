@@ -1,6 +1,6 @@
 
-bac_collectoin_home="/home/sc724/data/seq/bacteria/ftp.ensemblgenomes.org/pub/bacteria/release-26/fasta"
-MRSMRS_perscript_home="/home/sc724/perlscript"
+bac_collectoin_home="/home/shchang/data/bac_29_fasta/ftp.ensemblgenomes.org/pub/release-29/bacteria/fasta"
+MRSMRS_perscript_home="/home/shchang/sw/MRSRMSR/perlscript"
 
 #unzip raw data
 
@@ -23,10 +23,13 @@ for(i in 1:length(unzipped_genome_paths)){
 }
 
 # generation of txt1 and txt4 for MRSMRS
-for(i in 1:length(fa_upper_folder)){
-  cmd=paste("sh /home/sc724/perlscript/runmerge.sh ", fa_upper_folder[i],sep=" ")
+pwd=getwd()
+setwd(MRSMRS_perscript_home)
+for(i in 1:length(unzipped_genome_paths)){
+  cmd=paste("sh /home/shchang/sw/MRSRMSR/perlscript/runmerge.sh ", unzipped_genome_paths[i],sep=" ")
   system(cmd)
 }
+setwd(pwd)
 
 for(i in 1:length(fa_upper_folder)){
   cmd=paste("sh /home/sc724/perlscript/runsplit.sh ", fa_upper_folder[i],sep=" ")
