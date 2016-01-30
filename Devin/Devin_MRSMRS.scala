@@ -324,7 +324,7 @@ return true
 
 		//all the words of length equal to initWindowSize
 		val allWords = sc.union(words,compWords).groupByKey
-
+        allWords.saveAsTextFile("result/"+args(0).split("/").last.split(".clean")(0))
 	}
 
 }

@@ -39,5 +39,26 @@ for(i in 1:length(cleanedDatasets)){
 }
 
 save.image("preprocessing.RData")
-
 #generate run script
+hdfs_filenames=NULL
+for(i in 1:length(cleanedDatasets)){
+this_name=sub(pattern="../",replacement="",cleanedDatasets[i])
+hdfs_filenames=c(hdfs_filenames,this_name)
+
+}
+
+prefix='spark-submit  --class "PalindromeFinder" target/scala-2.10/palindromefinder_2.10-0.1.jar'
+kmer_len=4
+
+argu=NULL
+for(i in 1:length(hdfs_filenames)){
+this_argu=paste(hdfs_filenames[i],kmer_len,sep="  ")
+argu=c(argu,this_argu)
+}
+
+for(i in 1:length(argu)){
+cmd=paste(prefix,argu[i],sep=" ")
+ cat(cmd,file="run.sh",append=T,fill=T)
+
+}
+save.image("preprocessing.RData")
