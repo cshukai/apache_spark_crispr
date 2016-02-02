@@ -52,7 +52,8 @@ kmer_len=4
 
 argu=NULL
 for(i in 1:length(hdfs_filenames)){
-this_argu=paste(hdfs_filenames[i],kmer_len,sep="  ")
+tmp=paste("/",hdfs_filenames[i],sep="")
+this_argu=paste(tmp,kmer_len,sep="  ")
 argu=c(argu,this_argu)
 }
 
