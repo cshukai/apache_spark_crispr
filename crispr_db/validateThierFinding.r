@@ -52,3 +52,34 @@ for(i in 1:length(target_path)){
  system(cmd)
 }
 
+
+###############################################mri process on computing node
+load("crisprdb_withou.RData")
+cwd=getwd()
+
+
+#form right directories
+species_names=NULL
+for(i in 1:length(target_path)){
+ tmp=unlist(strsplit(split="/",target_path[i]))
+ species_names=c(species_names,tmp[length(tmp)-1])
+ dir.create(tmp[length(tmp)-1])
+}
+
+setwd("crisprdb_without")
+ref_fasta=Sys.glob(file.path("*.fasta"))
+setwd(cwd)
+
+for(i in 1:length(species_names)){
+    prefix="/share/sw/blast/2.2.30+/bin/blastp  -db"
+    these_db=paste(species_names[i],"db",sep=".")
+    tmp=paste(prefix,these_db,sep=" ")
+    
+    for(j in 1:length(ref_fasta)){
+    
+    }
+}
+
+
+setwd(cwd)
+save.image("crisprdb_without.RData")
