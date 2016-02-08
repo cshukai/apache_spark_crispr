@@ -54,7 +54,7 @@ for(i in 1:length(target_path)){
 
 
 ###############################################mri process on computing node
-load("crisprdb_withou.RData")
+load("crisprdb_without.RData")
 cwd=getwd()
 
 
@@ -68,17 +68,23 @@ for(i in 1:length(target_path)){
 
 setwd("crisprdb_without")
 ref_fasta=Sys.glob(file.path("*.fasta"))
-setwd(cwd)
 
 for(i in 1:length(species_names)){
     prefix="/share/sw/blast/2.2.30+/bin/blastp  -db"
+    
     these_db=paste(species_names[i],"db",sep=".")
     tmp=paste(prefix,these_db,sep=" ")
-    
+    output=paste("-out",paste(cwd,species_names[i],sep="/"),sep=" ")
     for(j in 1:length(ref_fasta)){
-    
+      tmp2=paste("-query",ref_fasta[j],sep=" ")
+      tmp3=paste(tmp,tmp2,sep=" ")
+      tmp4=paste(output,ref_fasta[j],sep="/")
+      tmp5=paste(tmp3,tmp4,sep=" ")
+      cmd=paste(tmp5, "-outfmt 6", sep=" ")
+      cat(cmd,file="script.sh",fill=T,append=T)
     }
 }
+
 
 
 setwd(cwd)
