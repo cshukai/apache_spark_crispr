@@ -1,8 +1,7 @@
 
-bac_collectoin_home="/home/sc724/data/seq/bacteria/ftp.ensemblgenomes.org/pub/bacteria/release-26/fasta"
+bac_collectoin_home="/home/shchang/data/bac_29_fasta/ftp.ensemblgenomes.org/pub/release-29/bacteria/fasta"
 
 #unzip raw data
-
 strain_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna"))
 gz_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.gz"))
 genome_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa.gz"))
@@ -19,9 +18,10 @@ system(cmd)
 }
 
 
-
 unzipped_genome_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa"))
-
+unzipped_top_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.toplevel.fa"))
+noisyIdx=union(grep(pattern="dna_rm",x=unzipped_top_paths),grep(pattern="dna_sm",x=unzipped_top_paths))
+unzipped_top_refined_paths=unzipped_top_paths[-noisyIdx]
 
 #cleanup
 setwd("/scratch/shchang/Palindrome/cleanUpData")
