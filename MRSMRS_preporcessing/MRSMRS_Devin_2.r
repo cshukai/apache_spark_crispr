@@ -30,6 +30,14 @@ for(i in 1:length(unzipped_genome_paths)){
     system(cmd)
 }
 
+
+setwd("/scratch/shchang/Palindrome2/cleanUpData")
+for(i in 1:length(unzipped_top_refined_paths)){
+    cmd=paste("./cleanUpFirst",unzipped_top_refined_paths[i],sep="  ")
+    system(cmd)
+}
+
+
 #upload data to hdfs
 cleanedDatasets=Sys.glob(file.path("..", "intermediate_data","*.clean"))
 for(i in 1:length(cleanedDatasets)){
@@ -39,6 +47,16 @@ for(i in 1:length(cleanedDatasets)){
 }
 
 save.image("preprocessing.RData")
+
+
+
+
+
+
+
+
+
+
 #generate run script
 hdfs_filenames=NULL
 for(i in 1:length(cleanedDatasets)){
@@ -47,15 +65,15 @@ hdfs_filenames=c(hdfs_filenames,this_name)
 
 }
 
-#prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
-prefix='spark-submit  --class "PalindromeFinder" --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
+prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
+#prefix='spark-submit  --class "PalindromeFinder" --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
 
 kmer_len=30
 
 argu=NULL
 for(i in 1:length(hdfs_filenames)){
- tmp=paste("/",hdfs_filenames[i],sep="")  #
-#tmp=hdfs_filenames[i]
+ #tmp=paste("/",hdfs_filenames[i],sep="")  #
+tmp=hdfs_filenames[i]
 this_argu=paste(tmp,kmer_len,sep="  ")
 argu=c(argu,this_argu)
 }
