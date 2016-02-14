@@ -9,6 +9,7 @@ sqlContext=sparkRSQL.init(sc)
 
 
 #####################user input#################
+k=4
 spacer_max=65
 spacer_min=20
 tracr_interval=10
@@ -35,12 +36,14 @@ formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len)
       
       pos_positive_strand=tmp3[which(tmp3>0)]
       pos_negative_strand=getRealNegativePosiiton(tmp3[which(tmp3<0)],k)
+    #  print(pos_negative_strand)
       pos_flipped_from_negative=abs(pos_negative_strand)
       pos_for_palindromeDetect=sort(c(pos_positive_strand,pos_flipped_from_negative))
-      
-      distance4RepeatUnit=diff(pos_positive_strand)
-      distance4StemLoop=diff(pos_for_palindromeDetect)
-         
+     # print(pos_flipped_from_negative)
+      distance4RepeatUnit=diff(pos_positive_strand)-1
+      distance4StemLoop=diff(pos_for_palindromeDetect)-1
+      #print(pos_for_palindromeDetect)
+      #print(distance4StemLoop)     
       result=NULL
       for(i in 1:length(distance4RepeatUnit)){
         if(distance4RepeatUnit[i]>spacer_min && distance4RepeatUnit[i]<spacer_max){
@@ -48,13 +51,16 @@ formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len)
         }
       }      
       
-      for(i in 1:length(distance4RepeatUnit)){
-        if(distance4StemLoop[i]<=max_loop_len && distance4StemLoop[i]>max_loop_len){
+      for(i in 1:length(distance4StemLoop)){
+        if(distance4StemLoop[i]<=max_loop_len && distance4StemLoop[i]>=min_loop_len){
             guess1=length(grep(pattern=pos_for_palindromeDetect[i],pos_positive_strand))
             guess2=length(grep(pattern=pos_for_palindromeDetect[i+1],pos_positive_strand))
             if(guess2*guess1==0 && (guess2+guess1)>0){
+               #print(pos_for_palindromeDetect[i])
+               #print(pos_for_palindromeDetect[i+1])
                 if(guess1>0){
                    result=rbind(result,c(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand)])) 
+                       
                 }
                 else{
                    result=rbind(result,c(this_seq,pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i],pos_negative_strand)],pos_for_palindromeDetect[i+1])) 
@@ -63,7 +69,8 @@ formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len)
             
         }
       }
-        if(nrow(result)>=1){
+      
+        if(!is.null(result) &&nrow(result)>=1){
             return(result)
         }
     }
@@ -73,9 +80,9 @@ formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len)
 
 
 ###########################extraction of useful repeat pair######
-this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/15mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
+this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/4mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
 rdd=SparkR:::textFile(sc, this_species_result_path)
- counts <- SparkR:::map(rdd, nchar)
+ repeat_pair=createDataFrame(sqlContext, SparkR:::flatMap(rdd,formRepeatPair))
 #############################analysis of kmer############################3
 d=hdfs.ls("bac_26/10mer/",recurse=T)
 all_paths=d[,"file"]
