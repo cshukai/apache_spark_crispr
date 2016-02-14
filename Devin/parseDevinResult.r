@@ -1,16 +1,26 @@
-# env setup
+##################### env setup############3
 library(rhdfs)
 hdfs.init()
-
 
 library(SparkR)
 pwd=getwd()
 sc=sparkR.init(master="local[4]")
 sqlContext=sparkRSQL.init(sc)
+#####################custom function################
+formRepeatPair<-function(item){
+    d_clean=gsub(gsub(x=gsub(x=item,pattern="\\(",replacement=""),pattern="\\]\\)",replacement=""),pattern="\\[",replacement="")
+    tmp=unlist(strsplit(x=d_clean, split=","))
+    this_seq=tmp[1]
+    tmp2=tmp[4:length(tmp)]
+    
+}
+
 
 
 ###########################extraction of useful repeat pair######
-
+this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/15mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
+rdd=SparkR:::textFile(sc, this_species_result_path)
+ counts <- SparkR:::map(rdd, nchar)
 #############################analysis of kmer############################3
 d=hdfs.ls("bac_26/10mer/",recurse=T)
 all_paths=d[,"file"]
