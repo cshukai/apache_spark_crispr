@@ -6,12 +6,67 @@ library(SparkR)
 pwd=getwd()
 sc=sparkR.init(master="local[4]")
 sqlContext=sparkRSQL.init(sc)
+
+
+#####################user input#################
+spacer_max=65
+spacer_min=20
+tracr_interval=10
+max_loop_len=10
+min_loop_len=3
 #####################custom function################
-formRepeatPair<-function(item){
+
+getRealNegativePosiiton<-function(positions,k){
+    realPositions=-1*(abs(positions)-k)
+    return(realPositions)
+}
+
+
+formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len){
     d_clean=gsub(gsub(x=gsub(x=item,pattern="\\(",replacement=""),pattern="\\]\\)",replacement=""),pattern="\\[",replacement="")
     tmp=unlist(strsplit(x=d_clean, split=","))
     this_seq=tmp[1]
-    tmp2=tmp[4:length(tmp)]
+    tmp2=tmp[3:length(tmp)]
+    
+    if(length(tmp2)>1){
+      tmp2[1]=sub(pattern="CompactBuffer",replacement="",tmp2[1])
+      tmp2[length(tmp2)]=gsub(pattern="\\)",replacement="",tmp2[length(tmp2)])
+      tmp3=sort(as.numeric(tmp2))
+      
+      pos_positive_strand=tmp3[which(tmp3>0)]
+      pos_negative_strand=getRealNegativePosiiton(tmp3[which(tmp3<0)],k)
+      pos_flipped_from_negative=abs(pos_negative_strand)
+      pos_for_palindromeDetect=sort(c(pos_positive_strand,pos_flipped_from_negative))
+      
+      distance4RepeatUnit=diff(pos_positive_strand)
+      distance4StemLoop=diff(pos_for_palindromeDetect)
+         
+      result=NULL
+      for(i in 1:length(distance4RepeatUnit)){
+        if(distance4RepeatUnit[i]>spacer_min && distance4RepeatUnit[i]<spacer_max){
+            result=rbind(result,c(this_seq,pos_positive_strand[i],pos_positive_strand[i+1]))
+        }
+      }      
+      
+      for(i in 1:length(distance4RepeatUnit)){
+        if(distance4StemLoop[i]<=max_loop_len && distance4StemLoop[i]>max_loop_len){
+            guess1=length(grep(pattern=pos_for_palindromeDetect[i],pos_positive_strand))
+            guess2=length(grep(pattern=pos_for_palindromeDetect[i+1],pos_positive_strand))
+            if(guess2*guess1==0 && (guess2+guess1)>0){
+                if(guess1>0){
+                   result=rbind(result,c(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand)])) 
+                }
+                else{
+                   result=rbind(result,c(this_seq,pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i],pos_negative_strand)],pos_for_palindromeDetect[i+1])) 
+                }
+            }
+            
+        }
+      }
+        if(nrow(result)>=1){
+            return(result)
+        }
+    }
     
 }
 
