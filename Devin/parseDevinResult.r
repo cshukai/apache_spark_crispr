@@ -4,7 +4,7 @@ hdfs.init()
 
 library(SparkR)
 pwd=getwd()
-sc=sparkR.init(master="local[4]")
+sc=sparkR.init()
 sqlContext=sparkRSQL.init(sc)
 
 
@@ -17,13 +17,10 @@ max_loop_len=10
 min_loop_len=3
 #####################custom function################
 
-getRealNegativePosiiton<-function(positions,k){
-    realPositions=-1*(abs(positions)-k)
-    return(realPositions)
-}
 
 
-formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len){
+
+formRepeatPair<-function(item){
     d_clean=gsub(gsub(x=gsub(x=item,pattern="\\(",replacement=""),pattern="\\]\\)",replacement=""),pattern="\\[",replacement="")
     tmp=unlist(strsplit(x=d_clean, split=","))
     this_seq=tmp[1]
@@ -35,7 +32,7 @@ formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len)
       tmp3=sort(as.numeric(tmp2))
       
       pos_positive_strand=tmp3[which(tmp3>0)]
-      pos_negative_strand=getRealNegativePosiiton(tmp3[which(tmp3<0)],k)
+      pos_negative_strand=(-1)*(abs(tmp3[which(tmp3<0)])-k)
     #  print(pos_negative_strand)
       pos_flipped_from_negative=abs(pos_negative_strand)
       pos_for_palindromeDetect=sort(c(pos_positive_strand,pos_flipped_from_negative))
@@ -81,8 +78,9 @@ formRepeatPair<-function(item,spacer_max,spacer_min,k,max_loop_len,min_loop_len)
 
 ###########################extraction of useful repeat pair######
 this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/4mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
-rdd=SparkR:::textFile(sc, this_species_result_path)
- repeat_pair=createDataFrame(sqlContext, SparkR:::flatMap(rdd,formRepeatPair))
+rdd= SparkR:::textFile(sc, this_species_result_path)
+repeat_pair= SparkR:::flatMap(rdd,formRepeatPair)
+ repeat_pair_2=createDataFrame(sqlContext,repeat_pair)
 #############################analysis of kmer############################3
 d=hdfs.ls("bac_26/10mer/",recurse=T)
 all_paths=d[,"file"]
