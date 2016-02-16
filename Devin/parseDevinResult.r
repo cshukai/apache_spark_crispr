@@ -9,7 +9,7 @@ sqlContext=sparkRSQL.init(sc)
 
 
 #####################user input#################
-k=4
+k=15
 spacer_max=65
 spacer_min=20
 tracr_interval=10
@@ -32,29 +32,21 @@ formRepeatPair<-function(item){
       tmp3=sort(as.numeric(tmp2))
       
       pos_positive_strand=tmp3[which(tmp3>0)]
-      pos_negative_strand=(-1)*(abs(tmp3[which(tmp3<0)])-k)
-    #  print(pos_negative_strand)
-      pos_flipped_from_negative=abs(pos_negative_strand)
-      pos_for_palindromeDetect=sort(c(pos_positive_strand,pos_flipped_from_negative))
-     # print(pos_flipped_from_negative)
-      distance4RepeatUnit=diff(pos_positive_strand)-1
-      distance4StemLoop=diff(pos_for_palindromeDetect)-1
-      #print(pos_for_palindromeDetect)
-      #print(distance4StemLoop)     
-      result=NULL
-      for(i in 1:length(distance4RepeatUnit)){
-        if(distance4RepeatUnit[i]>spacer_min && distance4RepeatUnit[i]<spacer_max){
-            result=rbind(result,c(this_seq,pos_positive_strand[i],pos_positive_strand[i+1]))
-        }
-      }      
+      pos_devin_neg_stand=tmp3[which(tmp3<0)]
       
-      for(i in 1:length(distance4StemLoop)){
-        if(distance4StemLoop[i]<=max_loop_len && distance4StemLoop[i]>=min_loop_len){
+      # search for repeat unit and palindrome
+      result=NULL
+      if(length(pos_devin_neg_stand)>0 && length(pos_positive_strand)>0){
+         pos_negative_strand=(-1)*(abs(pos_devin_neg_stand)-k)
+         pos_flipped_from_negative=abs(pos_negative_strand)
+         pos_for_palindromeDetect=sort(c(pos_positive_strand,pos_flipped_from_negative))
+         distance4StemLoop=diff(pos_for_palindromeDetect)-1
+         for(i in 1:length(distance4StemLoop)){
+         if(distance4StemLoop[i]<=max_loop_len && distance4StemLoop[i]>=min_loop_len){
             guess1=length(grep(pattern=pos_for_palindromeDetect[i],pos_positive_strand))
             guess2=length(grep(pattern=pos_for_palindromeDetect[i+1],pos_positive_strand))
             if(guess2*guess1==0 && (guess2+guess1)>0){
-               #print(pos_for_palindromeDetect[i])
-               #print(pos_for_palindromeDetect[i+1])
+         
                 if(guess1>0){
                    result=rbind(result,c(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand)])) 
                        
@@ -65,7 +57,19 @@ formRepeatPair<-function(item){
             }
             
         }
+       } 
       }
+      
+     if(length(pos_positive_strand)>1 ){      
+       distance4RepeatUnit=diff(pos_positive_strand)-1
+        for(i in 1:length(distance4RepeatUnit)){
+        if(distance4RepeatUnit[i]>=spacer_min && distance4RepeatUnit[i]<=spacer_max){
+            result=rbind(result,c(this_seq,pos_positive_strand[i],pos_positive_strand[i+1]))
+        }
+      }      
+     }
+
+     
       
         if(!is.null(result) &&nrow(result)>=1){
             return(result)
@@ -77,10 +81,82 @@ formRepeatPair<-function(item){
 
 
 ###########################extraction of useful repeat pair######
-this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/4mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
+this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/15mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
 rdd= SparkR:::textFile(sc, this_species_result_path)
 repeat_pair= SparkR:::flatMap(rdd,formRepeatPair)
  repeat_pair_2=createDataFrame(sqlContext,repeat_pair)
+colnames(repeat_pair_2)=c("seq","start_pos_1","start_pos_2")
+
+#######################debug######
+data_path=Sys.glob(file.path("/home/shchang/scratch/crispr_mrsmrs/algorithm_design/15mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/","part-*"))
+  result=NULL
+for(i in 1:length(data_path)){
+  thisFile=readLines(file(data_path[i]))
+  content=NULL
+  for(j in 1:length(thisFile)){
+    d_clean=gsub(gsub(x=gsub(thisFile[j],pattern="\\(",replacement=""),pattern="\\]\\)",replacement=""),pattern="\\[",replacement="")
+    tmp=unlist(strsplit(x=d_clean, split=","))
+    this_seq=tmp[1]
+    tmp2=tmp[3:length(tmp)]
+    
+    if(length(tmp2)>1){
+      tmp2[1]=sub(pattern="CompactBuffer",replacement="",tmp2[1])
+      tmp2[length(tmp2)]=gsub(pattern="\\)",replacement="",tmp2[length(tmp2)])
+      tmp3=sort(as.numeric(tmp2))
+      
+      pos_positive_strand=tmp3[which(tmp3>0)]
+      #print(pos_positive_strand)
+      
+      
+      pos_negative_strand=(-1)*(abs(tmp3[which(tmp3<0)])-k)
+    #  print(pos_negative_strand)
+    
+
+      
+    
+    
+      pos_flipped_from_negative=abs(pos_negative_strand)
+      pos_for_palindromeDetect=sort(c(pos_positive_strand,pos_flipped_from_negative))
+     # print(pos_flipped_from_negative)
+      distance4RepeatUnit=diff(pos_positive_strand)-1
+      #print(distance4RepeatUnit)
+      distance4StemLoop=diff(pos_for_palindromeDetect)-1
+      #print(pos_for_palindromeDetect)
+      #print(distance4StemLoop)     
+      
+      for(k in 1:length(distance4RepeatUnit)){
+       # print(distance4RepeatUnit[k])
+    #    print(distance4RepeatUnit[k+1])
+        if(distance4RepeatUnit[k]>=spacer_min && distance4RepeatUnit[k]<=spacer_max){
+            result=rbind(result,c(this_seq,pos_positive_strand[k],pos_positive_strand[k+1]))
+        }
+      }      
+      
+      for(k in 1:length(distance4StemLoop)){
+        if(distance4StemLoop[k]<=max_loop_len && distance4StemLoop[k]>=min_loop_len){
+            guess1=length(grep(pattern=pos_for_palindromeDetect[k],pos_positive_strand))
+            guess2=length(grep(pattern=pos_for_palindromeDetect[k+1],pos_positive_strand))
+            if(guess2*guess1==0 && (guess2+guess1)>0){
+               #print(pos_for_palindromeDetect[i])
+               #print(pos_for_palindromeDetect[i+1])
+                if(guess1>0){
+                   result=rbind(result,c(this_seq,pos_for_palindromeDetect[k],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[k+1],pos_negative_strand)])) 
+                       
+                }
+                else{
+                   result=rbind(result,c(this_seq,pos_negative_strand[grep(pattern=pos_for_palindromeDetect[k],pos_negative_strand)],pos_for_palindromeDetect[k+1])) 
+                }
+            }
+            
+        }
+      }
+      
+        
+    }
+    
+  }
+}
+
 #############################analysis of kmer############################3
 d=hdfs.ls("bac_26/10mer/",recurse=T)
 all_paths=d[,"file"]
