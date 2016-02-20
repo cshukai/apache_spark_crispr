@@ -2,6 +2,11 @@
 library(rhdfs)
 hdfs.init()
 
+
+library("Biostrings")
+
+
+# when starting from R env
 library(SparkR)
 pwd=getwd()
 sc=sparkR.init()
@@ -9,12 +14,16 @@ sqlContext=sparkRSQL.init(sc)
 
 
 #####################user input#################
-k=15
-spacer_max=65
+k=60 # k refers to min size of repeat unit based on user input
+spacer_max=100 #spacer_max refes to 2*maximum possible length of spacer - k
 spacer_min=20
+trac_align_ratio=0.5 # how much porition of repat unit should be aligned with tracr's repeat
+len_of_trac_on_repeat=ceiling(k*trac_align_ratio)
 tracr_interval=10
 max_loop_len=10
 min_loop_len=3
+min_arm_len=4
+
 #####################custom function################
 
 
@@ -86,11 +95,17 @@ formRepeatPair<-function(item){
 
 
 
+extractInternalStemLoop(repeat_pair){
+# extract seq from rdd
+
+# use biostring to chech palindromes
+
+}
+
 ###########################extraction of useful repeat pair######
-this_species_result_path="/home/shchang/scratch/crispr_mrsmrs/algorithm_design/15mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
+this_species_result_path="/result/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
 rdd= SparkR:::textFile(sc, this_species_result_path)
 repeat_pair= SparkR:::flatMap(rdd,formRepeatPair)
-#repeat_pair= SparkR:::map(rdd,formRepeatPair)
  repeat_pair_2=createDataFrame(sqlContext,repeat_pair)
 
 
