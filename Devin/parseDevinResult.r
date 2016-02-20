@@ -57,12 +57,14 @@ formRepeatPair<-function(item){
             if(guess2*guess1==0 && (guess2+guess1)>0){
          
                 if(guess1>0){
-                   #result=rbind(result,c(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand)])) 
-                   result=paste(c(result,c(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand,"break")])),collapse=",")    
+                   #result=cbind(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand)])
+                   result=paste(c(result,c(this_seq,pos_for_palindromeDetect[i],pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i+1],pos_negative_strand,"break")])),collapse=",")   
+                  #return(as.data.frame(result))
                 }
                 else{
-                   #result=rbind(result,c(this_seq,pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i],pos_negative_strand)],pos_for_palindromeDetect[i+1])) 
+                   #result=cbind(this_seq,pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i],pos_negative_strand)],pos_for_palindromeDetect[i+1])
                    result=paste(c(result,c(this_seq,pos_negative_strand[grep(pattern=pos_for_palindromeDetect[i],pos_negative_strand)],pos_for_palindromeDetect[i+1],"break")),collapse=",")    
+                   #                    return(as.data.frame(result))
 
                 }
             }
@@ -75,8 +77,9 @@ formRepeatPair<-function(item){
        distance4RepeatUnit=diff(pos_positive_strand)-1
         for(i in 1:length(distance4RepeatUnit)){
         if(distance4RepeatUnit[i]>=spacer_min && distance4RepeatUnit[i]<=spacer_max){
-            #result=rbind(result,c(this_seq,pos_positive_strand[i],pos_positive_strand[i+1]))
+            #result=cbind(this_seq,pos_positive_strand[i],pos_positive_strand[i+1])
             result=paste(c(result,c(this_seq,pos_positive_strand[i],pos_positive_strand[i+1],"break")),collapse=",")    
+            #                   return(as.data.frame(result))
 
         }
       }      
@@ -84,10 +87,10 @@ formRepeatPair<-function(item){
 
      
       
-      #  if(!is.null(result) &&nrow(result)>=1){
+        #if(!is.null(result) &&nrow(result)>=1){
         if(!is.null(result)){
            # colnames(result)=c("seq","start_pos_1","start_pos_2")
-            return(result)
+           return(result)
         }
     }
     
@@ -95,17 +98,21 @@ formRepeatPair<-function(item){
 
 
 
-extractInternalStemLoop(repeat_pair){
+extractInternalStemLoop(repeat_pair_2){
 # extract seq from rdd
-
+this_seq=
 # use biostring to chech palindromes
 
 }
 
 ###########################extraction of useful repeat pair######
-this_species_result_path="/result/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
+this_species_result_path="/result/60mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/part-*"
 rdd= SparkR:::textFile(sc, this_species_result_path)
+#repeat_pair= SparkR:::flatMapValues(rdd,formRepeatPair)
+
 repeat_pair= SparkR:::flatMap(rdd,formRepeatPair)
+
+
  repeat_pair_2=createDataFrame(sqlContext,repeat_pair)
 
 

@@ -16,27 +16,20 @@ import org.apache.hadoop.io.Text;
 
 public class MRSMRS implements Serializable{
 	public static void main(String [ ] args) throws Exception{
+        //env configuration
         SparkConf conf=new SparkConf().setAppName("spark-crispr");
     	JavaSparkContext sc=new JavaSparkContext(conf);   
         MRSMRS mrsmrs=new MRSMRS();
-        // String path1=args[0];
-        // String path2=args[1];
-
-         JavaRDD<String> input=sc.textFile("Yersinia_pestis_biovar_microtus_str_91001chromosome_Chromosome");
-
-        //  JavaRDD<String> input=sc.textFile(path1);
-        // JavaRDD<String> input_2=sc.textFile(path2);
-
-        // JavaRDD<String> input_2=sc.textFile("novel_crispr_1/mrsmrs_20/Desulfurococcus_fermentans_dsm_16532");
-
+        //input
+       // String path1=args[0];
+        //String path2=args[1];
+        JavaRDD<String> input=sc.textFile("60mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/");
+        //JavaRDD<String> input_2=sc.textFile(path2);
+        //process
          JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
-         JavaPairRDD <Integer,Integer> test_2=mrsmrs.fetchPalindromeArms( test,0,30,10);
+         //test.saveAsTextFile("crispr_test");
+         JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,80,15,60);
          test_2.saveAsTextFile("crispr_test5");
-
-    	// JavaRDD<String> fasta=sc.textFile("Methanocaldococcus_jannaschii_dsm_2661.GCA_000091665.1.26.dna.chromosome.Chromosome.fa");
-     //    JavaPairRDD <Integer,Integer> test_3= mrsmrs.filterOutBadMrsMrsResult(fasta,test_2,4);
-        // test_3.saveAsTextFile("crispr_test_3");
-
 
         // JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
         //  JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
@@ -111,8 +104,14 @@ public class MRSMRS implements Serializable{
                 String[] front=temp[0].split(",");
                 String[] back=temp[1].split(",");
                 for(int j=0;j<back.length;j++){
-                
-                    parse_result.add(new Tuple2<String,Integer>(front[0],Integer.parseInt(back[j].replaceAll(" ",""))));
+                    String thisSeq=front[0];
+                    int k = thisSeq.length();
+                    int thisPosition=Integer.parseInt(back[j].replaceAll(" ",""));
+                    // transform devin's poisition to right-across position
+                    if(thisPosition<0){
+                        thisPosition=(-1)*(Math.abs(thisPosition)-k);     
+                    }
+                    parse_result.add(new Tuple2<String,Integer>(thisSeq,thisPosition));
 
                 }
 
@@ -125,55 +124,69 @@ public class MRSMRS implements Serializable{
 
     }
 
-    public JavaPairRDD<String, Integer> parseMRSMRSBinaryOutput(JavaPairRDD<Text,Text> mrsmrs_output){
-         JavaPairRDD <String, Integer> result=mrsmrs_output.flatMapToPair(new PairFlatMapFunction<Tuple2<Text,Text>,String,Integer>(){
-            @Override
-            public Iterable<Tuple2<String,Integer>> call(Tuple2<Text,Text> keyValue){
-                ArrayList<Tuple2<String, Integer>> parse_result = new ArrayList<Tuple2<String, Integer>> ();
-                String[] temp=keyValue._1().toString().split(":");
+    // output : {seq,[unit_1_start_pos,unit_2_start_pos]}
+    public JavaPairRDD<String,ArrayList<Integer>>extractRepeatPairCandidate(JavaPairRDD<String, Integer>parsedMRSMRSresult,int max_spacer_size, int min_spacer_size,int unit_length){
+       final int min_search_range=min_spacer_size;
+       final int max_search_range=2*max_spacer_size-unit_length;
+       
+       JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
+       JavaPairRDD<String,ArrayList<Integer>> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<Integer>>(){
+                @Override
+                public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<Integer>> keyValue){
+                 Iterable<Integer>data =keyValue._2();
+                 Iterator<Integer> itr=data.iterator();
+                 String seq=keyValue._1();
+                 ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
+                 ArrayList<Tuple2<String, ArrayList<Integer>>> possibleRepeatUnits = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
 
-                String[] temp_2=keyValue._2().toString().split(";");
-                for(int j=0;j<temp_2.length;j++){
-                    String thisPos=temp_2[j];
-                    if(thisPos.equals("")){
-                        break;
-                    }
-                    else{
-                       parse_result.add(new Tuple2<String,Integer>(temp[1],Integer.parseInt(thisPos)));
-                    }
+                 while(itr.hasNext()){
+                   int thisLoc=itr.next();
+                   if(thisLoc>0){
+                      locs_on_postiveStrand.add(thisLoc);
+                   }
+                 }
+
+                 Collections.sort(locs_on_postiveStrand);
+                 int iterationNum=locs_on_postiveStrand.size();
+                 for(int j=0;j<iterationNum;j++){
+                     int thisPosLoc=locs_on_postiveStrand.get(j);
+                     
+                     if(j<iterationNum-1){
+                        if(j<iterationNum-2){
+                          int nextTwoPosLoc=locs_on_postiveStrand.get(j+2); 
+                          int secondDist_pos=nextTwoPosLoc-thisPosLoc;
+                          if(secondDist_pos<max_search_range && secondDist_pos>min_search_range){
+                            ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
+                            thisPositionSet.add(thisPosLoc);
+                            thisPositionSet.add(nextTwoPosLoc);
+                            possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq,thisPositionSet));
+                          }
+                            
+                        }
+                        int nextPosLoc=locs_on_postiveStrand.get(j+1);
+                        int firstDist_pos=nextPosLoc-thisPosLoc;
+                        if(firstDist_pos<max_search_range && firstDist_pos>min_search_range){
+                         ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
+                         thisPositionSet.add(thisPosLoc);
+                         thisPositionSet.add(nextPosLoc);
+                         possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq,thisPositionSet));
+                            
+                        }
+                        
+                  
+                     }
+               
+                 }
+
+                 return(possibleRepeatUnits);
 
                 }
 
-                return(parse_result);
-            }
+            });
 
-        });
-        
         return(result);
+   
     }
-
-
-    public JavaPairRDD <String, Integer> parseMRSMRStextOutput(JavaRDD<String> mrsmrs_output){
-        JavaPairRDD <String, Integer> result=mrsmrs_output.flatMapToPair(new PairFlatMapFunction<String,String,Integer>(){
-            @Override
-            public Iterable<Tuple2<String,Integer>> call(String line){
-                ArrayList<Tuple2<String, Integer>> parse_result = new ArrayList<Tuple2<String, Integer>> ();
-                String[] temp=line.split("\t");
-                String[] temp_2=temp[1].split(";");
-                for(int j=0;j<temp_2.length;j++){
-                    String[]temp_3=temp_2[j].split(":");
-                    parse_result.add(new Tuple2<String,Integer>(temp[0],Integer.parseInt(temp_3[0])));
-
-                }
-
-                return(parse_result);
-            }
-
-        });
-        
-        return(result);
-
-     }
 
     // specifically designed for palindromic structuer  inside repeat unit
     // output : Integer : interval length  ;  left arm start -location is 5'->3' 
