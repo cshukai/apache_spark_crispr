@@ -9,7 +9,11 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
-import java.io.Serializable;
+import java.io.Serializable
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.*;
 import scala.Tuple2;
 import org.apache.hadoop.io.Text;
@@ -24,13 +28,15 @@ public class MRSMRS implements Serializable{
        // String path1=args[0];
         //String path2=args[1];
         JavaRDD<String> input=sc.textFile("60mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/");
-        //JavaRDD<String> input_2=sc.textFile(path2);
+        JavaRDD<String> input_2=sc.textFile("30mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa");//for regions nearby tracr's repeat
         //process
          JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
          //test.saveAsTextFile("crispr_test");
          JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,80,15,60);
          test_2.saveAsTextFile("crispr_test5");
-
+         
+         JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractStemLoopIshRepeatPairs(test_2,test,0.5, 4,3,8);
+         test_3.saveAsTextFile("crispr_test");
         // JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
         //  JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
         // JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,20, test_2);
@@ -44,11 +50,100 @@ public class MRSMRS implements Serializable{
 
     }
 
+    //output: {seq,[repeatPart1_start,repeatPairPart2_start,tracr_palindromeArm1_start,in_arm1_start,in_arm2_start,tracr_palindromeArm2_start]}
+    // use 0  to represent the waiting status
+    public JavaPairRDD<String,ArrayList<Integer>> extractStemLoopIshRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
+        final int minLoopSize= min_loop_size;
+        final int maxLoopSize= max_loop_size;
+        final int arm_len= min_arm_len; 
+        
+        JavaPairRDD<String,Integer> kmers=repeatPairs.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Integer>,String,ArrayList<Integer>>(){
+                @Override
+                public Iterable<Tuple2<String,Integer>> call(Tuple2<String,ArrayList<Integer>> keyValue){
+                    String thisSeq=keyValue._1();
+                    ArrayList<Integer> seq_starts=keyValue._2();
+                    int first_portion_star=seq_starts.get(0);
+                    
+                    ArrayList<Tuple2<String, ArrayList<Integer>>>result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                    Map<String,ArrayList<Integer>> kmer_list=new HashMap<String, ArrayList<Integer>>();
+                    //to record sequce and start position of every record
+                    // k in k mers equal to min arm length
+                     List<Tuple2<String,Integer>> kmer_list =new ArrayList<Tuple2<String,Integer>>();
+                    for(int i=0;i<thisSeq.length()-arm_len+1;i++){
+                        String kmer=thisSeq.substring(i,i+arm_len);
+                        kmer_list.add(new Tuple2<String,Integer>(kmer, i+first_portion_star));
+                    }
+                    
+                    String[] kmer_seq=kmer_list.keySet().toArray();
 
+                    for(int i=0;i<kmer_seq.length;i++){
+                        String this_kmer_seq=kmer_seq[i];
+                        String corr_seq="";
+                        for(int j=0;j<this_kmer_seq.length();j++){
+                            String thisChar=this_kmer_seq.substring(j,j);
+                            if(thisChar.equals("A")){
+                                corr_seq=corr_seq+"T";
+                            }
+                            if(thisChar.equals("T")){
+                                corr_seq=corr_seq+"A";
+                            }
+                            if(thisChar.equals("C")){
+                                corr_seq=corr_seq+"G";
+                            }
+                             if(thisChar.equals("G")){
+                                corr_seq=corr_seq+"C";
+                            }
+                            
+                            if(i<kmer_seq.length-2){
+                                for(j=i+2;j<kmer_seq.length;j++){
+                                    if(kmer_seq[j].equals(corr_seq)){
+                                        List<Integer>theseLocations=kmer_list.get(this_kmer_seq);
+                                        List<Integer>corrLocations=kmer_list.get(corr_seq);
+                                        for(int k=0;k<theseLocations.size();k++){
+                                            for(int m=0;m<corrLocations.size();m++){
+                                                int loopsize=corrLocations.get(m)-theseLocations.get(k)-1 ;
+                                                  if(loopsize>=minLoopSize && loopsize<=maxLoopSize){
+                                                           ArrayList<Integer>positions=new ArrayList<Integer>();
+                                                           positions.add(theseLocations.get(k));
+                                                           positions.add(corrLocations.get(m));
+                                                           positions.add(0);
+                                                           positions.add(0);
+                                                           result.add(new Tuple2<String, ArrayList<Integer>>(thisSeq,positions));
+
+                                                  }
+                                             
+                                        }   
+                                            }      
+                                        }
+                                      
+                                    }
+                                }
+                            }    
+                            
+                            
+                        }
+                        return(result);
+                    }
+                    
+                     
+                    
+                    });
+        }    
+             
+        //generate k_mer for internal  and external repeat unit
+        
+       //put out potential regions for analysis of exisitence of stem-loop
+        // filter out repeat pairs not associated with stem -loop
+        // if no repeat pair left after such filtration, downsize k and binary search for larget possible k
+        
+        
+       
+    
+    
     public JavaRDD<String>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ,int unitNum){
         // filtering out arrays having insufficient repat units
         final int min_repeat_unit=unitNum;
-
+    
         JavaPairRDD<String,ArrayList<Integer>> result_have_enoughUnits= rawResult.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
             @Override
             public Boolean call(Tuple2<String,ArrayList<Integer>> keyValue){
