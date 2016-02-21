@@ -9,7 +9,7 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
-import java.io.Serializable
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,8 +35,7 @@ public class MRSMRS implements Serializable{
          JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,80,15,60);
          test_2.saveAsTextFile("crispr_test5");
          
-         JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractStemLoopIshRepeatPairs(test_2,test,0.5, 4,3,8);
-         test_3.saveAsTextFile("crispr_test");
+         ArrayList<Tuple2<String,ArrayList<Integer>>> test_3=mrsmrs.extractInsideStemLoopRepeatPairs(test,test_2,0.5, 4,3,8);
         // JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
         //  JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
         // JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,20, test_2);
@@ -50,35 +49,71 @@ public class MRSMRS implements Serializable{
 
     }
 
-    //output: {seq,[repeatPart1_start,repeatPairPart2_start,tracr_palindromeArm1_start,in_arm1_start,in_arm2_start,tracr_palindromeArm2_start]}
-    // use 0  to represent the waiting status
-    public JavaPairRDD<String,ArrayList<Integer>> extractStemLoopIshRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
+    //output: {seq,[repeatPart1_start,repeatPairPart2_start,tracr_palindromeArm1_start,in_arm1_start,i]}
+    public ArrayList<Tuple2<String,ArrayList<Integer>>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
         final int minLoopSize= min_loop_size;
         final int maxLoopSize= max_loop_size;
         final int arm_len= min_arm_len; 
         
-        JavaPairRDD<String,Integer> kmers=repeatPairs.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Integer>,String,ArrayList<Integer>>(){
+        
+        //output : {unit seqeunce:kmer sequence,[unit_start,singleKmer_start]}
+        JavaPairRDD<String,ArrayList<Integer>> repeat_pair_kmers=repeatPairs.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
                 @Override
-                public Iterable<Tuple2<String,Integer>> call(Tuple2<String,ArrayList<Integer>> keyValue){
+                public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,ArrayList<Integer>> keyValue){
                     String thisSeq=keyValue._1();
                     ArrayList<Integer> seq_starts=keyValue._2();
                     int first_portion_star=seq_starts.get(0);
                     
                     ArrayList<Tuple2<String, ArrayList<Integer>>>result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
-                    Map<String,ArrayList<Integer>> kmer_list=new HashMap<String, ArrayList<Integer>>();
                     //to record sequce and start position of every record
                     // k in k mers equal to min arm length
-                     List<Tuple2<String,Integer>> kmer_list =new ArrayList<Tuple2<String,Integer>>();
+                     List<Tuple2<String,ArrayList<Integer>>> kmer_list =new ArrayList<Tuple2<String,ArrayList<Integer>>>();
                     for(int i=0;i<thisSeq.length()-arm_len+1;i++){
                         String kmer=thisSeq.substring(i,i+arm_len);
-                        kmer_list.add(new Tuple2<String,Integer>(kmer, i+first_portion_star));
+                        ArrayList<Integer> locs=new ArrayList<Integer>();
+                        locs.add(first_portion_star);
+                        locs.add(i+first_portion_star);
+                        String string_key=thisSeq+":"+"kmer";
+                        kmer_list.add(new Tuple2<String,ArrayList<Integer>>(string_key,locs));
                     }
                     
-                    String[] kmer_seq=kmer_list.keySet().toArray();
 
-                    for(int i=0;i<kmer_seq.length;i++){
-                        String this_kmer_seq=kmer_seq[i];
-                        String corr_seq="";
+                  
+                        return(kmer_list);
+                    }
+                    
+               });
+               
+               
+      JavaPairRDD<String, ArrayList <Integer>> repeatKmersGrouped = repeat_pair_kmers.reduceByKey(new Function2<ArrayList<Integer>, ArrayList<Integer>, ArrayList<Integer>>() {
+         public ArrayList<Integer> call(ArrayList<Integer> kmer_pos1,ArrayList<Integer>kmer_pos2) {
+              ArrayList<Integer> aggregatedList= new ArrayList<Integer>();
+              aggregatedList.add(kmer_pos1.get(0));
+              aggregatedList.add(kmer_pos1.get(1));
+                          aggregatedList.add(kmer_pos2.get(0));
+              aggregatedList.add(kmer_pos2.get(1));
+              return(aggregatedList);
+        }
+     });
+      
+      
+      final List<String> unit_kmer=repeatKmersGrouped.keys().collect();
+    ArrayList<Tuple2<String, ArrayList<Integer>>> result=new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+      
+     ArrayList<String> kmer_seq=new ArrayList<String>();
+     ArrayList<String> unit_seq=new ArrayList<String>();
+     
+      for(int i=0;i<unit_kmer.size();i++){
+          String []temp=unit_kmer.get(i).split(":");
+          kmer_seq.add(temp[1]);
+          unit_seq.add(temp[0]);
+      
+      }
+      
+      
+     for(int i=0;i<kmer_seq.size();i++){
+         String this_kmer_seq=kmer_seq.get(i);
+          String corr_seq="";
                         for(int j=0;j<this_kmer_seq.length();j++){
                             String thisChar=this_kmer_seq.substring(j,j);
                             if(thisChar.equals("A")){
@@ -93,42 +128,43 @@ public class MRSMRS implements Serializable{
                              if(thisChar.equals("G")){
                                 corr_seq=corr_seq+"C";
                             }
-                            
-                            if(i<kmer_seq.length-2){
-                                for(j=i+2;j<kmer_seq.length;j++){
-                                    if(kmer_seq[j].equals(corr_seq)){
-                                        List<Integer>theseLocations=kmer_list.get(this_kmer_seq);
-                                        List<Integer>corrLocations=kmer_list.get(corr_seq);
+                        }
+
+                   
+                  if(i<kmer_seq.size()-2){
+                                for(int j=i+2;j<kmer_seq.size();j++){
+                                    if(kmer_seq.get(j).equals(corr_seq)){
+                                        String thisKey=unit_seq.get(i)+":"+kmer_seq.get(i);
+                                        String thatKey=unit_seq.get(j)+":"+kmer_seq.get(j);
+                                        List<ArrayList<Integer>>theseLocations=repeatKmersGrouped.lookup(thisKey);
+                                        List<ArrayList<Integer>>corrLocations=repeatKmersGrouped.lookup(thatKey);
                                         for(int k=0;k<theseLocations.size();k++){
                                             for(int m=0;m<corrLocations.size();m++){
-                                                int loopsize=corrLocations.get(m)-theseLocations.get(k)-1 ;
-                                                  if(loopsize>=minLoopSize && loopsize<=maxLoopSize){
+                                                  for(int a=0;a<theseLocations.get(k).size();a++){
+                                                      for(int b=0;b<theseLocations.get(m).size();b++){
+                                                          if(a%2==1 && b%2==1){
+                                                              int loopsize=corrLocations.get(m).get(b)-theseLocations.get(k).get(a)-1 ;
+                                                          if(loopsize>=minLoopSize && loopsize<=maxLoopSize){
                                                            ArrayList<Integer>positions=new ArrayList<Integer>();
-                                                           positions.add(theseLocations.get(k));
-                                                           positions.add(corrLocations.get(m));
-                                                           positions.add(0);
-                                                           positions.add(0);
-                                                           result.add(new Tuple2<String, ArrayList<Integer>>(thisSeq,positions));
-
+                                                           positions.add(theseLocations.get(k).get(a));
+                                                           positions.add(corrLocations.get(m).get(b));
+                                                        
+                                                           result.add(new Tuple2<String, ArrayList<Integer>>(unit_seq.get(i),positions));
+                                                }
+                                                          }
+                                                      }
                                                   }
-                                             
-                                        }   
-                                            }      
-                                        }
-                                      
+                                                  
+                                                
+                                            }
+                                         }
+                        
                                     }
                                 }
-                            }    
-                            
-                            
-                        }
-                        return(result);
-                    }
-                    
-                     
-                    
-                    });
-        }    
+                  }
+     }
+      return(result);
+    }    
              
         //generate k_mer for internal  and external repeat unit
         
