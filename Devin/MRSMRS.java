@@ -27,25 +27,21 @@ public class MRSMRS implements Serializable{
         //input
        // String path1=args[0];
         //String path2=args[1];
-        JavaRDD<String> input=sc.textFile("60mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa/");
+        JavaRDD<String> input=sc.textFile("30mer/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa");
         JavaRDD<String> input_2=sc.textFile("30mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa");//for regions nearby tracr's repeat
         //process
          JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
          //test.saveAsTextFile("crispr_test");
-         JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,80,15,60);
+         JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,50,20,30);
          test_2.saveAsTextFile("crispr_test5");
-         
+         // JavaPairRDD<String,ArrayList<Integer>> test_3=mrsmrs.debug(test,test_2,0.5, 4,3,8);
+          //test_3.saveAsTextFile("crispr_test");
          ArrayList<Tuple2<String,ArrayList<Integer>>> test_3=mrsmrs.extractInsideStemLoopRepeatPairs(test,test_2,0.5, 4,3,8);
-        // JavaPairRDD <String, Integer> test_4=mrsmrs.parseMRSMRStextOutput(input_2);
-        //  JavaPairRDD <String, Integer> test_4=mrsmrs.parseDevinOutput(input_2);
-        // JavaPairRDD <String, Integer> test_5=mrsmrs.flagMrsMrsRepeatWithArmInside(test_4,20, test_2);
-        // test_5.saveAsTextFile("crispr_test_2");
-
-
-        // JavaPairRDD<String,ArrayList<Integer>> test6=mrsmrs.suggestCrisprBorder(test_5);
-        // JavaRDD<String> test7=mrsmrs.refineResult(test6,3);
-        // test7.saveAsTextFile("crispr_novel_test");
-
+            System.out.print("=============================::::::::::::::::::::::::::::::;"+test_3.size());
+            for(int i=0; i < test_3.size();i++){
+                System.out.println(test_3.get(i));
+                
+            }
 
     }
 
@@ -73,7 +69,7 @@ public class MRSMRS implements Serializable{
                         ArrayList<Integer> locs=new ArrayList<Integer>();
                         locs.add(first_portion_star);
                         locs.add(i+first_portion_star);
-                        String string_key=thisSeq+":"+"kmer";
+                        String string_key=thisSeq+":"+kmer;
                         kmer_list.add(new Tuple2<String,ArrayList<Integer>>(string_key,locs));
                     }
                     
@@ -174,7 +170,42 @@ public class MRSMRS implements Serializable{
         
         
        
-    
+     public JavaPairRDD<String,ArrayList<Integer>> debug(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
+        final int minLoopSize= min_loop_size;
+        final int maxLoopSize= max_loop_size;
+        final int arm_len= min_arm_len; 
+        
+        
+        //output : {unit seqeunce:kmer sequence,[unit_start,singleKmer_start]}
+        JavaPairRDD<String,ArrayList<Integer>> repeat_pair_kmers=repeatPairs.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
+                @Override
+                public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,ArrayList<Integer>> keyValue){
+                    String thisSeq=keyValue._1();
+                    ArrayList<Integer> seq_starts=keyValue._2();
+                    int first_portion_star=seq_starts.get(0);
+                    
+                    ArrayList<Tuple2<String, ArrayList<Integer>>>result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                    //to record sequce and start position of every record
+                    // k in k mers equal to min arm length
+                     List<Tuple2<String,ArrayList<Integer>>> kmer_list =new ArrayList<Tuple2<String,ArrayList<Integer>>>();
+                    for(int i=0;i<thisSeq.length()-arm_len+1;i++){
+                        String kmer=thisSeq.substring(i,i+arm_len);
+                        ArrayList<Integer> locs=new ArrayList<Integer>();
+                        locs.add(first_portion_star);
+                        locs.add(i+first_portion_star);
+                        String string_key=thisSeq+":"+"kmer";
+                        kmer_list.add(new Tuple2<String,ArrayList<Integer>>(string_key,locs));
+                    }
+                    
+
+                  
+                        return(kmer_list);
+                    }
+                    
+               });
+              
+      return(repeat_pair_kmers);
+    }    
     
     public JavaRDD<String>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ,int unitNum){
         // filtering out arrays having insufficient repat units
