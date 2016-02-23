@@ -33,9 +33,9 @@ public class MRSMRS implements Serializable{
          JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
          //test.saveAsTextFile("crispr_test");
          JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,50,20,30);
-         test_2.saveAsTextFile("crispr_test5");
-         // JavaPairRDD<String,ArrayList<Integer>> test_3=mrsmrs.debug(test,test_2,0.5, 4,3,8);
-          //test_3.saveAsTextFile("crispr_test");
+         //test_2.saveAsTextFile("crispr_test5");
+         //JavaPairRDD<String,ArrayList<Integer>> test_3=mrsmrs.debug(test,test_2,0.5, 4,3,8);
+         // test_3.saveAsTextFile("crispr_test");
          ArrayList<Tuple2<String,ArrayList<Integer>>> test_3=mrsmrs.extractInsideStemLoopRepeatPairs(test,test_2,0.5, 4,3,8);
             System.out.print("=============================::::::::::::::::::::::::::::::;"+test_3.size());
             for(int i=0; i < test_3.size();i++){
@@ -86,14 +86,14 @@ public class MRSMRS implements Serializable{
               ArrayList<Integer> aggregatedList= new ArrayList<Integer>();
               aggregatedList.add(kmer_pos1.get(0));
               aggregatedList.add(kmer_pos1.get(1));
-                          aggregatedList.add(kmer_pos2.get(0));
+              aggregatedList.add(kmer_pos2.get(0));
               aggregatedList.add(kmer_pos2.get(1));
               return(aggregatedList);
         }
      });
       
       
-      final List<String> unit_kmer=repeatKmersGrouped.keys().collect();
+    final List<String> unit_kmer=repeatKmersGrouped.keys().collect();
     ArrayList<Tuple2<String, ArrayList<Integer>>> result=new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
       
      ArrayList<String> kmer_seq=new ArrayList<String>();
@@ -111,7 +111,8 @@ public class MRSMRS implements Serializable{
          String this_kmer_seq=kmer_seq.get(i);
           String corr_seq="";
                         for(int j=0;j<this_kmer_seq.length();j++){
-                            String thisChar=this_kmer_seq.substring(j,j);
+                            Character thisCharacter=this_kmer_seq.charAt(j);
+                            String thisChar=thisCharacter.toString();
                             if(thisChar.equals("A")){
                                 corr_seq=corr_seq+"T";
                             }
@@ -187,13 +188,14 @@ public class MRSMRS implements Serializable{
                     ArrayList<Tuple2<String, ArrayList<Integer>>>result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                     //to record sequce and start position of every record
                     // k in k mers equal to min arm length
+                    
                      List<Tuple2<String,ArrayList<Integer>>> kmer_list =new ArrayList<Tuple2<String,ArrayList<Integer>>>();
                     for(int i=0;i<thisSeq.length()-arm_len+1;i++){
                         String kmer=thisSeq.substring(i,i+arm_len);
                         ArrayList<Integer> locs=new ArrayList<Integer>();
                         locs.add(first_portion_star);
                         locs.add(i+first_portion_star);
-                        String string_key=thisSeq+":"+"kmer";
+                        String string_key=thisSeq+":"+kmer;
                         kmer_list.add(new Tuple2<String,ArrayList<Integer>>(string_key,locs));
                     }
                     
@@ -203,8 +205,59 @@ public class MRSMRS implements Serializable{
                     }
                     
                });
+        
+        
+        JavaPairRDD<String, ArrayList <Integer>> repeatKmersGrouped = repeat_pair_kmers.reduceByKey(new Function2<ArrayList<Integer>, ArrayList<Integer>, ArrayList<Integer>>() {
+         public ArrayList<Integer> call(ArrayList<Integer> kmer_pos1,ArrayList<Integer>kmer_pos2) {
+              ArrayList<Integer> aggregatedList= new ArrayList<Integer>();
+              aggregatedList.add(kmer_pos1.get(0));
+              aggregatedList.add(kmer_pos1.get(1));
+              aggregatedList.add(kmer_pos2.get(0));
+              aggregatedList.add(kmer_pos2.get(1));
+              return(aggregatedList);
+        }
+       });
               
-      return(repeat_pair_kmers);
+        
+    final List<String> unit_kmer=repeatKmersGrouped.keys().collect();
+    ArrayList<Tuple2<String, ArrayList<Integer>>> result=new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+      
+     ArrayList<String> kmer_seq=new ArrayList<String>();
+     ArrayList<String> unit_seq=new ArrayList<String>();
+     
+      for(int i=0;i<unit_kmer.size();i++){
+          String []temp=unit_kmer.get(i).split(":");
+          kmer_seq.add(temp[1]);
+          unit_seq.add(temp[0]);
+      
+      }
+      
+      
+     for(int i=0;i<kmer_seq.size();i++){
+         String this_kmer_seq=kmer_seq.get(i);
+          String corr_seq="";
+                        for(int j=0;j<this_kmer_seq.length();j++){
+                            Character thisCharacter=this_kmer_seq.charAt(j);
+                            String thisChar=thisCharacter.toString();
+                            System.out.println("::::::::::::::::::::::"+thisChar);
+
+                            if(thisChar.equals("A")){
+                                corr_seq=corr_seq+"T";
+                            }
+                            if(thisChar.equals("T")){
+                                corr_seq=corr_seq+"A";
+                            }
+                            if(thisChar.equals("C")){
+                                corr_seq=corr_seq+"G";
+                            }
+                             if(thisChar.equals("G")){
+                                corr_seq=corr_seq+"C";
+                            }
+                        }
+                        
+     }
+             
+      return(repeatKmersGrouped);
     }    
     
     public JavaRDD<String>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ,int unitNum){
