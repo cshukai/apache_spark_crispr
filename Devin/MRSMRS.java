@@ -56,14 +56,15 @@ public class MRSMRS implements Serializable{
                     String thisSeq=keyValue._1();
                     ArrayList<Integer> seq_starts=keyValue._2();
                     int first_portion_star=seq_starts.get(0);
-
+                    int second_portion_star=seq_starts.get(1);
+                    
                     ArrayList<Tuple2<String, ArrayList<Integer>>>result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                     //to record sequce and start position of every record
                     // k in k mers equal to min arm length
                      List<Tuple2<String,ArrayList<String>>> kmer_list =new ArrayList<Tuple2<String,ArrayList<String>>>();
                     for(int i=0;i<thisSeq.length()-arm_len+1;i++){
                         
-                        String unit_seq_loc=thisSeq+":"+first_portion_star;
+                        String unit_seq_loc=thisSeq+":"+first_portion_star+":"+second_portion_star;
                         
                         String kmer=thisSeq.substring(i,i+arm_len);
                         ArrayList<String> kmerSeqlocs=new ArrayList<String>();
@@ -154,55 +155,8 @@ public class MRSMRS implements Serializable{
              
         
        
-    
-    public JavaRDD<String>  refineResult(JavaPairRDD<String,ArrayList<Integer>> rawResult ,int unitNum){
-        // filtering out arrays having insufficient repat units
-        final int min_repeat_unit=unitNum;
-    
-        JavaPairRDD<String,ArrayList<Integer>> result_have_enoughUnits= rawResult.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
-            @Override
-            public Boolean call(Tuple2<String,ArrayList<Integer>> keyValue){
-                ArrayList<Integer> unit_start_locs=keyValue._2();
-                boolean isResultFine=true;
-                if(unit_start_locs.size()<min_repeat_unit){
-                     isResultFine=false;
-                }
-                return (isResultFine);
-            }
-        });
-
-        JavaRDD<String> result_refined= result_have_enoughUnits.map(new ResultParser());
-
-        return (result_refined);
-
-    }
 
 
-    class ResultParser implements Function<Tuple2<String,ArrayList<Integer>>,String> {
-        @Override
-        public String call(Tuple2<String,ArrayList<Integer>> seq_locs) {
-          String result=null;
-          // seq, rep_unit_num, crispr_start, crispr_end, spacer_start-spacer_end;spacer_start2-spacer-end2 
-          String seq=seq_locs._1();
-          ArrayList<Integer> locs=seq_locs._2();
-          int crispr_start=locs.get(0);
-          int crispr_end=locs.get(locs.size()-1)+seq.length()-1;
-          String spacer_positions="";
-          for(int i=0; i<locs.size()-1;i++){
-
-            int this_sp_head=locs.get(i)+seq.length();
-            int this_sp_end=locs.get(i+1)-1;
-
-            spacer_positions=spacer_positions+this_sp_head+"-"+this_sp_end+";";
-
-          }
-
-          result=crispr_start+","+crispr_end+","+ spacer_positions;
-
-          return(result);
-        }
-
-    }
 
 
     public JavaPairRDD<String, Integer> parseDevinOutput(JavaRDD<String> devin_output){
@@ -278,10 +232,9 @@ public class MRSMRS implements Serializable{
                         if(firstDist_pos<max_search_range && firstDist_pos>min_search_range){
                              
                          ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
-                         //thisPositionSet.add(thisPosLoc);
-                         String seq_firstpos=seq+thisPosLoc;
+                         thisPositionSet.add(thisPosLoc);
                          thisPositionSet.add(nextPosLoc);
-                         possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq_firstpos,thisPositionSet));
+                         possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq,thisPositionSet));
                             
                         }
                         
