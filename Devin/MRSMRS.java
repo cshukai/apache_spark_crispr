@@ -31,14 +31,17 @@ public class MRSMRS implements Serializable{
         JavaRDD<String> input_2=sc.textFile("30mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa");//for regions nearby tracr's repeat
         //process
          JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
-         //test.saveAsTextFile("crispr_test");
+         //test.saveAsTextFile("crispr_test2");
          JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,50,20,30);
-         //test_2.saveAsTextFile("crispr_test5");
+         test_2.saveAsTextFile("crispr_test5");
          JavaPairRDD<String,ArrayList<Integer>> test_3=mrsmrs.extractInsideStemLoopRepeatPairs(test,test_2,0.5, 4,3,8);
           test_3.saveAsTextFile("crispr_test");
        
 
     }
+
+
+    
 
     public JavaPairRDD<String,ArrayList<Integer>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
         final int minLoopSize= min_loop_size;
@@ -67,7 +70,6 @@ public class MRSMRS implements Serializable{
                         int kmerLoc=i+first_portion_star;
                         String thisKmerSeqLoc=kmer+":"+kmerLoc;
                         kmerSeqlocs.add(thisKmerSeqLoc);
-                
                         kmer_list.add(new Tuple2<String,ArrayList<String>>(unit_seq_loc,kmerSeqlocs));
                     }
                     
