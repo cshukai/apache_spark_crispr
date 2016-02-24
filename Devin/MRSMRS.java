@@ -56,7 +56,7 @@ public class MRSMRS implements Serializable{
                     String thisSeq=keyValue._1();
                     ArrayList<Integer> seq_starts=keyValue._2();
                     int first_portion_star=seq_starts.get(0);
-                    
+
                     ArrayList<Tuple2<String, ArrayList<Integer>>>result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                     //to record sequce and start position of every record
                     // k in k mers equal to min arm length
@@ -276,10 +276,12 @@ public class MRSMRS implements Serializable{
                         int nextPosLoc=locs_on_postiveStrand.get(j+1);
                         int firstDist_pos=nextPosLoc-thisPosLoc;
                         if(firstDist_pos<max_search_range && firstDist_pos>min_search_range){
+                             
                          ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
-                         thisPositionSet.add(thisPosLoc);
+                         //thisPositionSet.add(thisPosLoc);
+                         String seq_firstpos=seq+thisPosLoc;
                          thisPositionSet.add(nextPosLoc);
-                         possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq,thisPositionSet));
+                         possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq_firstpos,thisPositionSet));
                             
                         }
                         
