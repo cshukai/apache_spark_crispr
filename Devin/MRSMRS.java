@@ -145,15 +145,11 @@ public class MRSMRS implements Serializable{
                 }
 
             });
-        return(result);
+            
+        JavaPairRDD<String,ArrayList<Integer>> result2=result.distinct();    
+        return(result2);
     }    
              
-        //generate k_mer for internal  and external repeat unit
-        
-       //put out potential regions for analysis of exisitence of stem-loop
-        // filter out repeat pairs not associated with stem -loop
-        // if no repeat pair left after such filtration, downsize k and binary search for larget possible k
-        
         
        
     
