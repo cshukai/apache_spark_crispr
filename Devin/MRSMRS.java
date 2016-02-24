@@ -31,9 +31,8 @@ public class MRSMRS implements Serializable{
         JavaRDD<String> input_2=sc.textFile("30mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa");//for regions nearby tracr's repeat
         //process
          JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
-         //test.saveAsTextFile("crispr_test2");
          JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,50,20,30);
-         test_2.saveAsTextFile("crispr_test5");
+         
          JavaPairRDD<String,ArrayList<Integer>> test_3=mrsmrs.extractInsideStemLoopRepeatPairs(test,test_2,0.5, 4,3,8);
           test_3.saveAsTextFile("crispr_test");
        
@@ -73,9 +72,6 @@ public class MRSMRS implements Serializable{
                         kmerSeqlocs.add(thisKmerSeqLoc);
                         kmer_list.add(new Tuple2<String,ArrayList<String>>(unit_seq_loc,kmerSeqlocs));
                     }
-                    
-
-                  
                         return(kmer_list);
                     }
                     
@@ -253,83 +249,6 @@ public class MRSMRS implements Serializable{
    
     }
 
-    // specifically designed for palindromic structuer  inside repeat unit
-    // output : Integer : interval length  ;  left arm start -location is 5'->3' 
-    public  JavaPairRDD <Integer, Integer> fetchPalindromeArms(JavaPairRDD <String, Integer> parsedMRSMRSresult,int min_interval_len,int max_interval_len,int armlen){
-           final  int min_dist=2*armlen+min_interval_len;
-           final  int max_dist=2*armlen+max_interval_len;
-           final  int arm_len=armlen;
-   
-           JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
-
-            JavaPairRDD<Integer, Integer> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer, Integer>(){
-                @Override
-                public Iterable<Tuple2<Integer,Integer>> call(Tuple2<String, Iterable<Integer>> keyValue){
-                 Iterable<Integer>data =keyValue._2();
-                 Iterator<Integer> itr=data.iterator();
-                 ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
-                 ArrayList<Integer> locs_on_negStrand=new ArrayList<Integer>();
-                 ArrayList<Tuple2<Integer, Integer>> possibleRepeatUnits = new ArrayList<Tuple2<Integer, Integer>> ();
-
-                 while(itr.hasNext()){
-                   int thisLoc=itr.next();
-                   if(thisLoc>0){
-                      locs_on_postiveStrand.add(thisLoc);
-                   }
-                   else{
-                      locs_on_negStrand.add(Math.abs(thisLoc));
-                   }
-
-                 }
-
-                 Collections.sort(locs_on_postiveStrand);
-                 Collections.sort(locs_on_negStrand);
-                 int iterationNum=locs_on_postiveStrand.size();
-                 for(int j=0;j<iterationNum;j++){
-                     int thisPosLoc=locs_on_postiveStrand.get(j);
-                     if(j<iterationNum-2){
-                        int nextPosLoc=locs_on_postiveStrand.get(j+1);
-                        int nextTwoPosLoc=locs_on_postiveStrand.get(j+2); 
-                        int firstDist_pos=nextPosLoc-thisPosLoc;
-                        int secondDist_pos=nextTwoPosLoc-nextPosLoc;
-                        if(firstDist_pos<200 && secondDist_pos<200){
-                            int iterationNum_neg=locs_on_negStrand.size();
-                            for(int k=0;k<iterationNum_neg;k++){
-                                int thisNegLoc=locs_on_negStrand.get(k);
-                                if(k<iterationNum_neg-2){
-                                    int firstDist_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
-                                    int secondDist_neg=locs_on_negStrand.get(k+2)-locs_on_negStrand.get(k+1);
-                                    if(firstDist_neg<200 && secondDist_neg<200){
-                                        int size=thisNegLoc-thisPosLoc; // size is referred to distance between head of left arm and tail of right arm
-                                        if(size>=min_dist && size<=max_dist){
-                                            int intervalSize=thisNegLoc-thisPosLoc-arm_len*2;
-                                            int thisPosLoc_corrected=thisPosLoc+1;
-                                            int thisNegLoc_corrected=thisNegLoc-2;
-                                          
-                                            possibleRepeatUnits.add(new Tuple2<Integer,Integer>(thisNegLoc_corrected,thisPosLoc_corrected));
-                                        }   
-                                    }
-                                          
-                                }
-                           
-                            }
-                            
-                        }
-                     }
-               
-                 }
-
-                 return(possibleRepeatUnits);
-
-                }
-
-            });
-
-        return(result);
-
-            
-
-    }
 
     //  grab all the possible imperfect palindromic structure with each arm is a kmer 
     //  need to consider merging later  to extend  arm in case of adjacent arms  or overlap arms across 
@@ -448,80 +367,6 @@ public class MRSMRS implements Serializable{
 
 
 
-
-    // filter out incorrect repeat happenning in limeload step in MRSMRS
-    public JavaPairRDD <Integer, Integer> filterOutBadMrsMrsResult(JavaRDD<String> fasta_seqs,JavaPairRDD <Integer, Integer> unfiltered_result,int armLen){
-           final List<String> fastaSeqs=fasta_seqs.collect();
-           final int totalArmLen=armLen;
-           JavaPairRDD <Integer, Integer> result_filtered=unfiltered_result.filter(new Function<Tuple2<Integer,Integer>, Boolean>(){
-            @Override
-            public Boolean call(Tuple2<Integer,Integer> keyValue){
-                boolean isAccurate=false;
-                int thisPosLoc_start=keyValue._2();
-                int thisNegLoc_start=keyValue._1();
-                int thisPosLoc_end=thisPosLoc_start+totalArmLen-1;
-                int thisNegLoc_end=thisNegLoc_start+totalArmLen-1;
-
-                String thisLeftArmSeq=getSubstring(fastaSeqs,thisPosLoc_start,thisPosLoc_end);
-                String thisRightArmSeq=getSubstring(fastaSeqs,thisNegLoc_start,thisNegLoc_end);
-
-                
-                int left_balance=0;
-                int right_balance=0;
-                for(int j=0;j<thisLeftArmSeq.length();j++){
-                    Character left_chr=thisLeftArmSeq.charAt(j);
-                    Character right_chr=thisRightArmSeq.charAt(j);
-                    if(left_chr=='A'){
-                       left_balance=left_balance+1;
-                    }
-
-                    if(left_chr=='T'){
-                       left_balance=left_balance-1;
-                    }
-
-                    if(left_balance=='C'){
-                        left_balance=left_balance+2;
-                    }
-
-                    if(left_balance=='G'){
-                        left_balance=left_balance-2;
-                    }
-
-
-                    if(right_chr=='A'){
-                       right_balance=right_balance+1;
-                    }
-
-                    if(right_chr=='T'){
-                       right_balance=right_balance-1;
-                    }
-
-                    if(right_balance=='C'){
-                        right_balance=right_balance+2;
-                    }
-
-                    if(right_balance=='G'){
-                        right_balance=right_balance-2;
-                    }
-
-
-                }
-
-                int tot_balance=left_balance+right_balance;
-                if(tot_balance==0){
-                    isAccurate=true;
-                }
-               
-                return(isAccurate);
-            }
-
-        });
-
-        return(result_filtered);
-
-    }
-
-
     public String getSubstring(List<String> seqFile, int start_loc, int end_loc){
 
         int startLine=(int)Math.ceil(start_loc/60)+1;
@@ -599,97 +444,8 @@ public class MRSMRS implements Serializable{
 return(result);
 
 }
-    //output :  left: start location of a specific repat unit with a particular length  right: arm start locations in a specific repat unit with a particular length
-    public JavaPairRDD <String,Integer> flagMrsMrsRepeatWithArmInside (JavaPairRDD <String, Integer> mrsmrs_repeats,int mrsmrs_repeat_len,JavaPairRDD <Integer,Integer> arm_start_locs){
-    
+  
 
-        // filter out mrsmrs repeat that doesn't have arm inside
-        final List<Integer> left_arm_starts=arm_start_locs.keys().collect();
-        final List<Integer> right_arm_starts=arm_start_locs.values().collect();
-        final int repeat_len=mrsmrs_repeat_len;
-        JavaPairRDD<String,Integer> mrsmrs_repeats_filtered=mrsmrs_repeats.filter(new Function<Tuple2<String, Integer>, Boolean>(){
-            @Override
-            public Boolean call(Tuple2<String, Integer> keyValue){
-                int repeat_unit_start=keyValue._2();
-                int repeat_unit_end=repeat_unit_start+repeat_len;
-                boolean containArm=false;
-                for(int j=repeat_unit_start;j<=repeat_unit_end;j++){
-                    // if(left_arm_starts.contains(j) && right_arm_starts.contains(j)){
-                    //     containArm=true;
-                    // }
-
-                     if(left_arm_starts.contains(j)){
-                        containArm=true;
-                    }
-
-                    if(right_arm_starts.contains(j)){
-                        containArm=true;
-                    }
-
-                }
-
-
-                return(containArm);
-            }
-
-        });
-        return(mrsmrs_repeats_filtered);
-        
-        
-
-
-    }
-
-
- 
-    public JavaPairRDD<String,ArrayList<Integer>>  suggestCrisprBorder(JavaPairRDD <String, Integer> completeListOfFlaggedRepeats ){
-        JavaPairRDD <String,Iterable<Integer>>flaggedRepeats_sorted=completeListOfFlaggedRepeats.groupByKey();   
-
-
-        JavaPairRDD<String,ArrayList<Integer>> cirsprs=flaggedRepeats_sorted.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<Integer>>,String,ArrayList<Integer>>(){
-            @Override
-            public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<Integer>> keyValue){
-                Iterable<Integer> mrsmrs_repeat_locs=keyValue._2();
-                Iterator<Integer> itr=mrsmrs_repeat_locs.iterator();
-                ArrayList<Integer> repeat_locs=new ArrayList<Integer>();
-                 while(itr.hasNext()){
-                     repeat_locs.add(itr.next());
-                }
-
-                
-                ArrayList<Tuple2<String, ArrayList<Integer>>> result = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
-                ArrayList<Integer> reasonableRepeatsLocs=new ArrayList<Integer>();
-                if(repeat_locs.size()>1){
-                    Collections.sort(repeat_locs);
-                    for(int j=0;j<repeat_locs.size(); j++){
-                        if(j!=repeat_locs.size()-1){
-                             int thisMrsMrsLoc=repeat_locs.get(j);
-                             int distance_between_units=repeat_locs.get(j+1)-thisMrsMrsLoc;
-                             if(distance_between_units<=300){
-                                reasonableRepeatsLocs.add(thisMrsMrsLoc);
-                             }
-
-                             else{
-                                reasonableRepeatsLocs.add(thisMrsMrsLoc);
-                                break;
-                             }
-                        }
-                    }
-                    result.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),reasonableRepeatsLocs));
-
-                }
-                
-
-                return(result);
-
-            }
-
-
-        });
-
-
-        return(cirsprs);
-    }
 
 
 }
