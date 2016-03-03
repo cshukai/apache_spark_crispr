@@ -40,7 +40,9 @@ public class MRSMRS implements Serializable{
     }
 
 
-    
+    public JavaPairRDD<String,ArrayList<Integer>> extendLongestRepeatPair2MinimumArray(){
+        
+    }
 
     public JavaPairRDD<String,ArrayList<Integer>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
         final int minLoopSize= min_loop_size;

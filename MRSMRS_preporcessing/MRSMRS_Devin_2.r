@@ -39,7 +39,7 @@ for(i in 1:length(unzipped_top_refined_paths)){
 
 
 #upload data to hdfs
-cleanedDatasets=Sys.glob(file.path("..", "intermediate_data","*.clean"))
+cleanedDatasets=Sys.glob(file.path("..","intermediate_data","*.clean"))
 for(i in 1:length(cleanedDatasets)){
    tmp=paste("hadoop fs -put",cleanedDatasets[i],sep=" ")
    cmd=paste(tmp,"/sc724",sep=" ")
@@ -47,14 +47,6 @@ for(i in 1:length(cleanedDatasets)){
 }
 
 save.image("preprocessing.RData")
-
-
-
-
-
-
-
-
 
 
 #generate run script
@@ -67,20 +59,29 @@ hdfs_filenames=c(hdfs_filenames,this_name)
 
 prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
 #prefix='spark-submit  --class "PalindromeFinder" --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
+max_repeat_len=50
+min_repeat_len=20
+min_stemLoop_size=11
+max_stemLoop_size=16
 
-kmer_len=10
 
-argu=NULL
-for(i in 1:length(hdfs_filenames)){
- #tmp=paste("/",hdfs_filenames[i],sep="")  #
-tmp=hdfs_filenames[i]
-this_argu=paste(tmp,kmer_len,sep="  ")
-argu=c(argu,this_argu)
+
+for(j in min_repeat_len:max_repeat_len){
+    kmer_len=j
+    argu=NULL
+    for(i in 1:length(hdfs_filenames)){
+        #tmp=paste("/",hdfs_filenames[i],sep="")  #
+        tmp=hdfs_filenames[i]
+        this_argu=paste(tmp,kmer_len,sep="  ")
+        argu=c(argu,this_argu)
+    }
+
+    for(i in 1:length(argu)){
+        cmd=paste(prefix,argu[i],sep=" ")
+        cat(cmd,file="run.sh",append=T,fill=T)
+
+    }
+
 }
 
-for(i in 1:length(argu)){
-cmd=paste(prefix,argu[i],sep=" ")
- cat(cmd,file="run.sh",append=T,fill=T)
-
-}
 save.image("preprocessing.RData")
