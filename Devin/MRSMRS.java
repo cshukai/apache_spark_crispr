@@ -24,26 +24,114 @@ public class MRSMRS implements Serializable{
         SparkConf conf=new SparkConf().setAppName("spark-crispr");
     	JavaSparkContext sc=new JavaSparkContext(conf);   
         MRSMRS mrsmrs=new MRSMRS();
-        //input
-       // String path1=args[0];
-        //String path2=args[1];
-        JavaRDD<String> input=sc.textFile("30mer/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa");
-        JavaRDD<String> input_2=sc.textFile("30mer/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa");//for regions nearby tracr's repeat
-        //process
-         JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(input);
-         JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,50,20,30);
-         
-         JavaPairRDD<String,ArrayList<Integer>> test_3=mrsmrs.extractInsideStemLoopRepeatPairs(test,test_2,0.5, 4,3,8);
-          test_3.saveAsTextFile("crispr_test");
-       
-
-    }
-
-
-    public JavaPairRDD<String,ArrayList<Integer>> extendLongestRepeatPair2MinimumArray(){
         
+        /*user input*/
+        
+        //array structure
+        int repeat_unit_min=20;
+        int repeat_unit_max=50;
+        int spacerMax=75;
+        int spacerMin=20;
+        
+        //stemp loop 
+        int stemLoopArmLen=4;
+        int loopLowBound=3;
+        int loopUpBound=8;
+        int tracrAlignRatio=0.5
+        int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
+        
+        
+        
+        
+        //processing
+        String home_dir="/result";
+        String species_folder="Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
+        
+        
+        JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+        JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(kBlock4PalindromeArms,stemLoopArmLen,loopLowBound,loopUpBound);
+
+        for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
+            JavaRDD<String> kBlock_repeat_unit=sc.textFile(home_dir+"/"+repeat_len+"/"+species_folder);  
+            JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
+            JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,spacerMax,spacerMin,repeat_len);
+            
+            
+        }
+
+        
+
     }
 
+
+/*to do
+   // filtering out  any repeat pair that doesn't contain a common  stem-loop sequence feature
+   public JavaPairRDD <String,ArrayList<Integer>> intersectPalindBlockWithKblock(kblock,palindBlock){
+          JavaPairRDD <String,ArrayList<Integer>> resultBlock=kblock.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
+            @Override
+            public Boolean call(Tuple2<String,ArrayList<Integer>> keyValue){
+                ArrayList<Integer> unit_start_locs=keyValue._2();
+                String kblock_seq=keyValue._1();
+                int kblock_len=kblock_seq.length();
+                
+                                
+                boolean isPalindromeInside=false;
+                for(int i=0;i<unit_start_locs.size();i++){
+                    int thisEndLoc=unit_start_locs.get(i)+kblock_len-1;
+                    palindBlock.
+                }
+                
+                if(unit_start_locs.size()<min_repeat_unit){
+                     isPalindromeInside=true;
+                }
+                return (isPalindromeInside);
+            }
+        });
+
+        
+       
+   }
+   
+ */
+ 
+ 
+    // output: seq(left_arm) loc[gap]
+    public  JavaPairRDD <String, ArrayList<Integer>>  extractPalinDromeArray( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen){
+            JavaPairRDD<String,Iterable<ArrayList<Integer>>> palindBlockGroup=palindBlock.groupByKey();
+            JavaPairRDD <String, ArrayList<Integer>> palindBlockArray= palindBlockGroup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
+                @Override
+                public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<ArrayList<Integer>>> keyValue){
+                 Iterable<ArrayList<Integer>>start_loopsize =keyValue._2();
+                 Iterator<ArrayList<Integer>> itr=start_loopsize.iterator();
+                 int arm_len=keyValue._1().length();
+                
+                 ArrayList<Integer> palin_start=new ArrayList<Integer>();
+                 ArrayList<Integer> palin_end=new ArrayList<Integer>();
+
+
+                 while(itr.hasNext()){
+                   ArrayList<Integer> this_start_loopsize=itr.next();
+                   int thisStart=this_start_loopsize.get(0);
+                   int thisGapSize=this_start_loopsize.get(1);
+                   int thisEnd=this_thisStart+thisGapSize;
+                   palin_start.add(thisStart);
+                   palin_end.add(thisEnd);
+                 }
+
+                Collections.sort(palind_start);
+                Collections.sort(palin_end);
+                
+
+                 return(possibleRepeatUnits);
+
+                }
+
+            });
+
+
+    }
+  
+  
     public JavaPairRDD<String,ArrayList<Integer>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
         final int minLoopSize= min_loop_size;
         final int maxLoopSize= max_loop_size;
@@ -255,10 +343,11 @@ public class MRSMRS implements Serializable{
     //  grab all the possible imperfect palindromic structure with each arm is a kmer 
     //  need to consider merging later  to extend  arm in case of adjacent arms  or overlap arms across 
     // differnt kmers
-    public  JavaPairRDD <String, ArrayList<Integer>> fetchImperfectPalindromeAcrossGenomes(JavaPairRDD <String, Integer> parsedMRSMRSresult,int armlen){
+    public  JavaPairRDD <String, ArrayList<Integer>> fetchImperfectPalindromeAcrossGenomes(JavaPairRDD <String, Integer> parsedMRSMRSresult,int armlen, int loop_size_min, int loop_size_max){
         
-           final  int arm_len=armlen;
-   
+           final int arm_len=armlen;
+           final int loopSizeMax= loop_size_max;
+           final int loopSizeMin=loop_size_min;
            JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
 
             JavaPairRDD<String, ArrayList<Integer>> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String, ArrayList<Integer>>(){
@@ -292,7 +381,7 @@ public class MRSMRS implements Serializable{
                      for(int k=0;k<iterationNum_neg;k++){
                          int thisNegStartLoc=locs_on_negStrand.get(k);
                          int junction_distance=thisNegStartLoc-(thisPosStartLoc+arm_len-1);
-                         if(junction_distance>1){
+                         if(junction_distance>=loopSizeMin && junction_distance<= loopSizeMax){
                             ArrayList<Integer> posStart_junctionDistance=new ArrayList<Integer>();
                             posStart_junctionDistance.add(thisPosStartLoc);
                             posStart_junctionDistance.add(junction_distance);
@@ -302,56 +391,6 @@ public class MRSMRS implements Serializable{
 
                  }
                
-                 // int iterationNum=locs_on_postiveStrand.size();
-                 // for(int j=0;j<iterationNum;j++){
-                 //     int thisPosStartLoc=locs_on_postiveStrand.get(j);
-                 //     if(j<iterationNum-1){
-                 //        int thisPosEndLoc=thisPosStartLoc+arm_len;
-                 //        int nextPosStartLoc=locs_on_postiveStrand.get(j+1);
-                        
-
-                        // for merging adjacent and overlap arms to extend 
-                        // boolean is_pos_overlap=false;
-                        // boolean is_pos_adjacent=false;
-
-                        // int dist_two_pos_loc=nextPosStartLoc-thisPosEndLoc;
-                        
-                        // if(dist_two_pos_loc==0){
-                        //   is_pos_adjacent=true;
-                        // }
-
-                        // if(dist_two_pos_loc<0){
-                        //   is_pos_overlap=true;
-                        // }
-
-
-
-                        // int iterationNum_neg=locs_on_negStrand.size();
-                        // for(int k=0;k<iterationNum_neg;k++){
-                        //         int thisNegLoc=locs_on_negStrand.get(k);
-                        //         if(k<iterationNum_neg-1){
-                        //             int dist_two_neg=locs_on_negStrand.get(k+1)-thisNegLoc;
-                        //           // for merging adjacent and overlap arms to extend 
-                        //           boolean is_neg_overlap=false;
-                        //           boolean is_neg_adjacent=false;
-
-                        
-                        //           if(dist_two_neg==0){
-                        //             is_neg_adjacent=true;
-                        //           }
-          
-                        //           if(dist_two_neg<0){
-                        //            is_neg_overlap=true;
-                        //           }
-
-
-                             
-                              
-
-                                          
-                        //         }
-                           
-                        //     }
                             
              
 
