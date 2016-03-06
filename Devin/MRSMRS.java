@@ -51,6 +51,7 @@ public class MRSMRS implements Serializable{
         JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
         JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
         JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+        palindBlock.saveAsTextFile("crispr_test1");
         JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20); 
         test_3.saveAsTextFile("crispr_test");
 
@@ -418,8 +419,8 @@ public class MRSMRS implements Serializable{
                             ArrayList<Integer> posStart_junctionDistance=new ArrayList<Integer>();
                             posStart_junctionDistance.add(thisPosStartLoc);
                             posStart_junctionDistance.add(junction_distance);
-                            kmer_seq=kmer_seq+":"+junction_distance;
-                            imperfect.add(new Tuple2<String,ArrayList<Integer>>(kmer_seq,posStart_junctionDistance));
+                        
+                            imperfect.add(new Tuple2<String,ArrayList<Integer>>(kmer_seq+":"+junction_distance,posStart_junctionDistance));
                          } 
                      }
 
