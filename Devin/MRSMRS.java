@@ -45,14 +45,14 @@ public class MRSMRS implements Serializable{
         
         //processing
         String home_dir="/result";
-        String species_folder="Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
+        String species_folder="Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
         
         
         JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
-        JavaPairRDD<String,Integer>=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
-        JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(kBlock4PalindromeArms,stemLoopArmLen,loopLowBound,loopUpBound);
+        JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
+        JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
         JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20); 
-
+        test_3.saveAsTextFile("crispr_test");
 
         /*todo
         for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
@@ -101,8 +101,8 @@ public class MRSMRS implements Serializable{
     public  JavaPairRDD <String, ArrayList<Integer>>  extractPalinDromeArray( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen){
             final int r_max=unitMaxLen;
             final int r_min=unitMinLen;
-            final int s_max=spacerMax;
-            final int s_min=spacerMin;
+            final int s_max=spacerMaxLen;
+            final int s_min=spacerMinLen;
             
             JavaPairRDD<String,Iterable<ArrayList<Integer>>> palindBlockGroup=palindBlock.groupByKey();
             JavaPairRDD <String, ArrayList<Integer>> palindBlockArray= palindBlockGroup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
@@ -121,15 +121,15 @@ public class MRSMRS implements Serializable{
                    ArrayList<Integer> this_start_loopsize=itr.next();
                    int thisStart=this_start_loopsize.get(0);
                    int thisGapSize=this_start_loopsize.get(1);
-                   int thisEnd=this_thisStart+thisGapSize+2*(arm_len-1);
+                   int thisEnd=thisStart+thisGapSize+2*(arm_len-1);
                    palindromeSize=thisEnd-thisStart;
                    palin_start.add(thisStart);
                    palin_end.add(thisEnd);
                  }
 
-                Collections.sort(palind_start);
+                Collections.sort(palin_start);
                 Collections.sort(palin_end);
-                int upperLimt=s_max+rmax-palindromeSize;
+                int upperLimt=s_max+r_max-palindromeSize;
                 for(int i=0;i<palin_start.size(); i++){
                     if(i<palin_start.size()-2){
                         int firstJuncDist=palin_start.get(i+1)-palin_start.get(i);
@@ -148,7 +148,9 @@ public class MRSMRS implements Serializable{
                                  }
                             }
                             ArrayList<Integer>temp=new ArrayList<Integer>();
-                            result.add(new Tuple2<String,ArrayList<String>>(keyValue_1(),temp));
+                            temp.add(startpos);
+                            temp.add(endpos);
+                            result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
                         }
                     } 
                 }
