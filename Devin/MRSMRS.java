@@ -37,7 +37,7 @@ public class MRSMRS implements Serializable{
         int stemLoopArmLen=4;
         int loopLowBound=3;
         int loopUpBound=8;
-        int tracrAlignRatio=0.5
+        double tracrAlignRatio=0.5;
         int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
         
         
@@ -49,18 +49,20 @@ public class MRSMRS implements Serializable{
         
         
         JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+        JavaPairRDD<String,Integer>=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
         JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(kBlock4PalindromeArms,stemLoopArmLen,loopLowBound,loopUpBound);
+        JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20); 
 
+
+        /*todo
         for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
             JavaRDD<String> kBlock_repeat_unit=sc.textFile(home_dir+"/"+repeat_len+"/"+species_folder);  
             JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
             JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,spacerMax,spacerMin,repeat_len);
             
-            
         }
 
-        
-
+        */
     }
 
 
@@ -95,8 +97,13 @@ public class MRSMRS implements Serializable{
  */
  
  
-    // output: seq(left_arm) loc[gap]
+    // output: seq(left_arm) loc[gap,array_start,array_end]
     public  JavaPairRDD <String, ArrayList<Integer>>  extractPalinDromeArray( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen){
+            final int r_max=unitMaxLen;
+            final int r_min=unitMinLen;
+            final int s_max=spacerMax;
+            final int s_min=spacerMin;
+            
             JavaPairRDD<String,Iterable<ArrayList<Integer>>> palindBlockGroup=palindBlock.groupByKey();
             JavaPairRDD <String, ArrayList<Integer>> palindBlockArray= palindBlockGroup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                 @Override
@@ -107,28 +114,52 @@ public class MRSMRS implements Serializable{
                 
                  ArrayList<Integer> palin_start=new ArrayList<Integer>();
                  ArrayList<Integer> palin_end=new ArrayList<Integer>();
-
-
+                 List<Tuple2<String,ArrayList<Integer>>> result  =new ArrayList<Tuple2<String,ArrayList<Integer>>>();
+                  
+                 int palindromeSize=0; 
                  while(itr.hasNext()){
                    ArrayList<Integer> this_start_loopsize=itr.next();
                    int thisStart=this_start_loopsize.get(0);
                    int thisGapSize=this_start_loopsize.get(1);
-                   int thisEnd=this_thisStart+thisGapSize;
+                   int thisEnd=this_thisStart+thisGapSize+2*(arm_len-1);
+                   palindromeSize=thisEnd-thisStart;
                    palin_start.add(thisStart);
                    palin_end.add(thisEnd);
                  }
 
                 Collections.sort(palind_start);
                 Collections.sort(palin_end);
-                
-
-                 return(possibleRepeatUnits);
-
+                int upperLimt=s_max+rmax-palindromeSize;
+                for(int i=0;i<palin_start.size(); i++){
+                    if(i<palin_start.size()-2){
+                        int firstJuncDist=palin_start.get(i+1)-palin_start.get(i);
+                        int secondJuncDist=palin_start.get(i+2)-palin_start.get(i+1);
+                        int j=i+3;
+                        if(firstJuncDist<=upperLimt && secondJuncDist<= upperLimt){
+                            int startpos=palin_start.get(i);
+                            int endpos=palin_end.get(i+2);
+                            while(j<palin_start.size()){
+                                 int nextJunDis=palin_start.get(j)-palin_start.get(j-1);
+                                 if(nextJunDis<upperLimt){
+                                     endpos=palin_end.get(j);
+                                 }
+                                 else{
+                                     j=palin_start.size();
+                                 }
+                            }
+                            ArrayList<Integer>temp=new ArrayList<Integer>();
+                            result.add(new Tuple2<String,ArrayList<String>>(keyValue_1(),temp));
+                        }
+                    } 
                 }
 
-            });
+                return(result);
 
+            }
 
+        });
+
+        return(palindBlockArray);
     }
   
   
@@ -385,6 +416,7 @@ public class MRSMRS implements Serializable{
                             ArrayList<Integer> posStart_junctionDistance=new ArrayList<Integer>();
                             posStart_junctionDistance.add(thisPosStartLoc);
                             posStart_junctionDistance.add(junction_distance);
+                            kmer_seq=kmer_seq+":"+junction_distance;
                             imperfect.add(new Tuple2<String,ArrayList<Integer>>(kmer_seq,posStart_junctionDistance));
                          } 
                      }
