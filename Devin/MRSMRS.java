@@ -52,8 +52,11 @@ public class MRSMRS implements Serializable{
         JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
         JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
         palindBlock.saveAsTextFile("crispr_test1");
-        JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20); 
-        test_3.saveAsTextFile("crispr_test");
+       // JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20); 
+        
+        JavaPairRDD<String,ArrayList<Integer>> palindBlockGroup=palindBlock.sortByKey();
+        palindBlockGroup.saveAsTextFile("crispr_test");
+        //test_3.saveAsTextFile("crispr_test");
 
         /*todo
         for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
@@ -106,6 +109,8 @@ public class MRSMRS implements Serializable{
             final int s_min=spacerMinLen;
             
             JavaPairRDD<String,Iterable<ArrayList<Integer>>> palindBlockGroup=palindBlock.groupByKey();
+            
+            
             JavaPairRDD <String, ArrayList<Integer>> palindBlockArray= palindBlockGroup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                 @Override
                 public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<ArrayList<Integer>>> keyValue){
