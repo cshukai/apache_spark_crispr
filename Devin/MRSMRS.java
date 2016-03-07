@@ -127,7 +127,7 @@
                    ArrayList<Integer> this_start_loopsize=itr.next();
                    int thisStart=this_start_loopsize.get(0);
                    int thisGapSize=this_start_loopsize.get(1);
-                   int thisEnd=thisStart+thisGapSize+2*(arm_len-1);
+                   int thisEnd=thisStart+thisGapSize+1+2*(arm_len-1);
                    palindromeSize=thisEnd-thisStart;
                    palin_start.add(thisStart);
                    palin_end.add(thisEnd);
