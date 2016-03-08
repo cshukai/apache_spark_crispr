@@ -178,23 +178,10 @@
             }
 
         });
-
-        return(palindBlockArray);
+        JavaPairRDD <String, ArrayList<Integer>> palinArray=palindBlockArray.distinct();
+        return(palinArray);
             
-            /*    
-                JavaPairRDD<String,ArrayList<Integer>> palinSorted=palinBlock.sortByKey(true,Math.pow(armLen,4));
-                JavaPairRDD<String,ArrayList<Integer>> palinArrays=palinSorted.mapPartitionsToPair(new PairFlatMapFunction<Iterator<Tuple2<String, ArrayList<Integer>>, String, ArrayList<Integer>>() {
-                    public Iterable<Tuple2<String, ArrayList<Integer>>> call(Iterator<Tuple2<String, ArrayList<Integer>> keyValue) {
-                     // io variables
-                     ArrayList<Integer> start_gaps=keyValue._2();
-                     ArrayList<Tuple2<String, ArrayList<Integer>>> palinArray = new ArrayList<Tuple2<String, ArrayList<Integer>>> (); 
-                     
-                     
-                }});
-    
-            return(palinArrays);
-            
-            */
+           
         }
       
       
