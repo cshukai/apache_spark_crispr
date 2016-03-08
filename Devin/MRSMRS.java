@@ -51,7 +51,7 @@
             JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-           // palindBlock.saveAsTextFile("crispr_test1");
+            palindBlock.saveAsTextFile("crispr_test1");
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             
           
@@ -100,7 +100,7 @@
      */
      
      
-        // output: seq(left_arm) loc[gap,array_start,array_end]
+        // output: seq(left_arm) loc[gapSize,palindrome_start_i,palindrome_end_i]
         public  JavaPairRDD <String, ArrayList<Integer>>  extractPalinDromeArray( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int arm_len){
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
@@ -127,8 +127,8 @@
                    ArrayList<Integer> this_start_loopsize=itr.next();
                    int thisStart=this_start_loopsize.get(0);
                    int thisGapSize=this_start_loopsize.get(1);
-                   int thisEnd=thisStart+thisGapSize+1+2*(arm_len-1);
-                   palindromeSize=thisEnd-thisStart;
+                   int thisEnd=thisStart+thisGapSize+2*(arm_len);
+                   palindromeSize=thisEnd-thisStart+1;
                    palin_start.add(thisStart);
                    palin_end.add(thisEnd);
                  }
@@ -144,21 +144,29 @@
                         if(firstJuncDist<=upperLimt && secondJuncDist<= upperLimt){
                             int startpos=palin_start.get(i);
                             int endpos=palin_end.get(i+2);
+                            ArrayList<Integer>temp=new ArrayList<Integer>();
+                            temp.add(palin_start.get(i));
+                            temp.add(palin_end.get(i));
+                            temp.add(palin_start.get(i+1));
+                            temp.add(palin_end.get(i+1));
+                            temp.add(palin_start.get(i+2));
+                            temp.add(palin_end.get(i+2));
+                            result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
                             while(j<palin_start.size()){
                                  int nextJunDis=palin_start.get(j)-palin_start.get(j-1);
                                  if(nextJunDis<upperLimt){
                                      endpos=palin_end.get(j);
+                                     temp.add(palin_start.get(j));
+                                     temp.add(palin_end.get(j));
                                      j=j+1;
                                  }
                                  else{
+                                     result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
                                      j=palin_start.size();
                                  }
                                 
                             }
-                            ArrayList<Integer>temp=new ArrayList<Integer>();
-                            temp.add(startpos);
-                            temp.add(endpos);
-                            result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
+
                         }
                         
                         
@@ -438,7 +446,7 @@
                          int iterationNum_neg=locs_on_negStrand.size();
                          for(int k=0;k<iterationNum_neg;k++){
                              int thisNegStartLoc=locs_on_negStrand.get(k);
-                             int junction_distance=thisNegStartLoc-(thisPosStartLoc+arm_len-1);
+                             int junction_distance=thisNegStartLoc-(thisPosStartLoc+arm_len-1)-1;
                              if(junction_distance>=loopSizeMin && junction_distance<= loopSizeMax){
                                 ArrayList<Integer> posStart_junctionDistance=new ArrayList<Integer>();
                                 posStart_junctionDistance.add(thisPosStartLoc);
