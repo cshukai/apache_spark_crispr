@@ -120,7 +120,7 @@
                          }
                      }
                   
-                  
+                     output=output.distinct();
                      return(output);
     
                     }
