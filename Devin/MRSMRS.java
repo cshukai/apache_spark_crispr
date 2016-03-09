@@ -75,8 +75,12 @@
         final int maxGapSize=gapSizeMax;
         final int minGapSize=gapSizeMin;
         final int armLen=arm_len;
-        final JavaPairRDD <String,ArrayList<Integer>> palinArrays = palindArrays;
+        final HashMap palinHasMap = palindArrays.collectAsMap()
+        
+         	
+        
         //filter out repeat pair which doesn't posses sequence feature of input palindrom arrays 
+       
         JavaPairRDD<String,ArrayList<Integer>> repeat_pairs_filtered=repeatPairs.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
                 @Override
                 public Boolean call(Tuple2<String,ArrayList<Integer>> keyValue){
