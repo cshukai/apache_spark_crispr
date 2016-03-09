@@ -109,7 +109,7 @@
                                  int thisTargetStartLoc=unit1_starts.get(j);
                                  int thisTargetStartLoc2=unit2_starts.get(j);
                                  if(thisTargetStartLoc==arr_unit3_start){
-                                     minArrLocs.add(thisTargetStartLoc);
+                                     
                                      minArrLocs.add(thisTargetStartLoc2);
                                      arr_unit3_start=thisTargetStartLoc2;
                                  }
