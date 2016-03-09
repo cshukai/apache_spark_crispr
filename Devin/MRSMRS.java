@@ -117,22 +117,14 @@
                                      minArrLocs.add(thisTargetStartLoc2);
                                      arr_unit3_start=thisTargetStartLoc2;
                                    }
-                                
+                                l
+                                 
                                  }
                                  j=j+1;    
                             }
                             output.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),minArrLocs));
 
                          }
-
-                             
-                             
-                           
-                           
-                                 
-                                 
-                             
-                             
                              
                          
                            
@@ -149,7 +141,7 @@
     
                 });
              
-             
+    /*         
         JavaPairRDD<String, Iterable<ArrayList <Integer>>>  pairDromes2 =result.distinct().groupByKey();
         JavaPairRDD<String,ArrayList<Integer>> result2=pairDromes2.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                     ArrayList<Integer> arr_starts=new ArrayList<Integer>();
@@ -220,7 +212,10 @@
 
           
           JavaPairRDD<String,ArrayList<Integer>> result3=result2.distinct();
-          return(result3);        
+          */
+          
+          JavaPairRDD<String,ArrayList<Integer>> result2=result.distinct();
+          return(result2);        
         }
 
         //key : seq(repeat pair)
