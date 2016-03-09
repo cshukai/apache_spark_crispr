@@ -57,8 +57,8 @@
             JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
             JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,75,20,20);
             JavaPairRDD<String,ArrayList<Integer>>   test_4=mrsmrs.extractInsideStemLoopRepeatPairs(test_2, 0.5,4,3,8); 
-//            JavaPairRDD <String,ArrayList<Integer>> test_4=mrsmrs.findRepeatParisAsBuidlingBlock(test_2, test_3,4,3,8); 
-           test_4.saveAsTextFile("crispr_test");
+            JavaPairRDD<String,ArrayList<Integer>>   test_5=mrsmrs.formMinArrayWithMinUnitLen(test_4);
+            test_5.saveAsTextFile("crispr_test");
             //search of repeat building block on top of palindrome block
             /*
             for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
@@ -70,6 +70,53 @@
     */
     	}        
 
+
+
+        // key: unit seq
+        //values: unit starts
+        public JavaPairRDD<String,ArrayList<Integer>>  formMinArrayWithMinUnitLen(JavaPairRDD<String,ArrayList<Integer>> relevantRepeatPair){
+            JavaPairRDD<String, Iterable<ArrayList <Integer>>>  pairDromes = relevantRepeatPair.groupByKey();
+            JavaPairRDD<String,ArrayList<Integer>> result=pairDromes.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
+                    ArrayList<Integer> unit1_starts=new ArrayList<Integer>();
+                    ArrayList<Integer> unit2_starts=new ArrayList<Integer>();
+                    ArrayList<Tuple2<String, ArrayList<Integer>>> output = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<ArrayList<Integer>>> keyValue){
+                     Iterable<ArrayList<Integer>> locs =keyValue._2();
+                     Iterator <ArrayList<Integer>> itr=locs.iterator();
+                   
+                     while(itr.hasNext()){
+                        ArrayList<Integer> thisLocSet=itr.next();
+                        unit1_starts.add(thisLocSet.get(0));
+                        unit2_starts.add(thisLocSet.get(1));
+                     }
+    
+                     for(int i =0; i<unit1_starts.size();i++){
+                         int idx=unit2_starts.indexOf(unit1_starts.get(i));
+                         if(idx!=-1){
+                             int arr_unit1_start=unit1_starts.get(idx);
+                             int arr_unit2_start=unit2_starts.get(idx);
+                             int arr_unit3_start=unit2_starts.get(i);
+                             ArrayList<Integer> minArrLocs=new ArrayList<Integer>();
+                             minArrLocs.add(arr_unit1_start);
+                             minArrLocs.add(arr_unit2_start);
+                             minArrLocs.add(arr_unit3_start);
+                             output.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),minArrLocs));
+                         }
+                     }
+                  
+                  
+                     return(output);
+    
+                    }
+    
+                });
+                
+          return(result);        
+        }
+
+        //key : seq(repeat pair)
+        //values : [start_loc_1_unit_1, start_loc_2_unit_2, arm_start_loc,arm_len,gap_size]
         public JavaPairRDD<String,ArrayList<Integer>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
             final int minLoopSize= min_loop_size;
             final int maxLoopSize= max_loop_size;
@@ -118,7 +165,7 @@
                      Iterable<ArrayList<String>> kmer_locs =keyValue._2();
                      Iterator <ArrayList<String>> itr=kmer_locs.iterator();
                      String unitSeq_loc=keyValue._1();
-                     
+                     String[] tempArr=unitSeq_loc.split(":");
                      
                      while(itr.hasNext()){
                         ArrayList<String> thisKmerSequenceLocation=itr.next();
@@ -156,10 +203,16 @@
                                 int loopsize=kmerLocation.get(k)-(currentKmerLocation+arm_len-1)-1;
                                 if(loopsize>=minLoopSize &&  loopsize<=maxLoopSize){
                                      ArrayList<Integer> thisPalindrome=new ArrayList<Integer>();
+                               
+                                    String unit_sequence=tempArr[0];
+                                    int unit_1_start_loc=Integer.parseInt(tempArr[1]);
+                                    int unit_2_start_pos=Integer.parseInt(tempArr[2]);
+                                    thisPalindrome.add(unit_1_start_loc);
+                                    thisPalindrome.add(unit_2_start_pos);
                                     thisPalindrome.add(currentKmerLocation);
                                     thisPalindrome.add(arm_len);
                                     thisPalindrome.add(loopsize);
-                                    output.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),thisPalindrome));     
+                                    output.add(new Tuple2<String, ArrayList<Integer>>(unit_sequence,thisPalindrome));     
                                 }
                                
                              }
@@ -179,7 +232,7 @@
                  
             
            
-    
+       
     
     
     
