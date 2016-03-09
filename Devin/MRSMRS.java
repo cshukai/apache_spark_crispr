@@ -48,16 +48,17 @@
             String species_folder="Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
             
             // search of palindrome building block 
-            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
-            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
-            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-            JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
+            //JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+            //JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
+            //JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+            //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
 
             JavaRDD<String> kBlock_repeat_unit=sc.textFile("/result/20/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa");  
             JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
             JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,75,20,20);
-            JavaPairRDD <String,ArrayList<Integer>> test_4=mrsmrs.findRepeatParisAsBuidlingBlock(test_2, test_3,4,3,8); 
-            test_4.saveAsTextFile("crispr_test");
+            JavaPairRDD<String,ArrayList<Integer>>   test_4=mrsmrs.extractInsideStemLoopRepeatPairs(test_2, 0.5,4,3,8); 
+//            JavaPairRDD <String,ArrayList<Integer>> test_4=mrsmrs.findRepeatParisAsBuidlingBlock(test_2, test_3,4,3,8); 
+           test_4.saveAsTextFile("crispr_test");
             //search of repeat building block on top of palindrome block
             /*
             for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
@@ -68,17 +69,16 @@
             }
     */
     	}        
-    
+/*    
     //goal : identification of minuimum crispr array with minimum possible length of repeat unit
     //mechanism : search of intersection between two repeat pairs and internal palindroms 
     public JavaPairRDD <String,ArrayList<Integer>> findRepeatParisAsBuidlingBlock(JavaPairRDD <String,ArrayList<Integer>>repeatPairs, JavaPairRDD <String,ArrayList<Integer>> palindArrays,int arm_len,int gapSizeMin,int gapSizeMax){
         final int maxGapSize=gapSizeMax;
         final int minGapSize=gapSizeMin;
         final int armLen=arm_len;
-        final HashMap palinHasMap = palindArrays.collectAsMap()
+        List<ArrayList<Integer>> = palindArrays.values().collect();
         
-         	
-        
+
         //filter out repeat pair which doesn't posses sequence feature of input palindrom arrays 
        
         JavaPairRDD<String,ArrayList<Integer>> repeat_pairs_filtered=repeatPairs.filter(new Function<Tuple2<String,ArrayList<Integer>>, Boolean>(){
@@ -87,40 +87,12 @@
                     ArrayList<Integer> unit_start_locs=keyValue._2();
                     String kblock_seq=keyValue._1();
                     int kblock_len=kblock_seq.length();
-                    
-                    // generate kmer:gapSize to map correpsonding locations of palindromeArray
-                    ArrayList<String> mapper= new ArrayList<String>();
-                    for(int i=0; i<=kblock_len-armLen;i++){
-                        for(int j=minGapSize;j<=maxGapSize; j++ ){
-                            String thisKmer=kblock_seq.substring(i,i+armLen-1);
-                            String thisMapper=thisKmer+":"+j;
-                            mapper.add(thisMapper);
-                        }
-                    }
-                                    
+                              
                     boolean isPalindromeInside=false;
                     for(int i=0;i<unit_start_locs.size();i++){
                         int thisStartLoc=unit_start_locs.get(i);
                         int thisEndLoc=thisStartLoc+kblock_len-1;
-                        for(int j=0;j<mapper.size();j++){
-                           List<ArrayList<Integer>> palinStartEnd=palinArrays.lookup(mapper.get(j));
-                           for(int k=0;k<palinStartEnd.size();k++){
-                               ArrayList<Integer> thisPalindStartends=palinStartEnd.get(k);
-                               for(int m=0; m<thisPalindStartends.size() ;m++){
-                                if(m%2==0){
-                                int thisPalinStart=thisPalindStartends.get(m);
-                                int thisPalindEnd=thisPalindStartends.get(m+1);
-                                if(thisPalinStart>=thisStartLoc && thisPalindEnd<= thisEndLoc){
-                                    isPalindromeInside=true;
-                                 }
-                                } 
-                               }
-                         
-                           }
-                        }
-                    }
-                    
-                    return (isPalindromeInside);
+                        return (isPalindromeInside);
                 }
             });
         
@@ -213,8 +185,8 @@
            
         }
       
-      
-        public JavaPairRDD<String,ArrayList<Integer>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,Integer>parsedMRSMRSresult,JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
+  */    
+        public JavaPairRDD<String,ArrayList<Integer>> extractInsideStemLoopRepeatPairs(JavaPairRDD<String,ArrayList<Integer>> repeatPairs,double tracer_repeat_similarity,int min_arm_len,int min_loop_size,int max_loop_size){
             final int minLoopSize= min_loop_size;
             final int maxLoopSize= max_loop_size;
             final int arm_len= min_arm_len; 
