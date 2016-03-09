@@ -117,7 +117,7 @@
                                      minArrLocs.add(thisTargetStartLoc2);
                                      arr_unit3_start=thisTargetStartLoc2;
                                    }
-                                l
+                                
                                  
                                  }
                                  j=j+1;    
@@ -141,69 +141,25 @@
     
                 });
              
-    /*         
+       
         JavaPairRDD<String, Iterable<ArrayList <Integer>>>  pairDromes2 =result.distinct().groupByKey();
+        
         JavaPairRDD<String,ArrayList<Integer>> result2=pairDromes2.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
-                    ArrayList<Integer> arr_starts=new ArrayList<Integer>();
-                    ArrayList<ArrayList<Integer>> arr_middle=new ArrayList<ArrayList<Integer>>();
-                    ArrayList<Integer> arr_ends=new ArrayList<Integer>();
+                    
                     ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<ArrayList<Integer>>> keyValue){
                      Iterable<ArrayList<Integer>> locs =keyValue._2();
                      Iterator <ArrayList<Integer>> itr=locs.iterator();
-                   
+                     ArrayList<Integer> locations=new ArrayList<Integer>();
                      while(itr.hasNext()){
                         ArrayList<Integer> thisLocSet=itr.next();
-                        arr_starts.add(thisLocSet.get(0));
-                        ArrayList<Integer> temp=new ArrayList<Integer>();
-                        for(int a=1;a<thisLocSet.size()-1;a++){
-                            
-                            temp.add(thisLocSet.get(a));
+                        for(int i=0;i<thisLocSet.size();i++){
+                            locations.add(thisLocSet.get(i));
                         }
-                        arr_middle.add(temp);
-                        arr_ends.add(thisLocSet.get(thisLocSet.size()-1));
                      }
-    
-    
-                     
-                     for(int i =0; i<arr_starts.size();i++){
-                         int thisArrStart=arr_starts.get(i); 
-                         int idx=arr_ends.indexOf(thisArrStart);
-                         if(idx!=-1){
-                             ArrayList<Integer> ArrLocs=new ArrayList<Integer>();
-                             int new_arr_start=arr_starts.get(idx);
-                             ArrayList<Integer> new_arr_middle=arr_middle.get(idx);
-                             int new_arr_end=arr_starts.get(i);
-                             ArrLocs.add(new_arr_start);
-                             for(int b=0;b<new_arr_middle.size();b++){
-                                 ArrLocs.add(new_arr_middle.get(b));
-                             }
-                             ArrLocs.add(new_arr_end);
-                               //try to  extend minimum array to longest possible
-                             int  j=0;
-                             while(j<arr_starts.size()){
-                                 if(j!=i){
-                                  int thisTargetStartLoc=arr_starts.get(j);
-                                  int thisTargetStartLoc2=arr_ends.get(j);
-                                  if(thisTargetStartLoc==new_arr_end){
-                                     ArrLocs.add(thisTargetStartLoc2);
-                                     new_arr_end=thisTargetStartLoc2;
-                                   }
-                                 }
-                                 j=j+1;    
-                            }
-                            output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),ArrLocs));
 
-                         }
-                     
-                         }
-                         
-                         
-                             
-                     
-                  
-                
+                     output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),locations));     
                      return(output2);
     
                     }
@@ -212,10 +168,11 @@
 
           
           JavaPairRDD<String,ArrayList<Integer>> result3=result2.distinct();
-          */
           
-          JavaPairRDD<String,ArrayList<Integer>> result2=result.distinct();
-          return(result2);        
+          
+
+         
+          return(result3);        
         }
 
         //key : seq(repeat pair)
