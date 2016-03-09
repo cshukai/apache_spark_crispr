@@ -57,6 +57,8 @@
             JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
             JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,75,20,20);
             JavaPairRDD<String,ArrayList<Integer>>   test_4=mrsmrs.extractInsideStemLoopRepeatPairs(test_2, 0.5,4,3,8); 
+            test_4.saveAsTextFile("crispr_test2");
+
             JavaPairRDD<String,ArrayList<Integer>>   test_5=mrsmrs.formArrayWithMinUnitLen(test_4);
             test_5.saveAsTextFile("crispr_test");
             //search of repeat building block on top of palindrome block
@@ -92,33 +94,52 @@
                         unit2_starts.add(thisLocSet.get(1));
                      }
     
+    
+                     
                      for(int i =0; i<unit1_starts.size();i++){
-                         int idx=unit2_starts.indexOf(unit1_starts.get(i));
+                         int thisUnit1Start=unit1_starts.get(i); 
+                         int idx=unit2_starts.indexOf(thisUnit1Start);
                          if(idx!=-1){
+                             ArrayList<Integer> minArrLocs=new ArrayList<Integer>();
                              int arr_unit1_start=unit1_starts.get(idx);
                              int arr_unit2_start=unit2_starts.get(idx);
                              int arr_unit3_start=unit2_starts.get(i);
-                             ArrayList<Integer> minArrLocs=new ArrayList<Integer>();
                              minArrLocs.add(arr_unit1_start);
                              minArrLocs.add(arr_unit2_start);
                              minArrLocs.add(arr_unit3_start);
-                             
-                             //try to minimum arrary extend to longest possible
-                            int  j=i+1;
+                               //try to  extend minimum array to longest possible
+                             int  j=0;
                              while(j<unit1_starts.size()){
-                                 int thisTargetStartLoc=unit1_starts.get(j);
-                                 int thisTargetStartLoc2=unit2_starts.get(j);
-                                 if(thisTargetStartLoc==arr_unit3_start){
-                                     
+                                 if(j!=i){
+                                  int thisTargetStartLoc=unit1_starts.get(j);
+                                  int thisTargetStartLoc2=unit2_starts.get(j);
+                                  if(thisTargetStartLoc==arr_unit3_start){
                                      minArrLocs.add(thisTargetStartLoc2);
                                      arr_unit3_start=thisTargetStartLoc2;
+                                   }
                                  }
-                                 j=j+1;
-                                 
-                             }                
-                             output.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),minArrLocs));
+                                 j=j+1;    
+                            }
+                            output.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),minArrLocs));
+
                          }
-                     }
+
+                             
+                             
+                           
+                           
+                                 
+                                 
+                             
+                             
+                             
+                         
+                           
+                         }
+                         
+                         
+                             
+                     
                   
                 
                      return(output);
@@ -127,8 +148,78 @@
     
                 });
              
-          JavaPairRDD<String,ArrayList<Integer>>result2=result.distinct();        
-          return(result2);        
+             
+        JavaPairRDD<String, Iterable<ArrayList <Integer>>>  pairDromes2 =result.distinct().groupByKey();
+        JavaPairRDD<String,ArrayList<Integer>> result2=pairDromes2.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
+                    ArrayList<Integer> arr_starts=new ArrayList<Integer>();
+                    ArrayList<ArrayList<Integer>> arr_middle=new ArrayList<ArrayList<Integer>>();
+                    ArrayList<Integer> arr_ends=new ArrayList<Integer>();
+                    ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<ArrayList<Integer>>> keyValue){
+                     Iterable<ArrayList<Integer>> locs =keyValue._2();
+                     Iterator <ArrayList<Integer>> itr=locs.iterator();
+                   
+                     while(itr.hasNext()){
+                        ArrayList<Integer> thisLocSet=itr.next();
+                        arr_starts.add(thisLocSet.get(0));
+                        ArrayList<Integer> temp=new ArrayList<Integer>();
+                        for(int a=1;a<thisLocSet.size()-1;a++){
+                            
+                            temp.add(thisLocSet.get(a));
+                        }
+                        arr_middle.add(temp);
+                        arr_ends.add(thisLocSet.get(thisLocSet.size()-1));
+                     }
+    
+    
+                     
+                     for(int i =0; i<arr_starts.size();i++){
+                         int thisArrStart=arr_starts.get(i); 
+                         int idx=arr_ends.indexOf(thisArrStart);
+                         if(idx!=-1){
+                             ArrayList<Integer> ArrLocs=new ArrayList<Integer>();
+                             int new_arr_start=arr_starts.get(idx);
+                             ArrayList<Integer> new_arr_middle=arr_middle.get(idx);
+                             int new_arr_end=arr_starts.get(i);
+                             ArrLocs.add(new_arr_start);
+                             for(int b=0;b<new_arr_middle.size();b++){
+                                 ArrLocs.add(new_arr_middle.get(b));
+                             }
+                             ArrLocs.add(new_arr_end);
+                               //try to  extend minimum array to longest possible
+                             int  j=0;
+                             while(j<arr_starts.size()){
+                                 if(j!=i){
+                                  int thisTargetStartLoc=arr_starts.get(j);
+                                  int thisTargetStartLoc2=arr_ends.get(j);
+                                  if(thisTargetStartLoc==new_arr_end){
+                                     ArrLocs.add(thisTargetStartLoc2);
+                                     new_arr_end=thisTargetStartLoc2;
+                                   }
+                                 }
+                                 j=j+1;    
+                            }
+                            output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),ArrLocs));
+
+                         }
+                     
+                         }
+                         
+                         
+                             
+                     
+                  
+                
+                     return(output2);
+    
+                    }
+    
+                });
+
+          
+          JavaPairRDD<String,ArrayList<Integer>> result3=result2.distinct();
+          return(result3);        
         }
 
         //key : seq(repeat pair)
@@ -285,7 +376,7 @@
         public JavaPairRDD<String,ArrayList<Integer>>extractRepeatPairCandidate(JavaPairRDD<String, Integer>parsedMRSMRSresult,int max_spacer_size, int min_spacer_size,int unit_length){
            final int min_search_range=min_spacer_size;
            //final int max_search_range=2*max_spacer_size-unit_length;
-           final int max_search_range=max_spacer_size-unit_length;
+           final int max_search_range=max_spacer_size+unit_length;
            
            JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
            JavaPairRDD<String,ArrayList<Integer>> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<Integer>>(){
