@@ -284,7 +284,8 @@
         // output : {seq,[unit_1_start_pos,unit_2_start_pos]}
         public JavaPairRDD<String,ArrayList<Integer>>extractRepeatPairCandidate(JavaPairRDD<String, Integer>parsedMRSMRSresult,int max_spacer_size, int min_spacer_size,int unit_length){
            final int min_search_range=min_spacer_size;
-           final int max_search_range=2*max_spacer_size-unit_length;
+           //final int max_search_range=2*max_spacer_size-unit_length;
+           final int max_search_range=max_spacer_size-unit_length;
            
            JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=parsedMRSMRSresult.groupByKey();
            JavaPairRDD<String,ArrayList<Integer>> result= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<Integer>>(){
