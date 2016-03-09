@@ -117,6 +117,7 @@
                                      minArrLocs.add(thisTargetStartLoc2);
                                      arr_unit3_start=thisTargetStartLoc2;
                                    }
+                                
                                  }
                                  j=j+1;    
                             }
