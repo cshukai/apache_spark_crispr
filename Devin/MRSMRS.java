@@ -120,14 +120,15 @@
                          }
                      }
                   
-                     output=output.distinct();
+                
                      return(output);
     
                     }
     
                 });
-                
-          return(result);        
+             
+          JavaPairRDD<String,ArrayList<Integer>>result2=result.distinct();        
+          return(result2);        
         }
 
         //key : seq(repeat pair)
