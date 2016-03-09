@@ -57,7 +57,7 @@
             JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
             JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,75,20,20);
             JavaPairRDD<String,ArrayList<Integer>>   test_4=mrsmrs.extractInsideStemLoopRepeatPairs(test_2, 0.5,4,3,8); 
-            JavaPairRDD<String,ArrayList<Integer>>   test_5=mrsmrs.formMinArrayWithMinUnitLen(test_4);
+            JavaPairRDD<String,ArrayList<Integer>>   test_5=mrsmrs.formArrayWithMinUnitLen(test_4);
             test_5.saveAsTextFile("crispr_test");
             //search of repeat building block on top of palindrome block
             /*
@@ -69,12 +69,13 @@
             }
     */
     	}        
-
-
-
+        
+        /*todo: extend each unit to both end for detction of truncated cases
+        */
+        
         // key: unit seq
         //values: unit starts
-        public JavaPairRDD<String,ArrayList<Integer>>  formMinArrayWithMinUnitLen(JavaPairRDD<String,ArrayList<Integer>> relevantRepeatPair){
+        public JavaPairRDD<String,ArrayList<Integer>>  formArrayWithMinUnitLen(JavaPairRDD<String,ArrayList<Integer>> relevantRepeatPair){
             JavaPairRDD<String, Iterable<ArrayList <Integer>>>  pairDromes = relevantRepeatPair.groupByKey();
             JavaPairRDD<String,ArrayList<Integer>> result=pairDromes.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                     ArrayList<Integer> unit1_starts=new ArrayList<Integer>();
@@ -101,6 +102,20 @@
                              minArrLocs.add(arr_unit1_start);
                              minArrLocs.add(arr_unit2_start);
                              minArrLocs.add(arr_unit3_start);
+                             
+                             //try to minimum arrary extend to longest possible
+                            int  j=i+1;
+                             while(j<unit1_starts.size()){
+                                 int thisTargetStartLoc=unit1_starts.get(j);
+                                 int thisTargetStartLoc2=unit2_starts.get(j);
+                                 if(thisTargetStartLoc==arr_unit3_start){
+                                     minArrLocs.add(thisTargetStartLoc);
+                                     minArrLocs.add(thisTargetStartLoc2);
+                                     arr_unit3_start=thisTargetStartLoc2;
+                                 }
+                                 j=j+1;
+                                 
+                             }                
                              output.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),minArrLocs));
                          }
                      }
