@@ -48,27 +48,15 @@
             String species_folder="Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
             
             // search of palindrome building block 
-            //JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
-            //JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
-            //JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-            //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
+            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
+            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+            JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
+            test_3.saveAsTextFile("crispr_test");
 
-
-/*
-            JavaRDD<String> kBlock_repeat_unit=sc.textFile("/result/20/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa");  
-            JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
-            JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,75,20,20);
-            JavaPairRDD<String,ArrayList<Integer>>   test_4=mrsmrs.extractInsideStemLoopRepeatPairs(test_2, 0.5,4,3,8); 
-            test_4.saveAsTextFile("crispr_test2");
-
-            JavaPairRDD<String,ArrayList<Integer>>   test_5=mrsmrs.formArrayWithMinUnitLen(test_4);
-            test_5.saveAsTextFile("crispr_test");
-          
-    */
     	}        
         
-        /*todo: extend each unit to both end for detction of truncated cases
-        */
+  
         
         // key: unit seq
         //values: unit starts
@@ -370,6 +358,7 @@
                             temp.add(palin_start.get(i+2));
                             temp.add(palin_end.get(i+2));
                             result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
+                            //extend the array
                             while(j<palin_start.size()){
                                  int nextJunDis=palin_start.get(j)-palin_start.get(j-1);
                                  if(nextJunDis<upperLimt){
