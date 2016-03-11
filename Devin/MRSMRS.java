@@ -53,6 +53,8 @@
             //JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
 
+
+/*
             JavaRDD<String> kBlock_repeat_unit=sc.textFile("/result/20/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa");  
             JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
             JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,75,20,20);
@@ -61,14 +63,7 @@
 
             JavaPairRDD<String,ArrayList<Integer>>   test_5=mrsmrs.formArrayWithMinUnitLen(test_4);
             test_5.saveAsTextFile("crispr_test");
-            //search of repeat building block on top of palindrome block
-            /*
-            for(int repeat_len=repeat_unit_min; repeat_len<=repeat_unit_max; repeat_len++){
-                JavaRDD<String> kBlock_repeat_unit=sc.textFile(home_dir+"/"+repeat_len+"/"+species_folder);  
-                JavaPairRDD<String,Integer> test=mrsmrs.parseDevinOutput(kBlock_repeat_unit);
-                JavaPairRDD <String,ArrayList<Integer>> test_2=mrsmrs.extractRepeatPairCandidate(test,spacerMax,spacerMin,repeat_len);
-                
-            }
+          
     */
     	}        
         
@@ -130,9 +125,7 @@
                            
                          }
                          
-                         
-                             
-                     
+
                   
                 
                      return(output);
@@ -158,7 +151,7 @@
                             locations.add(thisLocSet.get(i));
                         }
                      }
-
+                     Collections.sort(locations);
                      output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),locations));     
                      return(output2);
     
@@ -324,6 +317,91 @@
             return(result);
     
         }
+    
+       // output: seq(left_arm) loc[gapSize,palindrome_start_i,palindrome_end_i]
+        public  JavaPairRDD <String, ArrayList<Integer>>  extractPalinDromeArray( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int arm_len){
+                final int r_max=unitMaxLen;
+                final int r_min=unitMinLen;
+                final int s_max=spacerMaxLen;
+                final int s_min=spacerMinLen;
+                final int armLen=arm_len;
+            
+                JavaPairRDD<String,Iterable<ArrayList<Integer>>> palindBlockGroup=palindBlock.groupByKey();
+            
+            
+            JavaPairRDD <String, ArrayList<Integer>> palindBlockArray= palindBlockGroup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
+                @Override
+                public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<ArrayList<Integer>>> keyValue){
+                 Iterable<ArrayList<Integer>>start_loopsize =keyValue._2();
+                 Iterator<ArrayList<Integer>> itr=start_loopsize.iterator();
+                 int arm_len=keyValue._1().length();
+                
+                 ArrayList<Integer> palin_start=new ArrayList<Integer>();
+                 ArrayList<Integer> palin_end=new ArrayList<Integer>();
+                 List<Tuple2<String,ArrayList<Integer>>> result  =new ArrayList<Tuple2<String,ArrayList<Integer>>>();
+                  
+                 int palindromeSize=0; 
+                 while(itr.hasNext()){
+                   ArrayList<Integer> this_start_loopsize=itr.next();
+                   int thisStart=this_start_loopsize.get(0);
+                   int thisGapSize=this_start_loopsize.get(1);
+                   int thisEnd=thisStart+thisGapSize+2*(arm_len-2)-1;
+                   palindromeSize=thisEnd-thisStart+1;
+                   palin_start.add(thisStart);
+                   palin_end.add(thisEnd);
+                 }
+
+                Collections.sort(palin_start);
+                Collections.sort(palin_end);
+                int upperLimt=s_max+r_max-palindromeSize;
+                for(int i=0;i<palin_start.size(); i++){
+                    if(i<palin_start.size()-2){
+                        int firstJuncDist=palin_start.get(i+1)-palin_start.get(i);
+                        int secondJuncDist=palin_start.get(i+2)-palin_start.get(i+1);
+                        int j=i+3;
+                        if(firstJuncDist<=upperLimt && secondJuncDist<= upperLimt){
+                            int startpos=palin_start.get(i);
+                            int endpos=palin_end.get(i+2);
+                            ArrayList<Integer>temp=new ArrayList<Integer>();
+                            temp.add(palin_start.get(i));
+                            temp.add(palin_end.get(i));
+                            temp.add(palin_start.get(i+1));
+                            temp.add(palin_end.get(i+1));
+                            temp.add(palin_start.get(i+2));
+                            temp.add(palin_end.get(i+2));
+                            result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
+                            while(j<palin_start.size()){
+                                 int nextJunDis=palin_start.get(j)-palin_start.get(j-1);
+                                 if(nextJunDis<upperLimt){
+                                     endpos=palin_end.get(j);
+                                     temp.add(palin_start.get(j));
+                                     temp.add(palin_end.get(j));
+                                     j=j+1;
+                                 }
+                                 else{
+                                     result.add(new Tuple2<String,ArrayList<Integer>>(keyValue._1(),temp));
+                                     j=palin_start.size();
+                                 }
+                                
+                            }
+
+                        }
+                        
+                        
+                    } 
+                }
+
+                return(result);
+
+            }
+
+        });
+        JavaPairRDD <String, ArrayList<Integer>> palinArray=palindBlockArray.distinct();
+        return(palinArray);
+            
+           
+        }
+    
     
         // output : {seq,[unit_1_start_pos,unit_2_start_pos]}
         public JavaPairRDD<String,ArrayList<Integer>>extractRepeatPairCandidate(JavaPairRDD<String, Integer>parsedMRSMRSresult,int max_spacer_size, int min_spacer_size,int unit_length){
