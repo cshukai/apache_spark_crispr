@@ -20,7 +20,7 @@
     
     public class MRSMRS implements Serializable{
     	public static void main(String [ ] args) throws Exception{
-            //env configuration
+            /*env configuration*/
             SparkConf conf=new SparkConf().setAppName("spark-crispr");
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
@@ -33,33 +33,49 @@
             int spacerMax=75;
             int spacerMin=20;
             
-            //stemp loop 
+            //stem loop 
             int stemLoopArmLen=4;
             int loopLowBound=3;
             int loopUpBound=8;
             double tracrAlignRatio=0.5;
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
             
+            //criteria for tolerance of sequence variation
+            double support_ratio=0.6; // percentage of repeat units to form consensus base
+            double variance_ratio_left=0.05; // percentage of variation inside left extension
+            double variance_ratio_right=0.1; // percentage of variation inside right extension
             
             
-            
-            //processing
+            /*processing*/
             String home_dir="/result";
             String species_folder="Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
-            
+            String fasta_path="/home/shukai/Downloads/Palindrome_3/cleanUpData/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
             // search of palindrome building block 
-            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+  /*          JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             test_3.saveAsTextFile("crispr_test");
+    */        //extension of palindrome building block
+            List<String>fasta=sc.textFile(fasta_path).collect();
+             String test= mrsmrs.getSubstring(fasta, 2836273, 2836292);
+             System.out.println("=========================");
+             System.out.println(test);
+
+            
 
     	}        
         
-  
+        /*purpose: record sequence/position during extension from every unit in the building block array
+          output format: {start_loc_building block array, [nucletodie_extended_left_end,...,nucleotide_extended_right_end]}
+        */
+       // public JavaPairRDD<Integer,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, List<String>fasta){
+            
+        //}
         
-        // key: unit seq
-        //values: unit starts
+        
+        /* key: unit seq
+           values: unit starts*/
         public JavaPairRDD<String,ArrayList<Integer>>  formArrayWithMinUnitLen(JavaPairRDD<String,ArrayList<Integer>> relevantRepeatPair){
             JavaPairRDD<String, Iterable<ArrayList <Integer>>>  pairDromes = relevantRepeatPair.groupByKey();
             JavaPairRDD<String,ArrayList<Integer>> result=pairDromes.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
