@@ -51,27 +51,107 @@
             String species_folder="Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
             String fasta_path="/home/shukai/Downloads/Palindrome_3/cleanUpData/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
             // search of palindrome building block 
-  /*          JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             test_3.saveAsTextFile("crispr_test");
-    */        //extension of palindrome building block
+           //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-             String test= mrsmrs.getSubstring(fasta, 2836273, 2836292);
-             System.out.println("=========================");
-             System.out.println(test);
+        
 
             
 
     	}        
         
         /*purpose: record sequence/position during extension from every unit in the building block array
-          output format: {start_loc_building block array, [nucletodie_extended_left_end,...,nucleotide_extended_right_end]}
+          output format: {longest_consensus_repeat_sequence, [extended_unit1_start, extended_unit2_end,....,extended_unitN_start, extended_unitN_end]}
         */
-       // public JavaPairRDD<Integer,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, List<String>fasta){
+        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int maxSpacerLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_ratio,boolean internal){
+            final double supportRatio=support_ratio;
+            final double varianceRatio=variance_ratio;
+            final List<String> fasta_seq=fasta;
+            final int rep_max=maxRepLen ;
+            final int rep_min=minRepLen;
+            final int spa_min=minSpacerLen;
+            final int spa_max=maxSpacerLen;
+            final boolean is_internal=internal;
+          
+            JavaPairRDD <String,ArrayList<Integer>> result= buildingBlockArr.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
+                    
+                    ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
+                     // organizing information for subsequent processing
+                     ArrayList<Integer> buildingBlockStarlocs =keyValue._2();
+                     int buildingBlockCopies=buildingBlockStarlocs.size();
+           
+                     
+                     String[] buildingBlockSeqGapSize=keyValue._1().split(":");  //ex:AGTT:8
+                     int loopsize=Integer.parseInt(buildingBlockSeqGapSize.[1]);
+                     String armSeq=buildingBlockSeqGapSize[0];
+                     int armLen=armSeq.length(); 
+                     int MaxSpace=0;
+                     if(is_internal){
+                        
+                        int palinSize=2*armLen+loopsize;
+                        MaxSpace=rep_max-palinSize;
+                     }
+                     else{
+                         int tracrStretch=armLen;
+                         MaxSpace=rep_max-tracrStretch;
+                     }
+                    
+                     int supportCopy=Math.ceil(buildingBlockCopies*support_ratio);
+                     int variantNum=Math.floor(MaxSpace*varianceRatio/2);
+
             
-        //}
+
+                     //to fetch potential extended regions
+                     ArrayList<String> leftSeqs=new ArrayList<String>();
+                     ArrayList<String> rightSeqs=new ArrayList<String>();
+                     
+                     for(int i=0;i<buildingBlockCopies;i++){
+                          int thisBlockStart=buildingBlockStarlocs.get(i);
+                          int thisLeftEnd=thisBlockStart-1;
+                          int thisLeftStart=thisLeftEnd-MaxSpace+1;
+                          String thisLeftSeq=getSubstring(fasta_seq,thisLeftStart,thisLeftEnd);
+                          leftSeqs.add(thisLeftSeq);
+                          
+                          
+                          if(is_internal){
+                            int thisBlockEnd=thisBlockStart+palinSize-1;
+                            int thisRightStart=thisBlockEnd+1;
+                            int thisRightEnd=thisRightStart+MaxSpace-1;
+                            String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
+                            rightSeqs.add(thisRightSeq);
+
+                          }
+                          
+                          else{
+                            int thisBlockEnd=thisBlockStart+armLen-1;
+                            int thisRightStart=thisBlockEnd+1;
+                            int thisRightEnd=thisRightStart+MaxSpace-1;
+                            String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
+                            rightSeqs.add(thisRightSeq);
+                              
+                          }
+                     }
+                     
+                     
+                     //  to determine extension length
+                 
+                     
+                     output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),locations));     
+                     return(output2);
+    
+                    }
+    
+                });
+            
+            return(result);
+            
+        }
         
         
         /* key: unit seq
