@@ -207,7 +207,7 @@
                              
                                 for(int m=0;m<rightSeqs.size();m++){
                                   String targetRightSeq=rightSeqs.get(m);
-                                  char targetBase=targetRightSeq.charAt(m);
+                                  char targetBase=targetRightSeq.charAt(j);
                                   if(targetBase!=maxBase){
                                       variantNumPerUnitCopyArr[m]=variantNumPerUnitCopyArr[m]+1;
                                   }
@@ -215,7 +215,7 @@
                                 for(int b=0;b<variantNumPerUnitCopyArr.length;b++){
                                     int varNumThisUnit=variantNumPerUnitCopyArr[b];
                                     if(varNumThisUnit==variantNum){
-                                          finalEnds[b]=finalEnds[b]+k+1;
+                                          finalEnds[b]=finalEnds[b]+j+1;
                                     }
                                 }
                             }
@@ -224,7 +224,7 @@
                               for(int a=0;a<variantNumPerUnitCopy.size();a++){
                                   variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
                                   if(variantNumPerUnitCopyArr[a]==variantNum){
-                                          finalEnds[a]=finalEnds[a]+k+1;
+                                          finalEnds[a]=finalEnds[a]+j+1;
                                     }
                               }
                             }
