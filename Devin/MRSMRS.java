@@ -111,16 +111,16 @@
 
                     
 
-                     //geneation of potential extended regions
+                    //geneation of potential extended regions
                      ArrayList<String> leftSeqs=new ArrayList<String>();
                      ArrayList<Integer>variantNumPerUnitCopy=new ArrayList<Integer>();
                      ArrayList<String> rightSeqs=new ArrayList<String>();
                      ArrayList<Integer> rightExtendStops=new ArrayList<Integer>();
-                     ArrayList<Integer> leftExtendStops=new ArrayList<Integer>();
+                     ArrayList<Integer> leftExtendStarts=new ArrayList<Integer>();
                      for(int i=0;i<buildingBlockCopies;i++){
                           variantNumPerUnitCopy.add(0);
                           rightExtendStops.add(0);
-                          leftExtendStops.add(0);
+                          leftExtendStarts.add(0);
                           finalStarts[i]=buildingBlockStarlocs.get(i);
                           if(is_internal){
                            finalEnds[i]=finalStarts[i]+palinSize-1;    
@@ -239,11 +239,118 @@
                      }
                     
                     
-                    // extend to left     
-                    //for(int j=thisLeftSeq.length()-1; j<=0;j--){
                          
-                     //}
+                   //extension to left
+                     int [] leftStartsArr= new int [leftExtendStarts.size()];
+                     ArrayList<Integer> overLookList=new ArrayList<Integer>();
+                     for(int w=0;w<leftStartsArr.length;w++){
+                         leftStartsArr[w]=leftExtendStarts.get(w); 
+                     }
                      
+                     
+                        for(int j=MaxSpace-1;j>=0;j--){
+                         int[] baseCount={0,0,0,0}; // order : a,c,t,g
+                         for(int k=0;k<leftSeqs.size();k++){
+                             if(variantNumPerUnitCopyArr[k]>=variantNum){
+                                 overLookList.add(k);
+                                 break;  
+                             }
+                             else{
+                                 String currentLeftSeq=leftSeqs.get(k);
+                                 char thisBase=currentLeftSeq.charAt(j);     
+                                 if(thisBase=='A'){
+                                  baseCount[0]=baseCount[0]+1;
+                                 }
+                                 if(thisBase=='C'){
+                                  baseCount[1]=baseCount[1]+1;
+                                 }
+                                 if(thisBase=='T'){
+                                  baseCount[2]=baseCount[2]+1;
+                                 }
+                             
+                                 if(thisBase=='G'){
+                                  baseCount[3]=baseCount[3]+1;
+                                 }
+                             }
+                            
+                             
+                            
+                             ArrayList<Integer> baseCountList=new ArrayList();
+                             for(int t=0; t <baseCount.length;t++){
+                                 baseCountList.add(baseCount[t]);
+                             } 
+                             int maxBaseCount=Collections.max(baseCountList);
+                             if(maxBaseCount>=supportCopy){
+                                int maxIdx=baseCountList.indexOf(maxBaseCount);
+                                char maxBase='q';
+                                if(maxIdx==0){
+                                    maxBase='A';
+                                }
+                                if(maxIdx==1){
+                                    maxBase='C';
+                                }
+                                if(maxIdx==2){
+                                    maxBase='T';
+                                }
+                                if(maxIdx==3){
+                                    maxBase='G';
+                                }
+                             
+                                for(int m=0;m<leftSeqs.size();m++){
+                                  if(overLookList.contains(m)){
+                                      break;
+                                  }
+                                  else{
+                                    String targetRightSeq=leftSeqs.get(m);    
+                                    char targetBase=targetRightSeq.charAt(j);
+                                    if(targetBase!=maxBase){
+                                      variantNumPerUnitCopyArr[m]=variantNumPerUnitCopyArr[m]+1;
+                                     }
+                                  }     
+                                  
+                                  for(int b=0;b<variantNumPerUnitCopyArr.length;b++){
+                                      if(overLookList.contains(b)){
+                                          break;
+                                      }
+                                      else{
+                                        int varNumThisUnit=variantNumPerUnitCopyArr[b];  
+                                        if(varNumThisUnit==variantNum){
+                                          finalStarts[b]=finalStarts[b]-(MaxSpace-j);
+                                        }
+                                      }
+                                    }
+                                  }
+                                  
+                            }
+                           
+                         
+                            else{ // consider this position has no consense base for every extened unit
+                              for(int a=0;a<variantNumPerUnitCopy.size();a++){
+                                  if(overLookList.contains(a)){
+                                      break;
+                                      
+                                  }
+                                  else{
+                                       variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
+                                       if(variantNumPerUnitCopyArr[a]==variantNum){
+                                          finalStarts[a]=finalStarts[a]-(MaxSpace-j);
+                                       }         
+                                  }
+                             
+                              }
+                            }
+                            
+                             
+                             
+                             
+                         }
+                         
+        
+                             
+                     }
+                     
+                     
+                     // summarize two sets of extension for output
                      ArrayList<Integer> locations=new ArrayList<Integer>();
                      for(int r=0; r<finalStarts.length; r++){
                          locations.add(finalStarts[r]);
