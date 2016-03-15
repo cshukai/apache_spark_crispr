@@ -40,10 +40,6 @@
             double tracrAlignRatio=0.5;
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
             
-            //criteria for tolerance of sequence variation
-            double support_ratio=0.6; // percentage of repeat units to form consensus base
-            double variance_ratio_left=0.05; // percentage of variation inside left extension
-            double variance_ratio_right=0.1; // percentage of variation inside right extension
             
             
             /*processing*/
@@ -58,7 +54,7 @@
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 0.7,0.2,true);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 0.6,0.4,true);
             test_4.saveAsTextFile("crispr_test2");
 
     	}        
