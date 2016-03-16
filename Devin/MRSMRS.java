@@ -49,12 +49,14 @@
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
+           // palindromeInput.saveAsTextFile("mrsmrs");
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+            //palindBlock.saveAsTextFile("palindrome");
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 0.6,0.4,true);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,true);
             test_4.saveAsTextFile("crispr_test2");
 
     	}        
@@ -80,8 +82,16 @@
                     ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
 
                      // organizing information for subsequent processing
-                     ArrayList<Integer> buildingBlockStarlocs =keyValue._2();
+                     ArrayList<Integer> buildingBlockStarEndlocs =keyValue._2();
+                     ArrayList<Integer> buildingBlockStarlocs= new ArrayList<Integer>();
                      
+                     for(int i =0; i < buildingBlockStarEndlocs.size();i++){
+                         if(i%2==0){
+                             buildingBlockStarlocs.add(buildingBlockStarEndlocs.get(i)); 
+                         }
+                     }
+                     
+                     Collections.sort(buildingBlockStarlocs);
                      int buildingBlockCopies=buildingBlockStarlocs.size();
                      int [] finalStarts=new int[buildingBlockCopies];
                      int [] finalEnds=new int[buildingBlockCopies];
@@ -103,8 +113,9 @@
                      }
                     
                     final  int supportCopy=(int)Math.ceil(buildingBlockCopies*supportRatio);
-                    final  int variantNum=(int)Math.floor(MaxSpace*varianceRatio/2);
-
+                    final  int variantNum=(int)Math.floor(MaxSpace*varianceRatio);
+                  
+                  
                     
 
                     //geneation of potential extended regions
@@ -119,7 +130,8 @@
                           leftExtendStarts.add(0);
                           finalStarts[i]=buildingBlockStarlocs.get(i);
                           if(is_internal){
-                           finalEnds[i]=finalStarts[i]+palinSize-1;    
+                           finalEnds[i]=finalStarts[i]+palinSize-1;
+                         
                           }
                           else{
                            finalEnds[i]=finalStarts[i]+armLen-1;
@@ -131,6 +143,7 @@
                           String thisLeftSeq=getSubstring(fasta_seq,thisLeftStart,thisLeftEnd);
                           leftSeqs.add(thisLeftSeq);
                           
+           
                           
                           if(is_internal){
                             int thisBlockEnd=thisBlockStart+palinSize-1;
@@ -138,6 +151,15 @@
                             int thisRightEnd=thisRightStart+MaxSpace-1;
                             String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
+                           
+                            if(finalEnds[i]<2825615 && finalEnds[i]>2823765){
+                                    System.out.println(i+"th iteration");
+                                    System.out.println("palin start:"+finalStarts[i]);
+                                    System.out.println("palind end:"+finalEnds[i]);
+                                    System.out.println(thisRightSeq);
+                                          }
+                                          
+                                          
 
                           }
                           
@@ -147,14 +169,24 @@
                             int thisRightEnd=thisRightStart+MaxSpace-1;
                             String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
-                              
+                        
+
                           }
                      }
-                     
+                             
+                      
                      int [] variantNumPerUnitCopyArr=new int[variantNumPerUnitCopy.size()];
                      for(int w=0;w<variantNumPerUnitCopy.size();w++){
                          variantNumPerUnitCopyArr[w]=variantNumPerUnitCopy.get(w);
                      }
+                     
+                     
+                          for(int g=0;g<finalStarts.length;g++){
+                                    
+                                    System.out.println(finalStarts[g]);
+                                }
+                     
+                     
                      //  to determine extension length toward right-hand side
                      int [] rightExtendStopsArr= new int [rightExtendStops.size()];
                      for(int w=0;w<rightExtendStopsArr.length;w++){
@@ -163,7 +195,11 @@
                      for(int j=0;j<MaxSpace;j++){
                          int[] baseCount={0,0,0,0}; // order : a,c,t,g
                          for(int k=0;k<rightSeqs.size();k++){
+                             
                              String currentRightSeq=rightSeqs.get(k);
+                             
+                            
+                             
                              char thisBase=currentRightSeq.charAt(j);
                              if(thisBase=='A'){
                                  baseCount[0]=baseCount[0]+1;
@@ -179,12 +215,24 @@
                                  baseCount[3]=baseCount[3]+1;
                              }
                              
-                         
+                             /*
+                              if(finalEnds[k]<2825615 && finalEnds[k]>2823765){
+                                        System.out.println("")          
+                              }
+                             */
+                             
+                         }
                              ArrayList<Integer> baseCountList=new ArrayList();
                              for(int t=0; t <baseCount.length;t++){
+                                
                                  baseCountList.add(baseCount[t]);
                              } 
                              int maxBaseCount=Collections.max(baseCountList);
+                             
+                            
+                             
+                             
+                             
                              if(maxBaseCount>=supportCopy){
                                 int maxIdx=baseCountList.indexOf(maxBaseCount);
                                 char maxBase='q';
@@ -208,34 +256,61 @@
                                       variantNumPerUnitCopyArr[m]=variantNumPerUnitCopyArr[m]+1;
                                   }
                                 }
+                                
+                           
+                                
                                 for(int b=0;b<variantNumPerUnitCopyArr.length;b++){
                                     int varNumThisUnit=variantNumPerUnitCopyArr[b];
-                                    if(varNumThisUnit==variantNum){
-                                          finalEnds[b]=finalEnds[b]+j+1;
+                                    if(varNumThisUnit<=variantNum){
+                                          //finalEnds[b]=finalEnds[b]+j+1;
+                                          finalEnds[b]=finalEnds[b]+1; 
+                                          rightExtendStopsArr[b]=1;
+                                          int extension_step=j+1;
+                                          
+                                              if(finalEnds[b]<2825616 && finalEnds[b]>2823765){
+                                                System.out.println("palinStart:"+finalStarts[b]);
+                                                System.out.println("palinEnd_extended:"+finalEnds[b]);
+                                                System.out.println("step:"+extension_step);          
+                                              } 
+                                          
                                     }
+                                    
+                                    
+                             
                                 }
                             }
                          
+                         
+                        
                             else{ // consider this position has no consense base for every extened unit
                               for(int a=0;a<variantNumPerUnitCopy.size();a++){
                                   variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
-                                  if(variantNumPerUnitCopyArr[a]==variantNum){
-                                          finalEnds[a]=finalEnds[a]+j+1;
+                                  if(variantNumPerUnitCopyArr[a]<=variantNum){
+                                          finalEnds[a]=finalEnds[a]+1;
+                                          rightExtendStopsArr[a]=1;
+                                           if(finalEnds[a]<2825616 && finalEnds[a]>2823765){
+                                                System.out.println("it is here" );
+                                                 
+                                              } 
                                     }
                               }
                             }
                             
+                           
                              
-                             
-                             
-                         }
-                         
+                            /*  to move
+                            for(int y=1;y<rightExtendStopsArr.length;y++){
+                                if(rightExtendStopsArr[y]==0){
+                                    finalEnds[y]=finalEnds[y]+j+1;
+                                }
+                            }
+                         */
         
                              
                      }
                     
+      /* to continue              
                     
-                         
                    //extension to left
                      int [] leftStartsArr= new int [leftExtendStarts.size()];
                      ArrayList<Integer> overLookList=new ArrayList<Integer>();
@@ -269,7 +344,7 @@
                                  }
                              }
                             
-                             
+                         }  
                             
                              ArrayList<Integer> baseCountList=new ArrayList();
                              for(int t=0; t <baseCount.length;t++){
@@ -310,8 +385,8 @@
                                       }
                                       else{
                                         int varNumThisUnit=variantNumPerUnitCopyArr[b];  
-                                        if(varNumThisUnit==variantNum){
-                                          finalStarts[b]=finalStarts[b]-(MaxSpace-j);
+                                        if(varNumThisUnit<=variantNum){
+                                          finalStarts[b]=finalStarts[b]-1;
                                         }
                                       }
                                     }
@@ -329,7 +404,7 @@
                                   else{
                                        variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
                                        if(variantNumPerUnitCopyArr[a]==variantNum){
-                                          finalStarts[a]=finalStarts[a]-(MaxSpace-j);
+                                          finalStarts[a]=finalStarts[a]-1;
                                        }         
                                   }
                              
@@ -337,22 +412,21 @@
                             }
                             
                              
-                             
-                             
-                         }
-                         
-        
-                             
                      }
                      
-                     
+                    */
                      // summarize two sets of extension for output
                      ArrayList<Integer> locations=new ArrayList<Integer>();
                      for(int r=0; r<finalStarts.length; r++){
-                         locations.add(finalStarts[r]);
-                         locations.add(finalEnds[r]); 
+                         int proposedRepeatUnitSize=finalEnds[r]-finalStarts[r]+1;
+                         if(proposedRepeatUnitSize>=rep_min && proposedRepeatUnitSize<=rep_max){
+                            locations.add(finalStarts[r]);
+                            locations.add(finalEnds[r]);     
+                            output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),locations));     
+
+                         }
+                         
                      }            
-                     output2.add(new Tuple2<String, ArrayList<Integer>>(keyValue._1(),locations));     
                      return(output2);
                      }
                      
