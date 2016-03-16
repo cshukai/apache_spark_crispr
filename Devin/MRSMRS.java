@@ -56,7 +56,7 @@
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,true);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 0.8,0.4,true);
             test_4.saveAsTextFile("crispr_test2");
 
     	}        
@@ -229,9 +229,7 @@
                              } 
                              int maxBaseCount=Collections.max(baseCountList);
                              
-                            
-                             
-                             
+             
                              
                              if(maxBaseCount>=supportCopy){
                                 int maxIdx=baseCountList.indexOf(maxBaseCount);
@@ -296,20 +294,11 @@
                               }
                             }
                             
-                           
-                             
-                            /*  to move
-                            for(int y=1;y<rightExtendStopsArr.length;y++){
-                                if(rightExtendStopsArr[y]==0){
-                                    finalEnds[y]=finalEnds[y]+j+1;
-                                }
-                            }
-                         */
-        
+   
                              
                      }
                     
-      /* to continue              
+                  
                     
                    //extension to left
                      int [] leftStartsArr= new int [leftExtendStarts.size()];
@@ -414,7 +403,7 @@
                              
                      }
                      
-                    */
+                    
                      // summarize two sets of extension for output
                      ArrayList<Integer> locations=new ArrayList<Integer>();
                      for(int r=0; r<finalStarts.length; r++){
