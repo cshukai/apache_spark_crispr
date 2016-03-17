@@ -56,7 +56,7 @@
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 0.8,0.4,true);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,true);
             test_4.saveAsTextFile("crispr_test2");
 
     	}        
@@ -158,8 +158,6 @@
                                     System.out.println("palind end:"+finalEnds[i]);
                                     System.out.println(thisRightSeq);
                                           }
-                                          
-                                          
 
                           }
                           
@@ -215,11 +213,7 @@
                                  baseCount[3]=baseCount[3]+1;
                              }
                              
-                             /*
-                              if(finalEnds[k]<2825615 && finalEnds[k]>2823765){
-                                        System.out.println("")          
-                              }
-                             */
+                       
                              
                          }
                              ArrayList<Integer> baseCountList=new ArrayList();
@@ -268,7 +262,8 @@
                                               if(finalEnds[b]<2825616 && finalEnds[b]>2823765){
                                                 System.out.println("palinStart:"+finalStarts[b]);
                                                 System.out.println("palinEnd_extended:"+finalEnds[b]);
-                                                System.out.println("step:"+extension_step);          
+                                                System.out.println("step:"+extension_step);
+                                            
                                               } 
                                           
                                     }
@@ -279,15 +274,21 @@
                             }
                          
                          
-                        
+                            
                             else{ // consider this position has no consense base for every extened unit
                               for(int a=0;a<variantNumPerUnitCopy.size();a++){
                                   variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
                                   if(variantNumPerUnitCopyArr[a]<=variantNum){
                                           finalEnds[a]=finalEnds[a]+1;
                                           rightExtendStopsArr[a]=1;
-                                           if(finalEnds[a]<2825616 && finalEnds[a]>2823765){
-                                                System.out.println("it is here" );
+                                           if(finalEnds[a]<2825620 && finalEnds[a]>2823765){
+                                                System.out.println("the support is:"+supportCopy);
+                                                System.out.println("the max number is"+maxBaseCount);
+                                                System.out.println("the finalEnd to extend when smaller than max:"+finalEnds[a] );
+                                                for(int f=0;f<baseCountList.size();f++){
+                                                    System.out.println("this base freq is :"+ baseCountList.get(f));
+                                                }
+                                              
                                                  
                                               } 
                                     }
@@ -301,6 +302,7 @@
                   
                     
                    //extension to left
+                   /*
                      int [] leftStartsArr= new int [leftExtendStarts.size()];
                      ArrayList<Integer> overLookList=new ArrayList<Integer>();
                      for(int w=0;w<leftStartsArr.length;w++){
@@ -403,7 +405,7 @@
                              
                      }
                      
-                    
+                    */
                      // summarize two sets of extension for output
                      ArrayList<Integer> locations=new ArrayList<Integer>();
                      for(int r=0; r<finalStarts.length; r++){
