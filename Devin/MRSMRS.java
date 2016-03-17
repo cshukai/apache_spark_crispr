@@ -281,16 +281,7 @@
                                   if(variantNumPerUnitCopyArr[a]<=variantNum){
                                           finalEnds[a]=finalEnds[a]+1;
                                           rightExtendStopsArr[a]=1;
-                                           if(finalEnds[a]<2825620 && finalEnds[a]>2823765){
-                                                System.out.println("the support is:"+supportCopy);
-                                                System.out.println("the max number is"+maxBaseCount);
-                                                System.out.println("the finalEnd to extend when smaller than max:"+finalEnds[a] );
-                                                for(int f=0;f<baseCountList.size();f++){
-                                                    System.out.println("this base freq is :"+ baseCountList.get(f));
-                                                }
-                                              
-                                                 
-                                              } 
+                                      
                                     }
                               }
                             }
