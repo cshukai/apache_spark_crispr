@@ -56,7 +56,7 @@
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,true);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true);
             test_4.saveAsTextFile("crispr_test2");
 
     	}        
@@ -65,9 +65,9 @@
           mechanisms: extend first toward right end and then left end due to 5'handle in the mechanism for crRNA processing
           output format: {buildingBlockSeq, [extended_unit1_start, extended_unit2_end,........,extended_unitN_start, extended_unitN_end]}
         */
-        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int maxSpacerLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_ratio,boolean internal){
+        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int maxSpacerLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal){
             final double supportRatio=support_ratio;
-            final double varianceRatio=variance_ratio;
+            final double varianceRatio=variance_right_ratio;
             final List<String> fasta_seq=fasta;
             final int rep_max=maxRepLen ;
             final int rep_min=minRepLen;
