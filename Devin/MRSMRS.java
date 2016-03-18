@@ -186,10 +186,7 @@
                      
                      
                      //  to determine extension length toward right-hand side
-                     int [] rightExtendStopsArr= new int [rightExtendStops.size()];
-                     for(int w=0;w<rightExtendStopsArr.length;w++){
-                         rightExtendStopsArr[w]=rightExtendStops.get(w); 
-                     }
+                  
                      for(int j=0;j<MaxSpace;j++){
                          int[] baseCount={0,0,0,0}; // order : a,c,t,g
                          for(int k=0;k<rightSeqs.size();k++){
@@ -256,7 +253,7 @@
                                     if(varNumThisUnit<=variantNum){
                                           //finalEnds[b]=finalEnds[b]+j+1;
                                           finalEnds[b]=finalEnds[b]+1; 
-                                          rightExtendStopsArr[b]=1;
+                                         
                                           int extension_step=j+1;
                                           
                                               if(finalEnds[b]<2825616 && finalEnds[b]>2823765){
@@ -280,7 +277,7 @@
                                   variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
                                   if(variantNumPerUnitCopyArr[a]<=variantNum){
                                           finalEnds[a]=finalEnds[a]+1;
-                                          rightExtendStopsArr[a]=1;
+                                        
                                       
                                     }
                               }
