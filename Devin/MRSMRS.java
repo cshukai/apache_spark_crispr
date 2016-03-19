@@ -180,10 +180,7 @@
                      for(int w=0;w<variantNumPerUnitCopy.size();w++){
                          variantNumPerUnitCopyArr[w]=variantNumPerUnitCopy.get(w);
                      }
-                     
-                     
-                       
-                     
+    
                      //  to determine extension length toward right-hand side
                   
                      for(int j=0;j<MaxSpace_right;j++){
