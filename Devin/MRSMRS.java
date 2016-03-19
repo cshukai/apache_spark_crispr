@@ -56,7 +56,7 @@
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             test_4.saveAsTextFile("crispr_test2");
 
     	}        
@@ -65,14 +65,15 @@
           mechanisms: extend first toward right end and then left end due to 5'handle in the mechanism for crRNA processing
           output format: {buildingBlockSeq, [extended_unit1_start, extended_unit2_end,........,extended_unitN_start, extended_unitN_end]}
         */
-        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int maxSpacerLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal){
+        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio){
             final double supportRatio=support_ratio;
             final double varianceRatio=variance_right_ratio;
+            final double right_len_ratio=rightLenRatio;
             final List<String> fasta_seq=fasta;
             final int rep_max=maxRepLen ;
             final int rep_min=minRepLen;
             final int spa_min=minSpacerLen;
-            final int spa_max=maxSpacerLen;
+            final int spa_max=MaxSpace_rightrLen;
             final boolean is_internal=internal;
           
             JavaPairRDD <String,ArrayList<Integer>> result= buildingBlockArr.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
@@ -100,20 +101,28 @@
                      int loopsize=Integer.parseInt(gapSizeTemp);
                      String armSeq=buildingBlockSeqGapSize[0];
                      int armLen=armSeq.length(); 
-                     int MaxSpace=0;
+                     int avaiablespace=0;
+                     int MaxSpace_right=0;
+                     int MaxSpace_left=0;
+                     
                      int palinSize=0;
                      if(is_internal){
                         
                         palinSize=2*armLen+loopsize;
-                        MaxSpace=rep_max-palinSize;
+                        avaiablespace=rep_max-palinSize;
+                
+                        
                      }
                      else{
                          int tracrStretch=armLen;
-                         MaxSpace=rep_max-tracrStretch;
+                         avaiablespace=rep_max-tracrStretch;
                      }
+                     
+                    MaxSpace_right=(int)Math.ceil(avaiablespace*right_len_ratio);
+                    MaxSpace_left=avaiablespace-MaxSpace_right;
                     
                     final  int supportCopy=(int)Math.ceil(buildingBlockCopies*supportRatio);
-                    final  int variantNum=(int)Math.floor(MaxSpace*varianceRatio);
+                    final  int variantNum=(int)Math.floor(MaxSpace_right*varianceRatio);
                   
                   
                     
@@ -139,7 +148,7 @@
                           
                           int thisBlockStart=buildingBlockStarlocs.get(i);
                           int thisLeftEnd=thisBlockStart-1;
-                          int thisLeftStart=thisLeftEnd-MaxSpace+1;
+                          int thisLeftStart=thisLeftEnd-MaxSpace_left+1;
                           String thisLeftSeq=getSubstring(fasta_seq,thisLeftStart,thisLeftEnd);
                           leftSeqs.add(thisLeftSeq);
                           
@@ -148,23 +157,17 @@
                           if(is_internal){
                             int thisBlockEnd=thisBlockStart+palinSize-1;
                             int thisRightStart=thisBlockEnd+1;
-                            int thisRightEnd=thisRightStart+MaxSpace-1;
+                            int thisRightEnd=thisRightStart+MaxSpace_right-1;
                             String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
                            
-                            if(finalEnds[i]<2825615 && finalEnds[i]>2823765){
-                                    System.out.println(i+"th iteration");
-                                    System.out.println("palin start:"+finalStarts[i]);
-                                    System.out.println("palind end:"+finalEnds[i]);
-                                    System.out.println(thisRightSeq);
-                                          }
 
                           }
                           
                           else{
                             int thisBlockEnd=thisBlockStart+armLen-1;
                             int thisRightStart=thisBlockEnd+1;
-                            int thisRightEnd=thisRightStart+MaxSpace-1;
+                            int thisRightEnd=thisRightStart+MaxSpace_right-1;
                             String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
                         
@@ -173,28 +176,22 @@
                      }
                              
                       
-                     int [] variantNumPerUnitCopyArr=new int[variantNumPerUnitCopy.size()];
+                    int [] variantNumPerUnitCopyArr=new int[variantNumPerUnitCopy.size()];
                      for(int w=0;w<variantNumPerUnitCopy.size();w++){
                          variantNumPerUnitCopyArr[w]=variantNumPerUnitCopy.get(w);
                      }
                      
                      
-                          for(int g=0;g<finalStarts.length;g++){
-                                    
-                                    System.out.println(finalStarts[g]);
-                                }
-                     
+                       
                      
                      //  to determine extension length toward right-hand side
                   
-                     for(int j=0;j<MaxSpace;j++){
+                     for(int j=0;j<MaxSpace_right;j++){
                          int[] baseCount={0,0,0,0}; // order : a,c,t,g
                          for(int k=0;k<rightSeqs.size();k++){
                              
                              String currentRightSeq=rightSeqs.get(k);
-                             
-                            
-                             
+                      
                              char thisBase=currentRightSeq.charAt(j);
                              if(thisBase=='A'){
                                  baseCount[0]=baseCount[0]+1;
@@ -282,15 +279,102 @@
                                     }
                               }
                             }
-                            
-   
-                             
+    
                      }
                     
                   
                     
                    //extension to left
+                     variantNumPerUnitCopyArr=new int[variantNumPerUnitCopy.size()];
+                     for(int w=0;w<variantNumPerUnitCopy.size();w++){
+                         variantNumPerUnitCopyArr[w]=variantNumPerUnitCopy.get(w);
+                     }
                    
+                   
+                   for(int j=MaxSpace_left-1;j>=0;j--){
+                         int[] baseCount={0,0,0,0}; // order : a,c,t,g
+                         for(int k=0;k<leftSeqs.size();k++){
+                             
+                             String currentLeftSeq=leftSeqs.get(k);
+                      
+                             char thisBase=currentLeftSeq.charAt(j);
+                             if(thisBase=='A'){
+                                 baseCount[0]=baseCount[0]+1;
+                             }
+                             if(thisBase=='C'){
+                                 baseCount[1]=baseCount[1]+1;
+                             }
+                             if(thisBase=='T'){
+                                 baseCount[2]=baseCount[2]+1;
+                             }
+                             
+                             if(thisBase=='G'){
+                                 baseCount[3]=baseCount[3]+1;
+                             }
+                             
+                         }
+                             ArrayList<Integer> baseCountList=new ArrayList();
+                             for(int t=0; t <baseCount.length;t++){
+                                
+                                 baseCountList.add(baseCount[t]);
+                             } 
+                             int maxBaseCount=Collections.max(baseCountList);
+                             
+             
+                             
+                             if(maxBaseCount>=supportCopy){
+                                int maxIdx=baseCountList.indexOf(maxBaseCount);
+                                char maxBase='q';
+                                if(maxIdx==0){
+                                    maxBase='A';
+                                }
+                                if(maxIdx==1){
+                                    maxBase='C';
+                                }
+                                if(maxIdx==2){
+                                    maxBase='T';
+                                }
+                                if(maxIdx==3){
+                                    maxBase='G';
+                                }
+                             
+                                for(int m=0;m<leftSeqs.size();m++){
+                                  String targetLeftSeq=leftSeqs.get(m);
+                                  char targetBase=targetLeftSeq.charAt(j);
+                                  if(targetBase!=maxBase){
+                                      variantNumPerUnitCopyArr[m]=variantNumPerUnitCopyArr[m]+1;
+                                  }
+                                }
+                                
+                           
+                                
+                                for(int b=0;b<variantNumPerUnitCopyArr.length;b++){
+                                    int varNumThisUnit=variantNumPerUnitCopyArr[b];
+                                    if(varNumThisUnit<=variantNum){
+                                          finalStarts[b]=finalStarts[b]-1; 
+                                         
+                                    }
+                                    
+                                    
+                             
+                                }
+                            }
+                         
+
+                            else{ // consider this position has no consense base for every extened unit
+                              for(int a=0;a<variantNumPerUnitCopy.size();a++){
+                                  variantNumPerUnitCopyArr[a]=variantNumPerUnitCopyArr[a]+1;
+                                  if(variantNumPerUnitCopyArr[a]<=variantNum){
+                                          finalStarts[a]=finalStarts[a]-1;
+                                        
+                                      
+                                    }
+                              }
+                            }
+                            
+   
+                             
+                     }
                    
                      // summarize two sets of extension for output
                      ArrayList<Integer> locations=new ArrayList<Integer>();
