@@ -250,12 +250,7 @@
                                          
                                           int extension_step=j+1;
                                           
-                                              if(finalEnds[b]<2825616 && finalEnds[b]>2823765){
-                                                System.out.println("palinStart:"+finalStarts[b]);
-                                                System.out.println("palinEnd_extended:"+finalEnds[b]);
-                                                System.out.println("step:"+extension_step);
-                                            
-                                              } 
+                                       
                                           
                                     }
                                     
