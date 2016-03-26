@@ -62,7 +62,7 @@
     	}        
         
         /*purpose: record sequence/position during extension from every unit in the building block array
-          mechanisms: extend first toward right end and then left end due to 5'handle in the mechanism for crRNA processing
+          mechanisms: extend first toward right, end and then left end due to 5'handle in the mechanism for crRNA processing
           output format: {buildingBlockSeq, [extended_unit1_start, extended_unit2_end,........,extended_unitN_start, extended_unitN_end]}
         */
         public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio){
