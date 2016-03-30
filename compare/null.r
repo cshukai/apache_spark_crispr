@@ -24,6 +24,9 @@ for(i in 1:length(crisprdb)){
 crisprdb_null_strs=gsub(pattern=" ",replacement="_",x=crisprdb_null_strains)
 
 
+
+
+# finding shared null strains
 crt_piler_common=intersect(crt_null_strains,piler_null_strains)
 
 crt_db_common=NULL
@@ -41,3 +44,7 @@ for(i in 1:length(piler_null_strains)){
    }
 }
 
+save.image("null.RData")
+
+#finding tool-specific null strains
+crt_specific=setdiff(setdiff(crt_null_strains,crt_piler_common),crt_db_common)

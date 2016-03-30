@@ -28,10 +28,10 @@
             /*user input*/
             
             //array structure
-            int repeat_unit_min=20;
-            int repeat_unit_max=50;
-            int spacerMax=75;
-            int spacerMin=20;
+            int repeat_unit_min=15;
+            int repeat_unit_max=70;
+            int spacerMax=15;
+            int spacerMin=90;
             
             //stem loop 
             int stemLoopArmLen=4;

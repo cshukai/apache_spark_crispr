@@ -59,14 +59,13 @@ hdfs_filenames=c(hdfs_filenames,this_name)
 
 prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
 #prefix='spark-submit  --class "PalindromeFinder" --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
-max_repeat_len=50
-min_repeat_len=20
+min_repeat_len=15
 min_stemLoop_size=11
 max_stemLoop_size=16
+min_palin_arm=4
 
 
-
-for(j in min_repeat_len:max_repeat_len){
+for(j in min_stemLoop_size:max_stemLoop_size){
     kmer_len=j
     argu=NULL
     for(i in 1:length(hdfs_filenames)){
@@ -83,5 +82,5 @@ for(j in min_repeat_len:max_repeat_len){
     }
 
 }
-
+#todo : add a block to compute additional k mer when palindrome size doesn't include min repeat unit size for tracrRNA
 save.image("preprocessing.RData")
