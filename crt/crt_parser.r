@@ -17,6 +17,7 @@ for(i in 1:length(out_files)){
              tmp=unlist(strsplit(x=thisLine,split="\t"))
              thisRepeatStartLoc=tmp[1]
              thisRepeatSeq=tmp[3]
+             thisSpacerSeq=tmp[4]
              
          }
       }
