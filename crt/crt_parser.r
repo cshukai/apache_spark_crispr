@@ -83,6 +83,37 @@ for(i in 1: length(strains_with_crispr)){
 }
 
 
+#analysis of sequence variation
+seq_var_result=NULL
+for(i in 1: length(strains_with_crispr)){
+   this_subset=result[which(result[,"strain"] %in% strains_with_crispr[i]),]
+   arr_id=names(table(this_subset[,"crispr_num"]))
+   for(j in 1:length(arr_id)){
+       this_crispr_arr=this_subset[which(this_subset[,"crispr_num"] %in% arr_id[j]),]
+       this_rep_unit_len=nchar(this_crispr_arr[1,"rep_unit"])
+       seqVarNum=0
+       for(k in 1:this_rep_unit_len){
+            basePool=NULL
+            for(m in 1:nrow(this_crispr_arr)){
+              basePool=c(basePool,substr(this_crispr_arr[,"rep_unit"],start=k,stop=k))
+            }
+            
+            if(range(basePool)[1]!=range(basePool)[2]){
+                seqVarNum = seqVarNum +1;            
+            
+            }
+            
+       }
+       
+       seqVarRatio= seqVarNum/this_rep_unit_len
+       if(seqVarRatio>0){
+         thisRow=c(strains_with_crispr[i],arr_id[j],seqVarRatio)
+         seq_var_result=rbind(seq_var_result,thisRow)
+       }
+   }
+}
+colnames(seq_var_result)=c("strain","array_id","variation_ratio")
+write.csv(seq_var_result,file="crt_seq_var.csv",row.names=F)
 save.image("crt_parser.RData")
 
 
