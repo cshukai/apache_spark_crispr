@@ -114,6 +114,10 @@ for(i in 1: length(strains_with_crispr)){
 }
 colnames(seq_var_result)=c("strain","array_id","variation_ratio")
 write.csv(seq_var_result,file="crt_seq_var.csv",row.names=F)
+
+ mean(as.numeric(seq_var_result[,3]))
+ median(as.numeric(seq_var_result[,3]))
+ 
 save.image("crt_parser.RData")
 
 
