@@ -33,11 +33,12 @@
             int spacerMax=15;
             int spacerMin=90;
             
-            //stem loop 
-            int stemLoopArmLen=4;
+            //stem loop assocaited structures
+            int stemLoopArmLen=4; // this is the minimal arm length of imperfect palindromes for internal stem loop
+            int externalMaxStemLoopArmLen=8;
             int loopLowBound=3;
             int loopUpBound=8;
-            double tracrAlignRatio=0.5;
+            double tracrAlignRatio=0.5; // in terms of proportion of length of max repeat unit
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
             
             
@@ -51,19 +52,52 @@
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            // palindromeInput.saveAsTextFile("mrsmrs");
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-            //palindBlock.saveAsTextFile("palindrome");
-            JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
-            test_3.saveAsTextFile("crispr_test");
+            palindBlock.saveAsTextFile("palindrome");
+            //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
+            //test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
             List<String>fasta=sc.textFile(fasta_path).collect();
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
-            test_4.saveAsTextFile("crispr_test2");
-
+            //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
+            //test_4.saveAsTextFile("crispr_test2");
+            JavaPairRDD<> test5=mrsmrs.
+            test5.saveAsTextFile("crispr_test3");
     	}        
         
         
+        /* purpose: extraction of trailing part of tracrRNA for further matching with MRSRMSR k mer
+           assumption: assuming  every palindorm previously identified
+           is a part of  tracRNA
+           input :  output of fetchImperfectPalindromeAcrossGenome
+           output: key-value pairs
+           {[seq(palin_arm),len(loop) ], [start_pos(palindrome),start_pos(trailing_seq)]}
+           algorithm: sequence alginment between trailing candidates and kmer from mrsmrs
+        */
+        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrRepeatArr( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,double tracrAlignRatio,int externalMaxGapSize,List<String>fasta, JavaPairRDD<String,Integer>tracrTrailingList,int externalMaxStemLoopArmLen){
+                final int r_max=unitMaxLen;
+                final int r_min=unitMinLen;
+                final int s_max=spacerMaxLen;
+                final int s_min=spacerMinLen;
+                final int armLenMin=arm_len;
+                final int armLenMax=externalMaxStemLoopArmLen;
+                
+                final int alignLen=(int)Math.ceil(r_max*tracrAlignRatio);
+                JavaPairRDD <String, ArrayList<Integer>> result =palindBlock.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
+                     @Override
+                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
+                         ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+                         ArrayList<Integer> temp=keyValue._2();  
+                         String arm=keyValue._1();
+                         int thisPalinStar=temp.get(0);
+                         
+                     }
+                })
+                    
+                
+                
+        }
+
         
-        
+     
         
         /*purpose: record sequence/position during extension from every unit in the building block array
           mechanisms: extend first toward right, end and then left end due to 5'handle in the mechanism for crRNA processing
@@ -644,6 +678,10 @@
             return(result);
     
         }
+    
+    
+
+    
     
        // output: seq(left_arm) loc[gapSize,palindrome_start_i,palindrome_end_i]
         public  JavaPairRDD <String, ArrayList<Integer>>  extractPalinDromeArray( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int arm_len){
