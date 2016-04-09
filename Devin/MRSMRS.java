@@ -69,25 +69,72 @@
            is a part of  tracRNA
            input :  output of fetchImperfectPalindromeAcrossGenome
            output: key-value pairs
-           {[seq(palin_arm),len(loop) ], [start_pos(palindrome),start_pos(trailing_seq)]}
+           {[seq(trailing_seq) ], [start_pos(palindrome),end_pos(palindrome),start_pos(tralingSeq),end_pos(tralingSeq)]}
            algorithm: sequence alginment between trailing candidates and kmer from mrsmrs
         */
-        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrRepeatArr( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,double tracrAlignRatio,int externalMaxGapSize,List<String>fasta, JavaPairRDD<String,Integer>tracrTrailingList,int externalMaxStemLoopArmLen){
+        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrRepeatArr( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,double tracrAlignRatio,int externalMaxGapSize,List<String>fasta, JavaPairRDD<String,Integer> mrsmsr_kmer,int lengthOfTrailingSeq,int externalMaxStemLoopArmLen){
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
                 final int s_min=spacerMinLen;
                 final int armLenMin=arm_len;
                 final int armLenMax=externalMaxStemLoopArmLen;
-                
+                final int gap_size=externalMaxGapSize;
                 final int alignLen=(int)Math.ceil(r_max*tracrAlignRatio);
+                
                 JavaPairRDD <String, ArrayList<Integer>> result =palindBlock.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
                      @Override
                      public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
                          ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+                         
                          ArrayList<Integer> temp=keyValue._2();  
-                         String arm=keyValue._1();
+                         String[] temp2=keyValue._1().split(":");
+                         
+                          // retreive the start and end location of palindrome for extension
                          int thisPalinStar=temp.get(0);
+                         int loopLen=temp.get(1);
+                         String armSeq=temp2[0];
+                         int armLen=armSeq.length();
+                         int thisPalinEnd=thisPalinStar+2*armLen+loopLen-1;
+                         
+                         // extension to find the longest possible palindromic arms within specified region
+                         int numOfExtraBasesEachSide=armLenMax-armLen;
+                         String leftSuspect=getSubstring(fasta,thisPalinStar-numOfExtraBasesEachSide+1,thisPalinEnd-1);
+                         String rightSuspect=getSubstring(fasta,thisPalinEnd+1,thisPalinEnd+numOfExtraBasesEachSide);
+                         for(int i=0;i<leftSuspect.length();i++){
+                             String thisRightBase=rightSuspect.charAt(i).toString();
+                             String thisLeftBase=leftSuspect.charAt(leftSuspect.length()-i-1).toString();
+                             if(thisRightBase.equals("A") && thisLeftBase.equals("T")){
+                                 thisPalinStar=thisPalinStar-1;
+                                 thisPalinEnd=thisPalinSEnd+1;
+                             }
+                             if(thisRightBase.equals("C") && thisLeftBase.equals("G")){
+                                 thisPalinStar=thisPalinStar-1;
+                                 thisPalinEnd=thisPalinSEnd+1;
+                             }
+                             
+                             if(thisRightBase.equals("G") && thisLeftBase.equals("C")){
+                                 thisPalinStar=thisPalinStar-1;
+                                 thisPalinEnd=thisPalinSEnd+1;
+                             }
+                             
+                             if(thisRightBase.equals("T") && thisLeftBase.equals("A")){
+                                 thisPalinStar=thisPalinStar-1;
+                                 thisPalinEnd=thisPalinSEnd+1;
+                             }
+                             
+                         }
+                         
+                         //formation of comprehensive list of candidate of trailing sequence
+                         for(int i=0;i<gap_size;i++){
+                             String thisRightTrail=getSubstring(fasta,thisPalinEnd+i,thisPalinEnd+i+lengthOfTrailingSeq-1);
+                             String thisLeftTrail=getSubstring(fasta,thisPalinStar-i,thisPalinStar-i-lengthOfTrailingSeq+1);
+                             output2.add(new Tuple2<String, ArrayList<Integer>>(thisRightTrail,locations));
+                             output2.add(new Tuple2<String, ArrayList<Integer>>(thisLeftTrail,locations));
+                                     
+                         }
+                         
+                         
                          
                      }
                 })
