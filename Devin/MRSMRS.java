@@ -45,8 +45,8 @@
             
             /*processing*/
             String home_dir="/result";
-            String species_folder="Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path="/home/shukai/Downloads/Palindrome_3/cleanUpData/Clostridium_kluyveri_dsm_555.GCA_000016505.1.29.dna.chromosome.Chromosome.fa";
+            String species_folder="Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
+            String fasta_path="/home/shukai/Downloads/Palindrome_3/cleanUpData/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
@@ -59,7 +59,7 @@
             List<String>fasta=sc.textFile(fasta_path).collect();
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
-            JavaPairRDD<> test5=mrsmrs.
+            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrRepeatArr( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile("crispr_test3");
     	}        
         
@@ -72,16 +72,15 @@
            {[seq(trailing_seq) ], [start_pos(palindrome),end_pos(palindrome),start_pos(tralingSeq),end_pos(tralingSeq)]}
            algorithm: sequence alginment between trailing candidates and kmer from mrsmrs
         */
-        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrRepeatArr( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,double tracrAlignRatio,int externalMaxGapSize,List<String>fasta, JavaPairRDD<String,Integer> mrsmsr_kmer,int lengthOfTrailingSeq,int externalMaxStemLoopArmLen){
+        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrRepeatArr( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int externalMaxGapSize,List<String>fastaFile,int lengthOfTrailing,int externalMaxStemLoopArmLen){
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
                 final int s_min=spacerMinLen;
-                final int armLenMin=arm_len;
                 final int armLenMax=externalMaxStemLoopArmLen;
                 final int gap_size=externalMaxGapSize;
-                final int alignLen=(int)Math.ceil(r_max*tracrAlignRatio);
-                
+                final List<String> fasta=fastaFile;
+                final int lengthOfTrailingSeq=lengthOfTrailing;
                 JavaPairRDD <String, ArrayList<Integer>> result =palindBlock.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
                      @Override
                      public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
@@ -102,44 +101,62 @@
                          String leftSuspect=getSubstring(fasta,thisPalinStar-numOfExtraBasesEachSide+1,thisPalinEnd-1);
                          String rightSuspect=getSubstring(fasta,thisPalinEnd+1,thisPalinEnd+numOfExtraBasesEachSide);
                          for(int i=0;i<leftSuspect.length();i++){
-                             String thisRightBase=rightSuspect.charAt(i).toString();
-                             String thisLeftBase=leftSuspect.charAt(leftSuspect.length()-i-1).toString();
+                             Character rightChar=rightSuspect.charAt(i);
+                             Character leftChar=leftSuspect.charAt(leftSuspect.length()-i-1);
+                             String thisRightBase=rightChar.toString();
+                             String thisLeftBase=leftChar.toString();
                              if(thisRightBase.equals("A") && thisLeftBase.equals("T")){
                                  thisPalinStar=thisPalinStar-1;
-                                 thisPalinEnd=thisPalinSEnd+1;
+                                 thisPalinEnd=thisPalinEnd+1;
                              }
                              if(thisRightBase.equals("C") && thisLeftBase.equals("G")){
                                  thisPalinStar=thisPalinStar-1;
-                                 thisPalinEnd=thisPalinSEnd+1;
+                                 thisPalinEnd=thisPalinEnd+1;
                              }
                              
                              if(thisRightBase.equals("G") && thisLeftBase.equals("C")){
                                  thisPalinStar=thisPalinStar-1;
-                                 thisPalinEnd=thisPalinSEnd+1;
+                                 thisPalinEnd=thisPalinEnd+1;
                              }
                              
                              if(thisRightBase.equals("T") && thisLeftBase.equals("A")){
                                  thisPalinStar=thisPalinStar-1;
-                                 thisPalinEnd=thisPalinSEnd+1;
+                                 thisPalinEnd=thisPalinEnd+1;
                              }
                              
                          }
                          
                          //formation of comprehensive list of candidate of trailing sequence
+                         
                          for(int i=0;i<gap_size;i++){
+                             
                              String thisRightTrail=getSubstring(fasta,thisPalinEnd+i,thisPalinEnd+i+lengthOfTrailingSeq-1);
                              String thisLeftTrail=getSubstring(fasta,thisPalinStar-i,thisPalinStar-i-lengthOfTrailingSeq+1);
+                             
+                             ArrayList<Integer> locations= new ArrayList<Integer>();                                                
+                             locations.add(thisPalinStar);
+                             locations.add(thisPalinEnd);
+                             locations.add(thisPalinEnd+i);
+                             locations.add(thisPalinEnd+i+lengthOfTrailingSeq-1);
+                             
                              output2.add(new Tuple2<String, ArrayList<Integer>>(thisRightTrail,locations));
+                        
+                        
+                             locations.add(thisPalinStar);
+                             locations.add(thisPalinEnd);
+                             locations.add(thisPalinStar-i);
+                             locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
+                        
                              output2.add(new Tuple2<String, ArrayList<Integer>>(thisLeftTrail,locations));
                                      
                          }
                          
                          
-                         
+                        return(output2); 
                      }
-                })
+                });
                     
-                
+            return(result );            
                 
         }
 
