@@ -52,7 +52,7 @@
             JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            // palindromeInput.saveAsTextFile("mrsmrs");
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-            palindBlock.saveAsTextFile("palindrome");
+           palindBlock.saveAsTextFile("palindrome");
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             //test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
@@ -98,10 +98,13 @@
                          
                          // extension to find the longest possible palindromic arms within specified region
                          int numOfExtraBasesEachSide=armLenMax-armLen;
-                         String leftSuspect=getSubstring(fasta,thisPalinStar-numOfExtraBasesEachSide+1,thisPalinEnd-1);
+                         String leftSuspect=getSubstring(fasta,thisPalinStar-numOfExtraBasesEachSide,thisPalinStar-1);
                          String rightSuspect=getSubstring(fasta,thisPalinEnd+1,thisPalinEnd+numOfExtraBasesEachSide);
+                       
                          for(int i=0;i<leftSuspect.length();i++){
+                             
                              Character rightChar=rightSuspect.charAt(i);
+                             
                              Character leftChar=leftSuspect.charAt(leftSuspect.length()-i-1);
                              String thisRightBase=rightChar.toString();
                              String thisLeftBase=leftChar.toString();
@@ -131,7 +134,7 @@
                          for(int i=0;i<gap_size;i++){
                              
                              String thisRightTrail=getSubstring(fasta,thisPalinEnd+i,thisPalinEnd+i+lengthOfTrailingSeq-1);
-                             String thisLeftTrail=getSubstring(fasta,thisPalinStar-i,thisPalinStar-i-lengthOfTrailingSeq+1);
+                             String thisLeftTrail=getSubstring(fasta,thisPalinStar-i-lengthOfTrailingSeq+1,thisPalinStar-i);
                              
                              ArrayList<Integer> locations= new ArrayList<Integer>();                                                
                              locations.add(thisPalinStar);
