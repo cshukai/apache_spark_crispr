@@ -134,6 +134,8 @@
                          for(int i=0;i<gap_size;i++){
                              
                              String thisRightTrail=getSubstring(fasta,thisPalinEnd+i,thisPalinEnd+i+lengthOfTrailingSeq-1);
+                             
+                            
                              String thisLeftTrail=getSubstring(fasta,thisPalinStar-i-lengthOfTrailingSeq+1,thisPalinStar-i);
                              
                              ArrayList<Integer> locations= new ArrayList<Integer>();                                                
@@ -1008,7 +1010,10 @@
                     result=part.substring(startLocIdxInLine,endLocIdxInLine+1); 
                 }
                 else{
-    
+                   //System.out.println(startLine);
+                   //System.out.println(startLocIdxInLine);
+                   //System.out.println(endLocIdxInLine);
+                   
                    result=part.substring(startLocIdxInLine,endLocIdxInLine+1);   
                }  
     
