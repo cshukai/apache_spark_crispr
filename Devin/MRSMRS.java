@@ -17,6 +17,10 @@
     import java.util.*;
     import scala.Tuple2;
     import org.apache.hadoop.io.Text;
+    import java.io.BufferedReader;
+    import java.io.IOException;
+    import java.io.InputStreamReader;
+    import java.io.FileReader;
     
     public class MRSMRS implements Serializable{
     	public static void main(String [ ] args) throws Exception{
@@ -46,22 +50,51 @@
             /*processing*/
             String home_dir="/result";
             String species_folder="Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path="/home/shukai/Downloads/Palindrome_3/cleanUpData/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
+            String fasta_path="/home/shukai/Streptococcus_thermophilus_cnrz_fa.txt";
             // search of palindrome building block 
-           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
-            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
+           //JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+           //JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            // palindromeInput.saveAsTextFile("mrsmrs");
-            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-           palindBlock.saveAsTextFile("palindrome");
+           // JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+           //palindBlock.saveAsTextFile("palindrome");
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             //test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
-            List<String>fasta=sc.textFile(fasta_path).collect();
+           
+          
+            
+            List<String>fasta_temp=mrsmrs.readFile(fasta_path);
+              String fasta=fasta_temp.get(0);
+            System.out.println("======================");
+            System.out.println(fasta.length());
+            System.out.println("======================");
+             
+            
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrRepeatArr( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
-            test5.saveAsTextFile("crispr_test3");
+            //JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrRepeatArr( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
+            //test5.saveAsTextFile("crispr_test3");
     	}        
+        
+        
+            private List<String> readFile(String filename) throws Exception {
+                String line = null;
+                List<String> records = new ArrayList<String>();
+     
+                // wrap a BufferedReader around FileReader
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(filename));
+     
+                // use the readLine method of the BufferedReader to read one line at a time.
+                // the readLine method returns null when there is nothing else to read.
+                while ((line = bufferedReader.readLine()) != null){
+                      records.add(line);
+                     }
+       
+                // close the BufferedReader when we're done
+                bufferedReader.close();
+                return records;
+              }
+        
         
         
         /* purpose: extraction of trailing part of tracrRNA for further matching with MRSRMSR k mer
