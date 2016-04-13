@@ -65,10 +65,7 @@
             
             List<String>fasta_temp=mrsmrs.readFile(fasta_path);
               String fasta=fasta_temp.get(0);
-            System.out.println("======================");
-            System.out.println(fasta.length());
-            System.out.println("======================");
-             
+           
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
@@ -169,7 +166,7 @@
                          for(int i=0;i<gap_size;i++){
                              
                              if(thisPalinEnd+i-1 <=fasta.length() && thisPalinEnd+i+lengthOfTrailingSeq-2 <=fasta.length() ){
-                                String thisRightTrail=fasta.substring(thisPalinEnd+i-1,thisPalinEnd+i+lengthOfTrailingSeq-2);
+                                String thisRightTrail=fasta.substring(thisPalinEnd+i-1,thisPalinEnd+i+lengthOfTrailingSeq-1);
                                 ArrayList<Integer> locations= new ArrayList<Integer>();                                                
                                 locations.add(thisPalinStar);
                                 locations.add(thisPalinEnd);
@@ -185,7 +182,7 @@
                              
                              if(thisPalinStar-i-lengthOfTrailingSeq >=1 &&thisPalinStar-i-1 >=1){
                                 ArrayList<Integer> locations= new ArrayList<Integer>();                                                
-                                String thisLeftTrail=fasta.substring(thisPalinStar-i-lengthOfTrailingSeq,thisPalinStar-i-1);
+                                String thisLeftTrail=fasta.substring(thisPalinStar-i-lengthOfTrailingSeq-1,thisPalinStar-i-1);
                                 locations.add(thisPalinStar);
                                 locations.add(thisPalinEnd);
                                 locations.add(thisPalinStar-i);
