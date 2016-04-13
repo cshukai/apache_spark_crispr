@@ -69,7 +69,7 @@
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrRepeatArr( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
+            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile("crispr_test3");
     	}        
         
@@ -102,7 +102,7 @@
            {[seq(trailing_seq) ], [start_pos(palindrome),end_pos(palindrome),start_pos(tralingSeq),end_pos(tralingSeq)]}
            algorithm: sequence alginment between trailing candidates and kmer from mrsmrs
         */
-        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrRepeatArr( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int externalMaxGapSize,String fastaFile,int lengthOfTrailing,int externalMaxStemLoopArmLen){
+        public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrTrailCandidate( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int externalMaxGapSize,String fastaFile,int lengthOfTrailing,int externalMaxStemLoopArmLen){
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
