@@ -67,7 +67,7 @@
           
             
             List<String>fasta_temp=mrsmrs.readFile(fasta_path);
-              String fasta=fasta_temp.get(0);
+            String fasta=fasta_temp.get(0);
            
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
@@ -75,13 +75,7 @@
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile("crispr_test3");
             
-            
-            for(int i=20;i<51;i++){
-                String tracrR_CRISPR_kpath=home_dir+"/"+i+"/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
-                JavaRDD<String> tracer_kmer=sc.textFile(tracrR_CRISPR_kpath);  
-                JavaPairRDD<String,Integer>repeatUnitInput=mrsmrs.parseDevinOutput(tracer_kmer);
-                // find unit pair
-            }
+        
             
             
     	}        
@@ -89,11 +83,20 @@
         
         
         /*
-        output : 
+        algorithm:
+            1. break down each trailing candidates into fragment 
+               as long as minimum palindrome arm
+            2. if a particular trailing candidate map a set of 
+               palindrome arm-mer arrray that meet 
+               tracr-alingment ratio , then select this  trailing
+               candidate
+               
+            
+        output: 
         */
-        public findTrailingArray () {
-            // 1. based on small-sized exact repet , extract arrays of these repeat 
-            // 2. if there remains unit array , align trailng sequence and complementary sequences
+        public findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, ArrayList<Integer>> arm_mer ) {
+        
+            
         }
         
         
