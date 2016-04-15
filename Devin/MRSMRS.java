@@ -42,15 +42,18 @@
             int externalMaxStemLoopArmLen=8;
             int loopLowBound=3;
             int loopUpBound=8;
-            double tracrAlignRatio=0.5; // in terms of proportion of length of max repeat unit
+            double tracrAlignRatio=0.8; // in terms of proportion of length of max repeat unit
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
+            int unit_length_for_tracr=36;
             
             
             
             /*processing*/
+            // input directories to gneerate buildinb block
             String home_dir="/result";
             String species_folder="Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
             String fasta_path="/home/shukai/Streptococcus_thermophilus_cnrz_fa.txt";
+            
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
@@ -71,7 +74,28 @@
             //test_4.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile("crispr_test3");
+            
+            
+            for(int i=20;i<51;i++){
+                String tracrR_CRISPR_kpath=home_dir+"/"+i+"/Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
+                JavaRDD<String> tracer_kmer=sc.textFile(tracrR_CRISPR_kpath);  
+                JavaPairRDD<String,Integer>repeatUnitInput=mrsmrs.parseDevinOutput(tracer_kmer);
+                // find unit pair
+            }
+            
+            
     	}        
+        
+        
+        
+        /*
+        output : 
+        */
+        public findTrailingArray () {
+            // 1. based on small-sized exact repet , extract arrays of these repeat 
+            // 2. if there remains unit array , align trailng sequence and complementary sequences
+        }
+        
         
         
             private List<String> readFile(String filename) throws Exception {
