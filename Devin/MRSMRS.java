@@ -56,7 +56,7 @@
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
-           // palindromeInput.saveAsTextFile("mrsmrs");
+           palindromeInput.saveAsTextFile("mrsmrs");
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
             palindBlock.saveAsTextFile("palindrome");
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
