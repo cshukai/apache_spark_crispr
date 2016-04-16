@@ -128,7 +128,7 @@
                               int firstDist=nextPosLoc-thisPosLoc;
                               int secondDist_pos=nextTwoPosLoc-nextPosLoc;
                               if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
-                                  if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
+                                  if(firstDist<=unitDistMax && firstDist>=unitDistMin){
                                        ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
                                        thisPositionSet.add(thisPosLoc);
                                        thisPositionSet.add(nextPosLoc);
