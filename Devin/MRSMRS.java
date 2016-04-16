@@ -89,7 +89,7 @@
                candidate
                
             
-         output: 
+          output: { selected trailing sequence , start locations of units in a array  } 
         */
         public JavaPairRDD <String, ArrayList<Integer>> findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingTrailingSeq) {
                 final int r_max=unitMaxLen;
@@ -155,9 +155,23 @@
     
                 });
     
-               
-      
-            return(selectedArmMer);        
+            List<String> selectedArmSeq= selectedArmSeq.keys().collect();
+            // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
+            JavaPairRDD<String ,ArrayList<Integer>> result = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
+                      ArrayList<Integer> tracrRelatedLocs =keyValue._2();
+                      String trailing_seq=keyValue._1();
+                      ArrayList<Tuple2<String, ArrayList<Integer>>> tracrArrayUnits = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+    
+                       
+                      return(tracrArrayUnits);
+    
+                    }
+    
+                });
+                
+            return(result);        
         }
         
         
