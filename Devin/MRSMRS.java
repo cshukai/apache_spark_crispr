@@ -88,13 +88,13 @@
                as long as minimum palindrome arm
             2. if a particular trailing candidate map a set of 
                palindrome arm-mer arrray that meet 
-               tracr-alingment ratio , then select this  trailing
+               tracr-alingment ratio, then select this trailing
                candidate
                
             
         output: 
         */
-        public findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, ArrayList<Integer>> arm_mer ) {
+        public findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, ArrayList<Integer>> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen) {
         
             
         }
