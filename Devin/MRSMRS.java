@@ -44,8 +44,7 @@
             int loopUpBound=8;
             double tracrAlignRatio=0.8; // in terms of proportion of length of max repeat unit
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
-            int unit_length_for_tracr=36;
-            
+
             
             
             /*processing*/
@@ -58,8 +57,8 @@
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            // palindromeInput.saveAsTextFile("mrsmrs");
-            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.fetchImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-           palindBlock.saveAsTextFile("palindrome");
+            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+            palindBlock.saveAsTextFile("palindrome");
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             //test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
@@ -73,17 +72,15 @@
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
-            test5.saveAsTextFile("crispr_test3");
-            
-        
-            
-            
+            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
+            test6.saveAsTextFile("crispr_test3");
+    
     	}        
         
         
         
         /*
-        algorithm:
+         algorithm:
             1. break down each trailing candidates into fragment 
                as long as minimum palindrome arm
             2. if a particular trailing candidate map a set of 
@@ -92,11 +89,75 @@
                candidate
                
             
-        output: 
+         output: 
         */
-        public findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, ArrayList<Integer>> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen) {
-        
-            
+        public JavaPairRDD <String, ArrayList<Integer>> findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingTrailingSeq) {
+                final int r_max=unitMaxLen;
+                final int r_min=unitMinLen;
+                final int s_max=spacerMaxLen;
+                final int s_min=spacerMinLen;
+                final int unitDistMin=unitMinLen+spacerMinLen;
+                final int unitDistMax=unitMaxLen+spacerMaxLen;
+           
+                JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=arm_mer.groupByKey();
+                JavaPairRDD<String,ArrayList<Integer>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<Integer>>(){
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<Integer>> keyValue){
+                     Iterable<Integer>data =keyValue._2();
+                     Iterator<Integer> itr=data.iterator();
+                     String seq=keyValue._1();
+                     ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
+                     ArrayList<Tuple2<String, ArrayList<Integer>>> possibleRepeatUnits = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+    
+                     while(itr.hasNext()){
+                       int thisLoc=itr.next();
+                       if(thisLoc>0){
+                          locs_on_postiveStrand.add(thisLoc);
+                       }
+                     }
+    
+                     Collections.sort(locs_on_postiveStrand);
+                     int iterationNum=locs_on_postiveStrand.size();
+                     for(int j=0;j<iterationNum;j++){
+                         int thisPosLoc=locs_on_postiveStrand.get(j);
+                         
+                         if(j<iterationNum-1){
+                            if(j<iterationNum-2){
+                              int nextTwoPosLoc=locs_on_postiveStrand.get(j+2);
+                              int nextPosLoc=locs_on_postiveStrand.get(j+1); 
+                              int firstDist=nextPosLoc-thisPosLoc;
+                              int secondDist_pos=nextTwoPosLoc-nextPosLoc;
+                              if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
+                                  if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
+                                       ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
+                                       thisPositionSet.add(thisPosLoc);
+                                       thisPositionSet.add(nextPosLoc);
+                                       thisPositionSet.add(nextTwoPosLoc);
+                                       possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq,thisPositionSet));
+                                      
+                                  }
+                               
+                              }
+                                
+                            }
+                            
+                                
+                            }
+                            
+                      
+                         }
+                   
+                     
+    
+                     return(possibleRepeatUnits);
+    
+                    }
+    
+                });
+    
+               
+      
+            return(selectedArmMer);        
         }
         
         
@@ -124,10 +185,11 @@
         /* purpose: extraction of trailing part of tracrRNA for further matching with MRSRMSR k mer
            assumption: assuming  every palindorm previously identified
            is a part of  tracRNA
-           input :  output of fetchImperfectPalindromeAcrossGenome
+           input :  output of ImperfectPalindromeAcrossGenome
            output: key-value pairs
            {[seq(trailing_seq) ], [start_pos(palindrome),end_pos(palindrome),start_pos(tralingSeq),end_pos(tralingSeq)]}
-           algorithm: sequence alginment between trailing candidates and kmer from mrsmrs
+           algorithm: sequence alginme
+           mrsmrs
         */
         public  JavaPairRDD <String, ArrayList<Integer>>  extractTracrTrailCandidate( JavaPairRDD <String, ArrayList<Integer>> palindBlock, int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen,int externalMaxGapSize,String fastaFile,int lengthOfTrailing,int externalMaxStemLoopArmLen){
                 final int r_max=unitMaxLen;
@@ -975,7 +1037,7 @@
         //  grab all the possible imperfect palindromic structure with each arm is a kmer 
         //  need to consider merging later  to extend  arm in case of adjacent arms  or overlap arms across 
         // differnt kmers
-        public  JavaPairRDD <String, ArrayList<Integer>> fetchImperfectPalindromeAcrossGenomes(JavaPairRDD <String, Integer> parsedMRSMRSresult,int armlen, int loop_size_min, int loop_size_max){
+        public  JavaPairRDD <String, ArrayList<Integer>> ImperfectPalindromeAcrossGenomes(JavaPairRDD <String, Integer> parsedMRSMRSresult,int armlen, int loop_size_min, int loop_size_max){
             
                final int arm_len=armlen;
                final int loopSizeMax= loop_size_max;
