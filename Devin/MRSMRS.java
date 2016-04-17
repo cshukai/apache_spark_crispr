@@ -91,14 +91,15 @@
             
           output: { selected trailing sequence , start locations of units in a array  } 
         */
-        public JavaPairRDD <String, ArrayList<Integer>> findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingTrailingSeq) {
+        public JavaPairRDD <String, ArrayList<Integer>> findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq) {
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
                 final int s_min=spacerMinLen;
                 final int unitDistMin=unitMinLen+spacerMinLen;
                 final int unitDistMax=unitMaxLen+spacerMaxLen;
-           
+                final int trailingLen=lengthOfTrailingSeq;
+                
                 JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=arm_mer.groupByKey();
                 JavaPairRDD<String,ArrayList<Integer>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<Integer>>(){
                     @Override
@@ -155,7 +156,8 @@
     
                 });
     
-            List<String> selectedArmSeq= selectedArmSeq.keys().collect();
+            final List<String> selectedArmSeq= selectedArmSeq.keys().collect();
+            final int armlen=selectedArmSeq.get(0).length();
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
             JavaPairRDD<String ,ArrayList<Integer>> result = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
                     @Override
@@ -163,7 +165,20 @@
                       ArrayList<Integer> tracrRelatedLocs =keyValue._2();
                       String trailing_seq=keyValue._1();
                       ArrayList<Tuple2<String, ArrayList<Integer>>> tracrArrayUnits = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
-    
+                      ArrayList<String> theseMatchedArms= new ArrayList<String>();
+                      
+                      for(int i=0;i<trailingLen;i++){
+                          if(i<trailingLen-armlen){
+                            String thisWindowSeq=trailing_seq.substring(i,i+armlen-1);
+                            if(selectArmSeq.contains(thisWindowSeq)){
+                                theseMatchedArms.add(selectArmSeq.get(selectArmSeq.indexOf(thisWindowSeq)));
+                            }
+                          }
+                      }
+                      
+                    //   for(int i=0;i<theseMatchedArms;i++){
+                                                   
+                    //   }
                        
                       return(tracrArrayUnits);
     
