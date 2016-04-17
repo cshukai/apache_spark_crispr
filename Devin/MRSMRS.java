@@ -72,7 +72,7 @@
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
-            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
+            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
             test6.saveAsTextFile("crispr_test3");
     
     	}        
@@ -89,9 +89,9 @@
                candidate
                
             
-          output: { selected trailing sequence , start locations of units in a array  } 
+          output: { selected trailing sequence_startLoc of this trailing seq , start locations of units in a array  } 
         */
-        public JavaPairRDD <String, ArrayList<Integer>> findTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq) {
+        public JavaPairRDD <String, ArrayList<Integer>> findMinimalTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq) {
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
@@ -156,35 +156,43 @@
     
                 });
     
-            final List<String> selectedArmSeq= selectedArmSeq.keys().collect();
-            final int armlen=selectedArmSeq.get(0).length();
+            final List<String> selectedArmSeq2= selectedArmSeq.keys().collect();
+            final int armlen=selectedArmSeq2.get(0).length();
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
-            JavaPairRDD<String ,ArrayList<Integer>> result = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
+            // output : {region_estimator, trailing_seq, matched_arm_seq_i}
+            JavaPairRDD<Integer ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, ArrayList<String>>,String,ArrayList<Integer>>(){
                     @Override
-                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
+                    public Iterable<Tuple2<Integer,ArrayList<String>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
                       ArrayList<Integer> tracrRelatedLocs =keyValue._2();
+                      int trailingStart=tracrRelatedLocs.get(2);
+                      int trailingStartEstimator=(int)Math.ceiling(trailingStart/500);
                       String trailing_seq=keyValue._1();
-                      ArrayList<Tuple2<String, ArrayList<Integer>>> tracrArrayUnits = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                      String thisTrailingInfo=trailing_seq+"_"+trailingStart;
+                      ArrayList<Tuple2<Integer, ArrayList<String>>> result1 = new ArrayList<Tuple2<Integer, ArrayList<String>>> ();
                       ArrayList<String> theseMatchedArms= new ArrayList<String>();
+                      theseMatchedArms.add(thisTrailingInfo);
                       
+                      int matchCopyNum=0;
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
                             String thisWindowSeq=trailing_seq.substring(i,i+armlen-1);
-                            if(selectArmSeq.contains(thisWindowSeq)){
-                                theseMatchedArms.add(selectArmSeq.get(selectArmSeq.indexOf(thisWindowSeq)));
+                            if(selectedArmSeq2.contains(thisWindowSeq)){
+                                matchCopyNum=matchCopyNum+1;
+                                theseMatchedArms.add(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)));
                             }
                           }
                       }
-                      
-                    //   for(int i=0;i<theseMatchedArms;i++){
-                                                   
-                    //   }
-                       
-                      return(tracrArrayUnits);
-    
+                     int actualAlignedLen=matchCopyNum*armlen;
+                     double actualAlignRatio=actualAlignedLen/trailingLen; 
+                     if(actualAlignRatio>=tracrAlignRatio){
+                        result1.add(new Tuple2<Integer, ArrayList<Integer>>(trailingStartEstimator,theseMatchedArms));
+                     } 
+                     return(result1);
                     }
-    
                 });
+            
+            
+
                 
             return(result);        
         }
