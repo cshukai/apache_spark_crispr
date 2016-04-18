@@ -159,19 +159,17 @@
             final List<String> selectedArmSeq2= selectedArmSeq.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
-            // output : {region_estimator, trailing_seq, matched_arm_seq_i}
-            JavaPairRDD<Integer ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, ArrayList<String>>,String,ArrayList<Integer>>(){
+            // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
+            JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<String>>,String,ArrayList<Integer>>(){
                     @Override
-                    public Iterable<Tuple2<Integer,ArrayList<String>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
+                    public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
                       ArrayList<Integer> tracrRelatedLocs =keyValue._2();
                       int trailingStart=tracrRelatedLocs.get(2);
-                      int trailingStartEstimator=(int)Math.ceiling(trailingStart/500);
                       String trailing_seq=keyValue._1();
                       String thisTrailingInfo=trailing_seq+"_"+trailingStart;
-                      ArrayList<Tuple2<Integer, ArrayList<String>>> result1 = new ArrayList<Tuple2<Integer, ArrayList<String>>> ();
+                      ArrayList<Tuple2<String, ArrayList<String>>> result1 = new ArrayList<Tuple2<String, ArrayList<String>>> ();
                       ArrayList<String> theseMatchedArms= new ArrayList<String>();
-                      theseMatchedArms.add(thisTrailingInfo);
-                      
+
                       int matchCopyNum=0;
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
@@ -185,7 +183,13 @@
                      int actualAlignedLen=matchCopyNum*armlen;
                      double actualAlignRatio=actualAlignedLen/trailingLen; 
                      if(actualAlignRatio>=tracrAlignRatio){
-                        result1.add(new Tuple2<Integer, ArrayList<Integer>>(trailingStartEstimator,theseMatchedArms));
+                         for(int j=0;j<theseMatchedArms.size();j++){
+                            ArrayList<String> trailing_matchedOrder=new ArrayList<String>();
+                            trailing_matchedOrder.add(thisTrailingInfo);
+                            int thisOrder=j+1;
+                            trailing_matchedOrder.add(Integer.toString(thisOrder));
+                            result1.add(new Tuple2<String, ArrayList<String>>(theseMatchedArms.get(j),trailing_matchedOrder));
+                         }
                      } 
                      return(result1);
                     }
