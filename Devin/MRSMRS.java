@@ -231,16 +231,14 @@
                         Iterator <ArrayList<Integer>> itr=kmer_locs.iterator();
                         ArrayList<Tuple2<String, ArrayList<Integer>>>output3 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                         
-                        ArrayList<Integer> tracrStarts=new ArrayList<Integer>();
-                        ArrayList<Integer> matchOrders=new ArrayList<Integer>();
+                        String tracrStarts="";
                         ArrayList<Integer> firstUnitStarts =new ArrayList<Integer>();
                         ArrayList<Integer> secondUnitStarts =new ArrayList<Integer>();
                         ArrayList<Integer> thirdUnitStarts =new ArrayList<Integer>();
-
+                  
                         while(itr.hasNext()){
                           ArrayList<Integer> thisMacthInfo=itr.next();  
-                          tracrStarts.add(thisMacthInfo.get(0));
-                          matchOrders.add(thisMacthInfo.get(1));
+                          tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0));
                           firstUnitStarts.add(thisMacthInfo.get(2));
                           secondUnitStarts.add(thisMacthInfo.get(3));
                           thirdUnitStarts.add(thisMacthInfo.get(4));
