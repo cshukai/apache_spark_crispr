@@ -231,10 +231,36 @@
                         Iterator <ArrayList<Integer>> itr=kmer_locs.iterator();
                         ArrayList<Tuple2<String, ArrayList<Integer>>>output3 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                         
+                        ArrayList<Integer> tracrStarts=new ArrayList<Integer>();
+                        ArrayList<Integer> matchOrders=new ArrayList<Integer>();
+                        ArrayList<Integer> firstUnitStarts =new ArrayList<Integer>();
+                        ArrayList<Integer> secondUnitStarts =new ArrayList<Integer>();
+                        ArrayList<Integer> thirdUnitStarts =new ArrayList<Integer>();
+
                         while(itr.hasNext()){
+                          ArrayList<Integer> thisMacthInfo=itr.next();  
+                          tracrStarts.add(thisMacthInfo.get(0));
+                          matchOrders.add(thisMacthInfo.get(1));
+                          firstUnitStarts.add(thisMacthInfo.get(2));
+                          secondUnitStarts.add(thisMacthInfo.get(3));
+                          thirdUnitStarts.add(thisMacthInfo.get(4));
                             
                         }            
                         
+                         ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
+                         Collections.sort(firstUnitStartsSorted);
+                         ArrayList<Integer>filterdFirstStart=new ArrayList<Integer>;
+                         
+                         for(int i=0;i<firstUnitStartsSorted.size()-1;i++){
+                              int thisFirstStart=firstUnitStartsSorted.get(i);
+                              int nextFirstStart=firstUnitStartsSorted.get(i+1);
+                              int interval=nextFirstStart-thisFirstStart;
+                              if(interval>=armlen && interval<r_max-armlen){
+                                  filterdFirstStart.add(thisFirstStart);
+                              }
+                         }
+                         
+                         
                     }
                         
             });     
