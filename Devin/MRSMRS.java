@@ -248,13 +248,16 @@
                          ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
                          Collections.sort(firstUnitStartsSorted);
                          ArrayList<Integer>filterdFirstStart=new ArrayList<Integer>;
-                         
+                         // merging arm-mer which  can form a minimal array and reside in the same repeat unit
                          for(int i=0;i<firstUnitStartsSorted.size()-1;i++){
                               int thisFirstStart=firstUnitStartsSorted.get(i);
                               int nextFirstStart=firstUnitStartsSorted.get(i+1);
                               int interval=nextFirstStart-thisFirstStart;
                               if(interval>=armlen && interval<r_max-armlen){
-                                  filterdFirstStart.add(thisFirstStart);
+                                  if(!filterdFirstStart.cotains(thisFirstStart)){
+                                      filterdFirstStart.add(thisFirstStart);
+                                  }
+                                    filterdFirstStart.add(nextFirstStart);                                  
                               }
                          }
                          
