@@ -247,21 +247,29 @@
                         
                          ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
                          Collections.sort(firstUnitStartsSorted);
-                         ArrayList<Integer>filterdFirstStart=new ArrayList<Integer>;
+                         ArrayList<Integer>filterdStarts=new ArrayList<Integer>;
                          // merging arm-mer which  can form a minimal array and reside in the same repeat unit
                          for(int i=0;i<firstUnitStartsSorted.size()-1;i++){
                               int thisFirstStart=firstUnitStartsSorted.get(i);
                               int nextFirstStart=firstUnitStartsSorted.get(i+1);
                               int interval=nextFirstStart-thisFirstStart;
                               if(interval>=armlen && interval<r_max-armlen){
-                                  if(!filterdFirstStart.cotains(thisFirstStart)){
-                                      filterdFirstStart.add(thisFirstStart);
+                                  if(!filterdStarts.cotains(thisFirstStart)){
+                                      filterdStarts.add(thisFirstStart);
+                                      filterdStarts.add(secondUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart)));
+                                      filterdStarts.add(thirdUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart)));
+
                                   }
-                                    filterdFirstStart.add(nextFirstStart);                                  
+                                    filterdStarts.add(nextFirstStart);                                  
+                                    filterdStarts.add(secondUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart)));
+                                    filterdStarts.add(thirdUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart)));
+
+                                  
                               }
                          }
-                         
-                         
+                      String outKey=thisTrailingSeq+tracrStarts;        
+                      output3.add(new Tuple2<String, ArrayList<Integer>>outKey,filterdStarts));     
+                      return(output3);   
                     }
                         
             });     
