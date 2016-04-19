@@ -101,14 +101,14 @@
                 final int trailingLen=lengthOfTrailingSeq;
                 
                 JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=arm_mer.groupByKey();
-                JavaPairRDD<String,ArrayList<Integer>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<Integer>>(){
+                JavaPairRDD<String,ArrayList<String>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<String>>(){
                     @Override
-                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, Iterable<Integer>> keyValue){
+                    public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, Iterable<Integer>> keyValue){
                      Iterable<Integer>data =keyValue._2();
                      Iterator<Integer> itr=data.iterator();
                      String seq=keyValue._1();
                      ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
-                     ArrayList<Tuple2<String, ArrayList<Integer>>> possibleRepeatUnits = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                     ArrayList<Tuple2<String, ArrayList<String>>> possibleRepeatUnits = new ArrayList<Tuple2<String, ArrayList<String>>> ();
     
                      while(itr.hasNext()){
                        int thisLoc=itr.next();
@@ -130,11 +130,11 @@
                               int secondDist_pos=nextTwoPosLoc-nextPosLoc;
                               if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
                                   if(firstDist<=unitDistMax && firstDist>=unitDistMin){
-                                       ArrayList<Integer> thisPositionSet=new ArrayList<Integer>();
-                                       thisPositionSet.add(thisPosLoc);
-                                       thisPositionSet.add(nextPosLoc);
-                                       thisPositionSet.add(nextTwoPosLoc);
-                                       possibleRepeatUnits.add(new Tuple2<String,ArrayList<Integer>>(seq,thisPositionSet));
+                                       ArrayList<String> thisPositionSet=new ArrayList<String>();
+                                       thisPositionSet.add(Integer.toString(thisPosLoc));
+                                       thisPositionSet.add(Integer.toString(nextPosLoc));
+                                       thisPositionSet.add(Integer.toString(nextTwoPosLoc));
+                                       possibleRepeatUnits.add(new Tuple2<String,ArrayList<String>>(seq,thisPositionSet));
                                       
                                   }
                                
@@ -196,8 +196,48 @@
                 });
             
             
+            JavaPairRDD <String ,ArrayList<String>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
+            
+            // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
+            JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<String>>,String,ArrayList<Integer>>(){
+                     @Override
+                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<String>> keyValue){
+                         ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+                         ArrayList<Integer>locs=new ArrayList<Integer>();
+                         ArrayList<String> temp=keyValue._2();
+                         
+                         String[] temp2=temp.get(0).split("_");
+                         int thisTrailingStart=Integer.parseInt(temp2[1]);
+                         locs.add(thisTrailingStart);
+                         String tracrSeq=temp2[0];
+                         
+                         for(int i=0;i<temp.size();i++){
+                            locs.add(Integer.parseInt(temp.get(i)));
+                         }
+              
+                        output2.add(new Tuple2<String, ArrayList<Integer>>(tracrSeq,locs));
 
-                
+                        return(output2); 
+                     }
+                });
+            
+            JavaPairRDD <String ,Iterable<Integer>> mashup3=mashup2.groupByKey();
+            
+            JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
+                        String thisTrailingSeq=keyValue._1();
+                        Iterable<ArrayList<Integer>> matchInfo =keyValue._2();
+                        Iterator <ArrayList<Integer>> itr=kmer_locs.iterator();
+                        ArrayList<Tuple2<String, ArrayList<Integer>>>output3 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+                        
+                        while(itr.hasNext()){
+                            
+                        }            
+                        
+                    }
+                        
+            });     
             return(result);        
         }
         
