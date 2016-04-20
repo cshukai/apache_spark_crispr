@@ -156,7 +156,8 @@
                     }
     
                 });
-    
+        
+            System.out.println("selectedArmMer:"+selectedArmMer.count());
             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
@@ -196,7 +197,10 @@
                     }
                 });
 
+
+System.out.println("trailingSeq_matchedArmer:"+trailingSeq_matchedArmer.count());
             JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
+System.out.println("mashup"+mashup.count());
             
             // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
             JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
@@ -221,8 +225,12 @@
                      }
                 });
             
-            JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
             
+System.out.println("mashup2"+mashup2.count());
+            
+            JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
+            System.out.println("mashup3"+mashup.count());
+
             JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
@@ -400,8 +408,8 @@
                                 String thisLeftTrail=fasta.substring(thisPalinStar-i-lengthOfTrailingSeq-1,thisPalinStar-i-1);
                                 locations.add(thisPalinStar);
                                 locations.add(thisPalinEnd);
-                                locations.add(thisPalinStar-i-lengthOfTrailingSeq-1);
-                                //locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
+                                //locations.add(thisPalinStar-i-lengthOfTrailingSeq-1);
+                                locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
                                 locations.add(thisPalinStar-i);
                                 output2.add(new Tuple2<String, ArrayList<Integer>>(thisLeftTrail,locations));
 
