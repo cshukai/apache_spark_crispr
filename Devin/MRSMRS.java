@@ -42,7 +42,7 @@
             int externalMaxStemLoopArmLen=8;
             int loopLowBound=3;
             int loopUpBound=8;
-            double tracrAlignRatio=0.6; // in terms of proportion of length of max repeat unit
+            double tracrAlignRatio=0.3; // in terms of proportion of length of max repeat unit
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
 
             
@@ -71,11 +71,11 @@
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
+            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,30, externalMaxStemLoopArmLen);
             test5.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
             test6.saveAsTextFile("crispr_test3");
-    
+
     	}        
         
 
@@ -400,8 +400,9 @@
                                 String thisLeftTrail=fasta.substring(thisPalinStar-i-lengthOfTrailingSeq-1,thisPalinStar-i-1);
                                 locations.add(thisPalinStar);
                                 locations.add(thisPalinEnd);
+                                locations.add(thisPalinStar-i-lengthOfTrailingSeq-1);
+                                //locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
                                 locations.add(thisPalinStar-i);
-                                locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
                                 output2.add(new Tuple2<String, ArrayList<Integer>>(thisLeftTrail,locations));
 
                              }
