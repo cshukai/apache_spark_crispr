@@ -42,7 +42,7 @@
             int externalMaxStemLoopArmLen=8;
             int loopLowBound=3;
             int loopUpBound=8;
-            double tracrAlignRatio=0.3; // in terms of proportion of length of max repeat unit
+            double tracrAlignRatio=0.7; // in terms of proportion of length of max repeat unit
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
 
             
@@ -71,7 +71,7 @@
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,30, externalMaxStemLoopArmLen);
+            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
             test6.saveAsTextFile("crispr_test3");
@@ -172,22 +172,17 @@
                       ArrayList<Tuple2<String, ArrayList<String>>> result1 = new ArrayList<Tuple2<String, ArrayList<String>>> ();
                       ArrayList<String> theseMatchedArms= new ArrayList<String>();
 
-                      int matchCopyNum=0;
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
                             String thisWindowSeq=trailing_seq.substring(i,i+armlen);
                             System.out.println("windowseq:"+thisWindowSeq);
                             if(selectedArmSeq2.contains(thisWindowSeq)){
-                                matchCopyNum=matchCopyNum+1;
-                                
+
                                 theseMatchedArms.add(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)));
                             }
                           }
                       }
-                      System.out.println("matchCopy:"+matchCopyNum);
-                     int actualAlignedLen=matchCopyNum*armlen;
-                     double actualAlignRatio=actualAlignedLen/trailingLen; 
-                     if(actualAlignRatio>=tracrAlignRatio2){
+
                          for(int j=0;j<theseMatchedArms.size();j++){
                             ArrayList<String> trailing_matchedOrder=new ArrayList<String>();
                             trailing_matchedOrder.add(thisTrailingInfo);
@@ -195,7 +190,7 @@
                             trailing_matchedOrder.add(Integer.toString(thisOrder));
                             result1.add(new Tuple2<String, ArrayList<String>>(theseMatchedArms.get(j),trailing_matchedOrder));
                          }
-                     } 
+                      
                      return(result1);
                     }
                 });
