@@ -42,7 +42,7 @@
             int externalMaxStemLoopArmLen=8;
             int loopLowBound=3;
             int loopUpBound=8;
-            double tracrAlignRatio=0.8; // in terms of proportion of length of max repeat unit
+            double tracrAlignRatio=0.6; // in terms of proportion of length of max repeat unit
             int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
 
             
@@ -50,8 +50,8 @@
             /*processing*/
             // input directories to gneerate buildinb block
             String home_dir="/result";
-            String species_folder="Streptococcus_thermophilus_cnrz1066.GCA_000011845.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path="/home/shukai/Streptococcus_thermophilus_cnrz_fa.txt";
+            String species_folder="Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
+            String fasta_path="/home/shukai/Downloads/Palindrome_java/Streptococcus_thermophilus_lmd_9.fa.txt";
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
@@ -72,6 +72,7 @@
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
+            test5.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
             test6.saveAsTextFile("crispr_test3");
     
@@ -335,7 +336,17 @@
                          // extension to find the longest possible palindromic arms within specified region
                          int numOfExtraBasesEachSide=armLenMax-armLen;
                          String leftSuspect=fasta.substring(thisPalinStar-numOfExtraBasesEachSide-1,thisPalinStar-2);
-                         String rightSuspect=fasta.substring(thisPalinEnd,thisPalinEnd+numOfExtraBasesEachSide-1);
+                         
+                         int endPositionOfRightSuspect=thisPalinEnd+numOfExtraBasesEachSide-1;
+                         String rightSuspect="";
+                         if(endPositionOfRightSuspect>fasta.length()){
+                             leftSuspect=""; 
+                         }
+                         
+                         
+                         else{
+                             rightSuspect=fasta.substring(thisPalinEnd,endPositionOfRightSuspect);
+                         }
                        
                          for(int i=0;i<leftSuspect.length();i++){
                              
