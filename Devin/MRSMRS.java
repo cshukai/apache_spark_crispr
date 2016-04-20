@@ -175,13 +175,16 @@
                       int matchCopyNum=0;
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
-                            String thisWindowSeq=trailing_seq.substring(i,i+armlen-1);
+                            String thisWindowSeq=trailing_seq.substring(i,i+armlen);
+                            System.out.println("windowseq:"+thisWindowSeq);
                             if(selectedArmSeq2.contains(thisWindowSeq)){
                                 matchCopyNum=matchCopyNum+1;
+                                
                                 theseMatchedArms.add(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)));
                             }
                           }
                       }
+                      System.out.println("matchCopy:"+matchCopyNum);
                      int actualAlignedLen=matchCopyNum*armlen;
                      double actualAlignRatio=actualAlignedLen/trailingLen; 
                      if(actualAlignRatio>=tracrAlignRatio2){
@@ -386,7 +389,7 @@ System.out.println("mashup2"+mashup2.count());
                          
                          //formation of comprehensive list of candidate of trailing sequence
                          
-                         for(int i=0;i<gap_size;i++){
+                         for(int i=1;i<=gap_size;i++){
                              
                              if(thisPalinEnd+i-1 <=fasta.length() && thisPalinEnd+i+lengthOfTrailingSeq-2 <=fasta.length() ){
                                 String thisRightTrail=fasta.substring(thisPalinEnd+i-1,thisPalinEnd+i+lengthOfTrailingSeq-1);
@@ -409,8 +412,11 @@ System.out.println("mashup2"+mashup2.count());
                                 locations.add(thisPalinStar);
                                 locations.add(thisPalinEnd);
                                 //locations.add(thisPalinStar-i-lengthOfTrailingSeq-1);
-                                locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
+                                //locations.add(thisPalinStar-i-lengthOfTrailingSeq+1);
+                                //locations.add(thisPalinStar-i);
+                                locations.add(thisPalinStar-i-lengthOfTrailingSeq-1);
                                 locations.add(thisPalinStar-i);
+                                    
                                 output2.add(new Tuple2<String, ArrayList<Integer>>(thisLeftTrail,locations));
 
                              }
