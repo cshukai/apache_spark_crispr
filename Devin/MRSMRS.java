@@ -77,8 +77,7 @@
     
     	}        
         
-        
-        
+
         /*
          algorithm:
             1. break down each trailing candidates into fragment 
@@ -99,6 +98,7 @@
                 final int unitDistMin=unitMinLen+spacerMinLen;
                 final int unitDistMax=unitMaxLen+spacerMaxLen;
                 final int trailingLen=lengthOfTrailingSeq;
+                final double tracrAlignRatio2=tracrAlignRatio;
                 
                 JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=arm_mer.groupByKey();
                 JavaPairRDD<String,ArrayList<String>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<String>>(){
@@ -156,11 +156,11 @@
     
                 });
     
-            final List<String> selectedArmSeq2= selectedArmSeq.keys().collect();
+            final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
-            JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<String>>,String,ArrayList<Integer>>(){
+            JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<String>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
                       ArrayList<Integer> tracrRelatedLocs =keyValue._2();
@@ -182,7 +182,7 @@
                       }
                      int actualAlignedLen=matchCopyNum*armlen;
                      double actualAlignRatio=actualAlignedLen/trailingLen; 
-                     if(actualAlignRatio>=tracrAlignRatio){
+                     if(actualAlignRatio>=tracrAlignRatio2){
                          for(int j=0;j<theseMatchedArms.size();j++){
                             ArrayList<String> trailing_matchedOrder=new ArrayList<String>();
                             trailing_matchedOrder.add(thisTrailingInfo);
@@ -194,25 +194,24 @@
                      return(result1);
                     }
                 });
-            
-            
-            JavaPairRDD <String ,ArrayList<String>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
+
+            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
             
             // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
-            JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<String>>,String,ArrayList<Integer>>(){
+            JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
                      @Override
-                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String, ArrayList<String>> keyValue){
+                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>> keyValue){
                          ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
                          ArrayList<Integer>locs=new ArrayList<Integer>();
-                         ArrayList<String> temp=keyValue._2();
+                         Tuple2<ArrayList<String>,ArrayList<String>> temp=keyValue._2();
                          
-                         String[] temp2=temp.get(0).split("_");
+                         String[] temp2=temp._1().get(0).split("_");
                          int thisTrailingStart=Integer.parseInt(temp2[1]);
                          locs.add(thisTrailingStart);
                          String tracrSeq=temp2[0];
                          
-                         for(int i=0;i<temp.size();i++){
-                            locs.add(Integer.parseInt(temp.get(i)));
+                         for(int i=0;i<temp._1().size();i++){
+                            locs.add(Integer.parseInt(temp._1().get(i)));
                          }
               
                         output2.add(new Tuple2<String, ArrayList<Integer>>(tracrSeq,locs));
@@ -221,14 +220,14 @@
                      }
                 });
             
-            JavaPairRDD <String ,Iterable<Integer>> mashup3=mashup2.groupByKey();
+            JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
             
             JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
                         String thisTrailingSeq=keyValue._1();
                         Iterable<ArrayList<Integer>> matchInfo =keyValue._2();
-                        Iterator <ArrayList<Integer>> itr=kmer_locs.iterator();
+                        Iterator <ArrayList<Integer>> itr=matchInfo.iterator();
                         ArrayList<Tuple2<String, ArrayList<Integer>>>output3 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                         
                         String tracrStarts="";
@@ -238,23 +237,23 @@
                   
                         while(itr.hasNext()){
                           ArrayList<Integer> thisMacthInfo=itr.next();  
-                          tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0));
+                          tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0);
                           firstUnitStarts.add(thisMacthInfo.get(2));
                           secondUnitStarts.add(thisMacthInfo.get(3));
                           thirdUnitStarts.add(thisMacthInfo.get(4));
-                            
+                             
                         }            
                         
                          ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
                          Collections.sort(firstUnitStartsSorted);
-                         ArrayList<Integer>filterdStarts=new ArrayList<Integer>;
+                         ArrayList<Integer>filterdStarts=new ArrayList<Integer>();
                          // merging arm-mer which  can form a minimal array and reside in the same repeat unit
                          for(int i=0;i<firstUnitStartsSorted.size()-1;i++){
                               int thisFirstStart=firstUnitStartsSorted.get(i);
                               int nextFirstStart=firstUnitStartsSorted.get(i+1);
                               int interval=nextFirstStart-thisFirstStart;
                               if(interval>=armlen && interval<r_max-armlen){
-                                  if(!filterdStarts.cotains(thisFirstStart)){
+                                  if(!filterdStarts.contains(thisFirstStart)){
                                       filterdStarts.add(thisFirstStart);
                                       filterdStarts.add(secondUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart)));
                                       filterdStarts.add(thirdUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart)));
@@ -268,7 +267,7 @@
                               }
                          }
                       String outKey=thisTrailingSeq+tracrStarts;        
-                      output3.add(new Tuple2<String, ArrayList<Integer>>outKey,filterdStarts));     
+                      output3.add(new Tuple2<String, ArrayList<Integer>>(outKey,filterdStarts));     
                       return(output3);   
                     }
                         
