@@ -179,6 +179,8 @@
                             if(selectedArmSeq2.contains(thisWindowSeq)){
 
                                 theseMatchedArms.add(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)));
+                                result1.add(new Tuple2<String, ArrayList<String>>(theseMatchedArms.get(j),trailing_matchedOrder));
+
                             }
                           }
                       }
