@@ -177,21 +177,13 @@
                             String thisWindowSeq=trailing_seq.substring(i,i+armlen);
                             System.out.println("windowseq:"+thisWindowSeq);
                             if(selectedArmSeq2.contains(thisWindowSeq)){
-
-                                theseMatchedArms.add(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)));
-                                result1.add(new Tuple2<String, ArrayList<String>>(theseMatchedArms.get(j),trailing_matchedOrder));
-
+                                ArrayList<String> temp= new ArrayList<String>();
+                                temp.add(thisTrailingInfo);
+                                result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)),temp));
                             }
                           }
                       }
 
-                         for(int j=0;j<theseMatchedArms.size();j++){
-                            ArrayList<String> trailing_matchedOrder=new ArrayList<String>();
-                            trailing_matchedOrder.add(thisTrailingInfo);
-                            int thisOrder=j+1;
-                            trailing_matchedOrder.add(Integer.toString(thisOrder));
-                            result1.add(new Tuple2<String, ArrayList<String>>(theseMatchedArms.get(j),trailing_matchedOrder));
-                         }
                       
                      return(result1);
                     }
@@ -215,8 +207,8 @@ System.out.println("mashup"+mashup.count());
                          locs.add(thisTrailingStart);
                          String tracrSeq=temp2[0];
                          
-                         for(int i=0;i<temp._1().size();i++){
-                            locs.add(Integer.parseInt(temp._1().get(i)));
+                         for(int i=0;i<temp._2().size();i++){
+                            locs.add(Integer.parseInt(temp._2().get(i)));
                          }
               
                         output2.add(new Tuple2<String, ArrayList<Integer>>(tracrSeq,locs));
@@ -246,10 +238,10 @@ System.out.println("mashup2"+mashup2.count());
                   
                         while(itr.hasNext()){
                           ArrayList<Integer> thisMacthInfo=itr.next();  
-                          tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0);
-                          firstUnitStarts.add(thisMacthInfo.get(2));
-                          secondUnitStarts.add(thisMacthInfo.get(3));
-                          thirdUnitStarts.add(thisMacthInfo.get(4));
+                          tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0); // collecting  start locations of one trailing seq 
+                          firstUnitStarts.add(thisMacthInfo.get(1));
+                          secondUnitStarts.add(thisMacthInfo.get(2));
+                          thirdUnitStarts.add(thisMacthInfo.get(3));
                              
                         }            
                         
