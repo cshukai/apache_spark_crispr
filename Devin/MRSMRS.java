@@ -49,9 +49,9 @@
             
             /*processing*/
             // input directories to gneerate buildinb block
-            String home_dir="/result";
+            String home_dir="result";
             String species_folder="Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path="/home/shukai/Downloads/Palindrome_java/Streptococcus_thermophilus_lmd_9.fa.txt";
+            String fasta_path="Streptococcus_thermophilus_lmd_9.fa.txt";
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
@@ -80,6 +80,11 @@
         
 
         /*
+        
+         names: 
+         armer : k mer- repeat that is used to identify palindromic strucure 
+          so armer are repeat seqeunce not neccessarily palidnromic arms
+        
          algorithm:
             1. break down each trailing candidates into fragment 
                as long as minimum palindrome arm
@@ -157,7 +162,6 @@
     
                 });
         
-            System.out.println("selectedArmMer:"+selectedArmMer.count());
             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
@@ -174,8 +178,27 @@
 
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
-                            String thisWindowSeq=trailing_seq.substring(i,i+armlen);
-                            System.out.println("windowseq:"+thisWindowSeq);
+                            String thisWindowSeqTemp=trailing_seq.substring(i,i+armlen);
+                            String thisWindowSeq="";
+                            for(int j=0;j<thisWindowSeqTemp.length();){
+                                String thisChar=thisWindowSeqTemp.charAt(j).toString();
+                                if(thisChar.equals("A")){
+                                   thisWindowSeq=thisWindowSeq+"T";                                
+                                }
+                                
+                                if(thisChar.equals("T")){
+                                   thisWindowSeq=thisWindowSeq+"A";                                
+                                }
+                                
+                                if(thisChar.equals("C")){
+                                   thisWindowSeq=thisWindowSeq+"G";                                
+                                }
+                                
+                                if(thisChar.equals("G")){
+                                   thisWindowSeq=thisWindowSeq+"C";                                
+                                }
+                                
+                            }
                             if(selectedArmSeq2.contains(thisWindowSeq)){
                                 ArrayList<String> temp= new ArrayList<String>();
                                 temp.add(thisTrailingInfo);
@@ -190,10 +213,8 @@
                 });
 
 
-System.out.println("trailingSeq_matchedArmer:"+trailingSeq_matchedArmer.count());
             JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
-System.out.println("mashup"+mashup.count());
-            
+
             // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
             JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
                      @Override
@@ -218,11 +239,7 @@ System.out.println("mashup"+mashup.count());
                 });
             
             
-System.out.println("mashup2"+mashup2.count());
-            
             JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
-            System.out.println("mashup3"+mashup.count());
-
             JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
@@ -238,6 +255,7 @@ System.out.println("mashup2"+mashup2.count());
                   
                         while(itr.hasNext()){
                           ArrayList<Integer> thisMacthInfo=itr.next();  
+                          
                           tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0); // collecting  start locations of one trailing seq 
                           firstUnitStarts.add(thisMacthInfo.get(1));
                           secondUnitStarts.add(thisMacthInfo.get(2));
@@ -255,14 +273,37 @@ System.out.println("mashup2"+mashup2.count());
                               int interval=nextFirstStart-thisFirstStart;
                               if(interval>=armlen && interval<r_max-armlen){
                                   if(!filterdStarts.contains(thisFirstStart)){
-                                      filterdStarts.add(thisFirstStart);
-                                      filterdStarts.add(secondUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart)));
-                                      filterdStarts.add(thirdUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart)));
-
+                                      
+                                      int  secondThisStart=secondUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart));
+                                      int  thirdThisStart=thirdUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart));
+                                      
+                                      int  thisFirstDist=secondThisStart-thisFirstStart;
+                                      int  thisSecondDist=thirdThisStart-secondThisStart;
+                                      
+                                      if(thisFirstDist>=r_min && thisSecondDist>=r_min){
+                                          if(thisSecondDist<=r_max && thisFirstDist <=r_max){
+                                             filterdStarts.add(thisFirstStart);
+                                             filterdStarts.add(secondThisStart);
+                                             filterdStarts.add(thirdThisStart);
+                                              
+                                          } 
+                                      }
+                    
+                                        int  secondNextStart=secondUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart));
+                                        int  thirdNextStart=thirdUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart));
+                                        int  nextFirstDistance=secondNextStart-nextFirstStart;
+                                        int  nextSecondDistance=thirdNextStart-secondNextStart;                           
+                                        if(nextFirstDistance>=r_min && nextSecondDistance>=r_min){
+                                            if(nextFirstDistance<=r_max && nextSecondDistance<=r_max){
+                                                filterdStarts.add(nextFirstStart);
+                                                filterdStarts.add(secondNextStart);
+                                                filterdStarts.add(thirdNextStart);
+                                            }
+                                        }       
+                                          
                                   }
-                                    filterdStarts.add(nextFirstStart);                                  
-                                    filterdStarts.add(secondUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart)));
-                                    filterdStarts.add(thirdUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart)));
+                                
+                                    
 
                                   
                               }
