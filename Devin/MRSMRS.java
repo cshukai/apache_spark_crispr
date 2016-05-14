@@ -49,12 +49,11 @@
             
             /*processing*/
             // input directories to gneerate buildinb block
-            String home_dir="result";
             String species_folder="Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
             String fasta_path="Streptococcus_thermophilus_lmd_9.fa.txt";
             
             // search of palindrome building block 
-           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            palindromeInput.saveAsTextFile("mrsmrs");
             JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
@@ -63,10 +62,16 @@
             //test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
            
-          
-            
-            List<String>fasta_temp=mrsmrs.readFile(fasta_path);
-            String fasta=fasta_temp.get(0);
+            //mri
+            List<String> fasta_temp=sc.textFile(fasta_path).collect();
+            String fasta="";
+            for(int i=0; i< fasta_temp.size();i++){
+                fasta=fasta+fasta_temp.get(i);
+            }
+
+             /////idas
+            //List<String>fasta_temp=mrsmrs.readFile(fasta_path);
+           // String fasta=fasta_temp.get(0);
            
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
@@ -181,7 +186,8 @@
                             String thisWindowSeqTemp=trailing_seq.substring(i,i+armlen);
                             String thisWindowSeq="";
                             for(int j=0;j<thisWindowSeqTemp.length();){
-                                String thisChar=thisWindowSeqTemp.charAt(j).toString();
+                                Character thisChar=thisWindowSeqTemp.charAt(j);
+                                String  thisAlpha=thisChar.toString();
                                 if(thisChar.equals("A")){
                                    thisWindowSeq=thisWindowSeq+"T";                                
                                 }
