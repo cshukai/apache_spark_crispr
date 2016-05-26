@@ -49,14 +49,15 @@
             
             /*processing*/
             // input directories to gneerate buildinb block
-            String species_folder="Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path="Streptococcus_thermophilus_lmd_9.fa.txt";
+            String species_folder=args[0]; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
+            String fasta_path=args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
+            
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            palindromeInput.saveAsTextFile("mrsmrs");
-            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
+           JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
             palindBlock.saveAsTextFile("palindrome");
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             //test_3.saveAsTextFile("crispr_test");
@@ -184,8 +185,9 @@
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
                             String thisWindowSeqTemp=trailing_seq.substring(i,i+armlen);
-                            String thisWindowSeq="";
-                            for(int j=0;j<thisWindowSeqTemp.length();){
+                            String thisWindowSeq="";// same strand
+                           
+                            for(int j=0;j<thisWindowSeqTemp.length();j++){
                                 Character thisChar=thisWindowSeqTemp.charAt(j);
                                 String  thisAlpha=thisChar.toString();
                                 if(thisChar.equals("A")){
@@ -205,11 +207,29 @@
                                 }
                                 
                             }
+                           
+                           
+                            String thisWindowSeqRevCom=""; // reverse complimentary 
+                            for(int j=thisWindowSeq.length()-1;j>=0;j--){
+                                Character thisChar=thisWindowSeq.charAt(j);
+                                thisWindowSeqRevCom=thisWindowSeqRevCom+thisChar.toString();
+                                
+                            }
+                            
+                            
+                            
                             if(selectedArmSeq2.contains(thisWindowSeq)){
                                 ArrayList<String> temp= new ArrayList<String>();
                                 temp.add(thisTrailingInfo);
                                 result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)),temp));
                             }
+                            
+                            if(selectedArmSeq2.contains(thisWindowSeqRevCom)){
+                                ArrayList<String> temp= new ArrayList<String>();
+                                temp.add(thisTrailingInfo);
+                                result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeqRevCom)),temp));
+                            }
+                            
                           }
                       }
 
