@@ -28,7 +28,7 @@
             SparkConf conf=new SparkConf().setAppName("spark-crispr");
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
-            String home_dir="/idas/sc724"
+            String home_dir="/user/sc724";
             /*user input*/
             
             //array structure
@@ -240,7 +240,7 @@
 
 
             JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
-
+            System.out.println("mashup:"+mashup.count());
             // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
             JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
                      @Override
@@ -264,8 +264,10 @@
                      }
                 });
             
-            
+            System.out.println("mashup2:"+mashup2.count());
             JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
+                    System.out.println("mashup3:"+mashup3.count());
+
             JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
@@ -340,9 +342,9 @@
                     }
                         
             });     
+
             return(result);        
         }
-        
         
         
             private List<String> readFile(String filename) throws Exception {
