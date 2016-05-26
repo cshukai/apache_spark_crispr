@@ -28,7 +28,7 @@
             SparkConf conf=new SparkConf().setAppName("spark-crispr");
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
-            
+            String home_dir="/idas/sc724"
             /*user input*/
             
             //array structure
@@ -50,15 +50,15 @@
             /*processing*/
             // input directories to gneerate buildinb block
             String species_folder=args[0]; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path=args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
+            String fasta_path=home_dir+"/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
             
             
             // search of palindrome building block 
-           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(stemLoopArmLen+"/"+species_folder);  
+           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
-           palindromeInput.saveAsTextFile("mrsmrs");
+           palindromeInput.saveAsTextFile(home_dir+"/"+"mrsmrs");
            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-            palindBlock.saveAsTextFile("palindrome");
+            palindBlock.saveAsTextFile(home_dir+"/palindrome");
             //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
             //test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
@@ -78,9 +78,9 @@
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
             //test_4.saveAsTextFile("crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
-            test5.saveAsTextFile("crispr_test2");
+            test5.saveAsTextFile(home_dir+"/crispr_test2");
             JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
-            test6.saveAsTextFile("crispr_test3");
+            test6.saveAsTextFile(home_dir+"/crispr_test3");
 
     	}        
         
