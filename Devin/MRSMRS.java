@@ -28,7 +28,7 @@
             SparkConf conf=new SparkConf().setAppName("spark-crispr");
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
-            String home_dir="/user/sc724";
+            String home_dir="/idas/sc724";
             /*user input*/
             
             //array structure
@@ -49,9 +49,12 @@
             
             /*processing*/
             // input directories to gneerate buildinb block
+            //mri
             String species_folder=args[0]; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-            String fasta_path=home_dir+"/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
-            
+           String fasta_path=home_dir+"/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
+            //idas
+           // String species_folder="Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa"; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
+           // String fasta_path="Streptococcus_thermophilus_lmd_9.fa.txt";
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
@@ -70,9 +73,9 @@
                 fasta=fasta+fasta_temp.get(i);
             }
 
-             /////idas
-            //List<String>fasta_temp=mrsmrs.readFile(fasta_path);
-           // String fasta=fasta_temp.get(0);
+             //idas
+            // List<String>fasta_temp=mrsmrs.readFile(fasta_path);
+            // String fasta=fasta_temp.get(0);
            
             
             //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
@@ -170,6 +173,8 @@
         
             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
+        
+            
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
             JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<String>>(){
@@ -190,46 +195,53 @@
                             for(int j=0;j<thisWindowSeqTemp.length();j++){
                                 Character thisChar=thisWindowSeqTemp.charAt(j);
                                 String  thisAlpha=thisChar.toString();
-                                if(thisChar.equals("A")){
+                                if(thisAlpha.equals("A")){
                                    thisWindowSeq=thisWindowSeq+"T";                                
                                 }
                                 
-                                if(thisChar.equals("T")){
+                                if(thisAlpha.equals("T")){
                                    thisWindowSeq=thisWindowSeq+"A";                                
                                 }
                                 
-                                if(thisChar.equals("C")){
+                                if(thisAlpha.equals("C")){
                                    thisWindowSeq=thisWindowSeq+"G";                                
                                 }
                                 
-                                if(thisChar.equals("G")){
+                                if(thisAlpha.equals("G")){
                                    thisWindowSeq=thisWindowSeq+"C";                                
                                 }
                                 
                             }
                            
                            
-                            String thisWindowSeqRevCom=""; // reverse complimentary 
+                            String thisWindowSeqRev=""; // different strand 
                             for(int j=thisWindowSeq.length()-1;j>=0;j--){
                                 Character thisChar=thisWindowSeq.charAt(j);
-                                thisWindowSeqRevCom=thisWindowSeqRevCom+thisChar.toString();
+                                thisWindowSeqRev=thisWindowSeqRev+thisChar.toString();
                                 
                             }
                             
+                           
                             
                             
                             if(selectedArmSeq2.contains(thisWindowSeq)){
                                 ArrayList<String> temp= new ArrayList<String>();
                                 temp.add(thisTrailingInfo);
+                               // result1.add(new Tuple2<String, ArrayList<String>>(thisWindowSeq,temp));
+                            
                                 result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)),temp));
                             }
                             
-                            if(selectedArmSeq2.contains(thisWindowSeqRevCom)){
+                            
+                            
+                            if(selectedArmSeq2.contains(thisWindowSeqRev)){
                                 ArrayList<String> temp= new ArrayList<String>();
                                 temp.add(thisTrailingInfo);
-                                result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeqRevCom)),temp));
+                                //result1.add(new Tuple2<String, ArrayList<String>>(thisWindowSeqRev,temp));
+
+                                result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeqRev)),temp));
+
                             }
-                            
                           }
                       }
 
@@ -240,6 +252,8 @@
 
 
             JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
+            trailingSeq_matchedArmer.saveAsTextFile("trailin_matchtest");
+            System.out.println("trailingseq:"+trailingSeq_matchedArmer.count());
             System.out.println("mashup:"+mashup.count());
             // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
             JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
