@@ -28,6 +28,7 @@
             SparkConf conf=new SparkConf().setAppName("spark-crispr");
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
+            //String home_dir="/idas/sc724";
             String home_dir="/user/sc724";
             /*user input*/
             
@@ -38,34 +39,28 @@
             int spacerMin=90;
             
             //stem loop assocaited structures
-            int stemLoopArmLen=15; // this is the minimal arm length of imperfect palindromes for internal stem loop
-            int externalMaxStemLoopArmLen=8;
+            int stemLoopArmLen=4; // this is the minimal arm length of imperfect palindromes for internal stem loop
+            int externalMaxStemLoopArmLen=30;
             int loopLowBound=3;
             int loopUpBound=8;
             double tracrAlignRatio=0.7; // in terms of proportion of length of max repeat unit
-            int externalMaxGapSize=2; // distance between external imperfect palindrome and alinged region
+            int externalMaxGapSize=2; // distance between external imperfect palindrome and anti-repeat regio
 
             
             
             /*processing*/
             // input directories to gneerate buildinb block
-            //mri
-           // String species_folder=args[0]; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-           //String fasta_path=home_dir+"/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
-            
-            //idas
-           String species_folder="Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa"; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-           String fasta_path="Streptococcus_thermophilus_lmd_9.fa.txt";
+           String species_folder=args[0]; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
+        //   String fasta_path=home_dir+"/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
+            String fasta_path=args[1];             
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
            palindromeInput.saveAsTextFile(home_dir+"/"+"mrsmrs");
            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-            palindBlock.saveAsTextFile(home_dir+"/palindrome");
-            //JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,75,20,50,20,4); 
-            //test_3.saveAsTextFile("crispr_test");
-           //extension of palindrome building block
+           palindBlock.saveAsTextFile(home_dir+"/palindrome");
+            
            
             //mri
             // List<String> fasta_temp=sc.textFile(fasta_path).collect();
@@ -75,16 +70,22 @@
             // }
 
              //idas
-             List<String>fasta_temp=mrsmrs.readFile(fasta_path);
-             String fasta=fasta_temp.get(0);
+        List<String>fasta_temp=mrsmrs.readFile(fasta_path);
+            String fasta=fasta_temp.get(0);
            
+            /*internal palindromes */ 
+            JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
+            test_3.saveAsTextFile("crispr_test");
+           //extension of palindrome building block
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.6,0.5,0.5,true,0.5);
+                                                              // extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio)
+            test_4.saveAsTextFile("crispr_test2");
             
-            //JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 75, 20,fasta, 1,0,0,true,0.5);
-            //test_4.saveAsTextFile("crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
-            test5.saveAsTextFile(home_dir+"/crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
-            test6.saveAsTextFile(home_dir+"/crispr_test3");
+            /* external palindromes*/
+            // JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
+            // test5.saveAsTextFile(home_dir+"/crispr_test2");
+            // JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
+            // test6.saveAsTextFile(home_dir+"/crispr_test3");
 
     	}        
         
@@ -420,12 +421,12 @@
                              leftStart=0;
                          }
                          int leftEnd=thisPalinStar-2;
-                         if(leftEnd>=fasta.length()){
-                             leftEnd=fasta.length()-1;
+                         if(leftEnd<=0){
+                             leftEnd=0;
                          }
                          
                          
-                             String leftSuspect=fasta.substring(leftStart,leftEnd);
+                        String leftSuspect=fasta.substring(leftStart,leftEnd);
                              
                          
                          
@@ -608,8 +609,12 @@
                           int thisBlockStart=buildingBlockStarlocs.get(i);
                           int thisLeftEnd=thisBlockStart-1;
                           int thisLeftStart=thisLeftEnd-MaxSpace_left+1;
-                          String thisLeftSeq=getSubstring(fasta_seq,thisLeftStart,thisLeftEnd);
+                          String thisLeftSeq=fasta_seq.get(0).substring(thisLeftStart,thisLeftEnd);
                           leftSeqs.add(thisLeftSeq);
+                          
+                          
+                          
+                          
                           
            
                           
@@ -617,7 +622,7 @@
                             int thisBlockEnd=thisBlockStart+palinSize-1;
                             int thisRightStart=thisBlockEnd+1;
                             int thisRightEnd=thisRightStart+MaxSpace_right-1;
-                            String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
+                            String thisRightSeq=fasta_seq.get(0).substring(thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
                            
 
@@ -627,7 +632,7 @@
                             int thisBlockEnd=thisBlockStart+armLen-1;
                             int thisRightStart=thisBlockEnd+1;
                             int thisRightEnd=thisRightStart+MaxSpace_right-1;
-                            String thisRightSeq=getSubstring(fasta_seq,thisRightStart,thisRightEnd);
+                            String thisRightSeq=fasta_seq.get(0).substring(thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
                         
 
