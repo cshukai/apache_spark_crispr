@@ -652,21 +652,26 @@
                          for(int k=0;k<rightSeqs.size();k++){
                              
                              String currentRightSeq=rightSeqs.get(k);
-                      
-                             char thisBase=currentRightSeq.charAt(j);
-                             if(thisBase=='A'){
-                                 baseCount[0]=baseCount[0]+1;
+                             if(j<currentRightSeq.length()){
+                                char thisBase=currentRightSeq.charAt(j);
+                                 if(thisBase=='A'){
+                                     baseCount[0]=baseCount[0]+1;
+                                }
+                                if(thisBase=='C'){
+                                     baseCount[1]=baseCount[1]+1;
+                                }
+                                if(thisBase=='T'){
+                                     baseCount[2]=baseCount[2]+1;
+                                }
+                             
+                                if(thisBase=='G'){
+                                     baseCount[3]=baseCount[3]+1;
+                                }    
                              }
-                             if(thisBase=='C'){
-                                 baseCount[1]=baseCount[1]+1;
-                             }
-                             if(thisBase=='T'){
-                                 baseCount[2]=baseCount[2]+1;
+                             else{
+                                 break;
                              }
                              
-                             if(thisBase=='G'){
-                                 baseCount[3]=baseCount[3]+1;
-                             }
                              
                        
                              
@@ -751,22 +756,29 @@
                          int[] baseCount={0,0,0,0}; // order : a,c,t,g
                          for(int k=0;k<leftSeqs.size();k++){
                              
-                             String currentLeftSeq=leftSeqs.get(k);
-                      
-                             char thisBase=currentLeftSeq.charAt(j);
-                             if(thisBase=='A'){
+                            String currentLeftSeq=leftSeqs.get(k);
+                            if(j<currentLeftSeq.length()){
+                              char thisBase=currentLeftSeq.charAt(j);
+                              if(thisBase=='A'){
                                  baseCount[0]=baseCount[0]+1;
-                             }
-                             if(thisBase=='C'){
+                              }
+                              if(thisBase=='C'){
                                  baseCount[1]=baseCount[1]+1;
-                             }
-                             if(thisBase=='T'){
+                              }
+                              if(thisBase=='T'){
                                  baseCount[2]=baseCount[2]+1;
-                             }
-                             
-                             if(thisBase=='G'){
+                              }
+                              if(thisBase=='G'){
                                  baseCount[3]=baseCount[3]+1;
-                             }
+                              }
+                            }
+                            
+                            else{
+                              break;   
+                            }
+                                
+                            }
+                            
                              
                          }
                              ArrayList<Integer> baseCountList=new ArrayList();
