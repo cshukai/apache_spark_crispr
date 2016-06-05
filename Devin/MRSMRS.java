@@ -77,7 +77,7 @@
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
             test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.6,0.5,0.5,true,0.5);
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.75,0.5,0.5,true,0.5);
                                                               // extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio)
             test_4.saveAsTextFile("crispr_test2");
             
@@ -521,9 +521,12 @@
      
         
         /*purpose: record sequence/position during extension from every unit in the building block array
-          mechanisms: extend first toward right, end and then left end due to 5'handle in the mechanism for crRNA processing
+          mechanisms: extend first toward right end and then left end due to 5'handle in the mechanism for crRNA processing
           output format: {buildingBlockSeq, [extended_unit1_start, extended_unit2_end,........,extended_unitN_start, extended_unitN_end]}
-          buldingBlockSeq is seq of arm and length of loop   
+          input format :
+          (1)buldingBlockSeq is seq of arm and length of loop
+          (2) 
+          
         */
         public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio){
             final double supportRatio=support_ratio;
@@ -566,17 +569,13 @@
                      int MaxSpace_left=0;
                      
                      int palinSize=0;
-                     if(is_internal){
-                        
+
                         palinSize=2*armLen+loopsize;
                         avaiablespace=rep_max-palinSize;
                 
                         
-                     }
-                     else{
-                         int tracrStretch=armLen;
-                         avaiablespace=rep_max-tracrStretch;
-                     }
+                     
+                
                      
                     MaxSpace_right=(int)Math.ceil(avaiablespace*right_len_ratio);
                     MaxSpace_left=avaiablespace-MaxSpace_right;
@@ -612,11 +611,7 @@
                           String thisLeftSeq=fasta_seq.get(0).substring(thisLeftStart,thisLeftEnd);
                           leftSeqs.add(thisLeftSeq);
                           
-                          
-                          
-                          
-                          
-           
+   
                           
                           if(is_internal){
                             int thisBlockEnd=thisBlockStart+palinSize-1;
@@ -777,10 +772,10 @@
                               break;   
                             }
                                 
-                            }
+                        }
                             
                              
-                         }
+                         
                              ArrayList<Integer> baseCountList=new ArrayList();
                              for(int t=0; t <baseCount.length;t++){
                                 
@@ -823,8 +818,6 @@
                                          
                                     }
                                     
-                                    
-                             
                                 }
                             }
                          
