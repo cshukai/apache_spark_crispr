@@ -21,7 +21,7 @@
     import java.io.IOException;
     import java.io.InputStreamReader;
     import java.io.FileReader;
-    import org.apache.spark.storage.StorageLevel
+    import org.apache.spark.storage.StorageLevel;
     
     public class MRSMRS implements Serializable{
     	public static void main(String [ ] args) throws Exception{
@@ -145,6 +145,7 @@
                               int nextTwoPosLoc=locs_on_postiveStrand.get(j+2);
                               int nextPosLoc=locs_on_postiveStrand.get(j+1); 
                               int firstDist=nextPosLoc-thisPosLoc;
+                              
                               int secondDist_pos=nextTwoPosLoc-nextPosLoc;
                               if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
                                   if(firstDist<=unitDistMax && firstDist>=unitDistMin){
@@ -177,6 +178,7 @@
             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
         
+            
             
             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
@@ -253,8 +255,10 @@
                     }
                 });
 
-            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer);
+            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(300);
+            
             mashup.persist(StorageLevel.MEMORY_AND_DISK());
+    
 
 //            trailingSeq_matchedArmer.saveAsTextFile("trailin_matchtest");
 //            System.out.println("trailingseq:"+trailingSeq_matchedArmer.count());
@@ -280,7 +284,7 @@
 
                         return(output2); 
                      }
-                });
+                }).repartition(300);
             mashup2.persist(StorageLevel.MEMORY_AND_DISK());
             
          //   System.out.println("mashup2:"+mashup2.count());
@@ -308,6 +312,7 @@
                           secondUnitStarts.add(thisMacthInfo.get(2));
                           thirdUnitStarts.add(thisMacthInfo.get(3));
                              
+            
                         }            
                         
                          ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
