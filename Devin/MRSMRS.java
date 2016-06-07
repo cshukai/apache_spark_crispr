@@ -21,6 +21,7 @@
     import java.io.IOException;
     import java.io.InputStreamReader;
     import java.io.FileReader;
+    import org.apache.spark.storage.StorageLevel
     
     public class MRSMRS implements Serializable{
     	public static void main(String [ ] args) throws Exception{
@@ -70,8 +71,8 @@
             }
 
              //idas
-            List<String>fasta_temp=mrsmrs.readFile(fasta_path);
-            String fasta=fasta_temp.get(0);
+            //List<String>fasta_temp=mrsmrs.readFile(fasta_path);
+            //String fasta=fasta_temp.get(0);
            
             /*internal palindromes */ 
             // JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
