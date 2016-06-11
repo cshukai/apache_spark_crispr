@@ -57,12 +57,16 @@
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+           
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
+           Java PairRDD<String,Integer>repeatUnitMers=mrsmrs.parseDevinOutput(buildingblock);
+           
            palindromeInput.saveAsTextFile(home_dir+"/"+"mrsmrs");
            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
            palindBlock.saveAsTextFile(home_dir+"/palindrome");
             
-           
+    /////////////       
             //mri
             List<String> fasta_temp=sc.textFile(fasta_path).collect();
             String fasta="";
@@ -255,7 +259,7 @@
                     }
                 });
 
-            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(300);
+            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(3000);
             
             mashup.persist(StorageLevel.MEMORY_AND_DISK());
     
@@ -284,7 +288,7 @@
 
                         return(output2); 
                      }
-                }).repartition(300);
+                }).repartition(3000);
             mashup2.persist(StorageLevel.MEMORY_AND_DISK());
             
          //   System.out.println("mashup2:"+mashup2.count());
