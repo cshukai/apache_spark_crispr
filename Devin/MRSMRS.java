@@ -259,7 +259,7 @@
                     }
                 });
 
-            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(3000);
+            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(3000); //this line needs to be modfied  as you can consider overlap of k-mer arrays  to reduce search space
             
             mashup.persist(StorageLevel.MEMORY_AND_DISK());
     
