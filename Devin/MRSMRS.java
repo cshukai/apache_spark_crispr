@@ -178,7 +178,8 @@
                     }
     
                 });
-        
+            
+            // currently you have   arrays of small k mer ,  you can further process to throw away part of them to reduce the search space
             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
             final int armlen=selectedArmSeq2.get(0).length();
         
@@ -199,7 +200,7 @@
                       for(int i=0;i<trailingLen;i++){
                           if(i<trailingLen-armlen){
                             String thisWindowSeqTemp=trailing_seq.substring(i,i+armlen);
-                            String thisWindowSeq="";// same strand
+                            String thisWindowSeq="";// same strand 
                            
                             for(int j=0;j<thisWindowSeqTemp.length();j++){
                                 Character thisChar=thisWindowSeqTemp.charAt(j);
