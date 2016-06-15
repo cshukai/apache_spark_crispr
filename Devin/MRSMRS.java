@@ -89,7 +89,7 @@
             /* external palindromes*/
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile(home_dir+"/crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15);
+            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15,100);
             test6.saveAsTextFile(home_dir+"/crispr_test3");
 
     	}        
@@ -112,7 +112,7 @@
             
           output: { selected trailing sequence_startLoc of this trailing seq , start locations of units in a array  } 
         */
-        public JavaPairRDD <String, ArrayList<Integer>> findMinimalTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq) {
+        public JavaPairRDD <Integer, ArrayList<String>> findMinimalTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq,int bucketWindowSize) {
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
@@ -123,7 +123,7 @@
                 final double tracrAlignRatio2=tracrAlignRatio;
                 
                 JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=arm_mer.groupByKey();
-                JavaPairRDD<String,ArrayList<String>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<String>>(){
+                JavaPairRDD<Integer,ArrayList<String>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<String>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, Iterable<Integer>> keyValue){
                      Iterable<Integer>data =keyValue._2();
@@ -154,10 +154,12 @@
                               if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
                                   if(firstDist<=unitDistMax && firstDist>=unitDistMin){
                                        ArrayList<String> thisPositionSet=new ArrayList<String>();
+                                       thisPositionSet.add(seq);
+                                       int bucketNum=(int)Math.ceil((thisPosLoc+nextPosLoc+nextTwoPosLoc)/(3*bucketWindowSize));
                                        thisPositionSet.add(Integer.toString(thisPosLoc));
                                        thisPositionSet.add(Integer.toString(nextPosLoc));
                                        thisPositionSet.add(Integer.toString(nextTwoPosLoc));
-                                       possibleRepeatUnits.add(new Tuple2<String,ArrayList<String>>(seq,thisPositionSet));
+                                       possibleRepeatUnits.add(new Tuple2<Integer,ArrayList<String>>(bucketNum),thisPositionSet));
                                       
                                   }
                                
@@ -179,196 +181,201 @@
     
                 });
             
-            // currently you have   arrays of small k mer ,  you can further process to throw away part of them to reduce the search space
-            final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
-            final int armlen=selectedArmSeq2.get(0).length();
+            
+               return(selectedArmMer);
+            
+//             // currently you have   arrays of small k mer ,  you can further process to throw away part of them to reduce the search space
+//             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
+//             final int armlen=selectedArmSeq2.get(0).length();
         
             
             
-            // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
-            // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
-            JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<String>>(){
-                    @Override
-                    public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
-                      ArrayList<Integer> tracrRelatedLocs =keyValue._2();
-                      int trailingStart=tracrRelatedLocs.get(2);
-                      String trailing_seq=keyValue._1();
-                      String thisTrailingInfo=trailing_seq+"_"+trailingStart;
-                      ArrayList<Tuple2<String, ArrayList<String>>> result1 = new ArrayList<Tuple2<String, ArrayList<String>>> ();
-                      ArrayList<String> theseMatchedArms= new ArrayList<String>();
+//             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
+//             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
+//             JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<String>>(){
+//                     @Override
+//                     public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, ArrayList<Integer>> keyValue){
+//                       ArrayList<Integer> tracrRelatedLocs =keyValue._2();
+//                       int trailingStart=tracrRelatedLocs.get(2);
+//                       String trailing_seq=keyValue._1();
+//                       String thisTrailingInfo=trailing_seq+"_"+trailingStart;
+//                       ArrayList<Tuple2<String, ArrayList<String>>> result1 = new ArrayList<Tuple2<String, ArrayList<String>>> ();
+//                       ArrayList<String> theseMatchedArms= new ArrayList<String>();
 
-                      for(int i=0;i<trailingLen;i++){
-                          if(i<trailingLen-armlen){
-                            String thisWindowSeqTemp=trailing_seq.substring(i,i+armlen);
-                            String thisWindowSeq="";// same strand 
+//                       for(int i=0;i<trailingLen;i++){
+//                           if(i<trailingLen-armlen){
+//                             String thisWindowSeqTemp=trailing_seq.substring(i,i+armlen);
+//                             String thisWindowSeq="";// same strand 
                            
-                            for(int j=0;j<thisWindowSeqTemp.length();j++){
-                                Character thisChar=thisWindowSeqTemp.charAt(j);
-                                String  thisAlpha=thisChar.toString();
-                                if(thisAlpha.equals("A")){
-                                   thisWindowSeq=thisWindowSeq+"T";                                
-                                }
+//                             for(int j=0;j<thisWindowSeqTemp.length();j++){
+//                                 Character thisChar=thisWindowSeqTemp.charAt(j);
+//                                 String  thisAlpha=thisChar.toString();
+//                                 if(thisAlpha.equals("A")){
+//                                   thisWindowSeq=thisWindowSeq+"T";                                
+//                                 }
                                 
-                                if(thisAlpha.equals("T")){
-                                   thisWindowSeq=thisWindowSeq+"A";                                
-                                }
+//                                 if(thisAlpha.equals("T")){
+//                                   thisWindowSeq=thisWindowSeq+"A";                                
+//                                 }
                                 
-                                if(thisAlpha.equals("C")){
-                                   thisWindowSeq=thisWindowSeq+"G";                                
-                                }
+//                                 if(thisAlpha.equals("C")){
+//                                   thisWindowSeq=thisWindowSeq+"G";                                
+//                                 }
                                 
-                                if(thisAlpha.equals("G")){
-                                   thisWindowSeq=thisWindowSeq+"C";                                
-                                }
+//                                 if(thisAlpha.equals("G")){
+//                                   thisWindowSeq=thisWindowSeq+"C";                                
+//                                 }
                                 
-                            }
+//                             }
                            
                            
-                            String thisWindowSeqRev=""; // different strand 
-                            for(int j=thisWindowSeq.length()-1;j>=0;j--){
-                                Character thisChar=thisWindowSeq.charAt(j);
-                                thisWindowSeqRev=thisWindowSeqRev+thisChar.toString();
+//                             String thisWindowSeqRev=""; // different strand 
+//                             for(int j=thisWindowSeq.length()-1;j>=0;j--){
+//                                 Character thisChar=thisWindowSeq.charAt(j);
+//                                 thisWindowSeqRev=thisWindowSeqRev+thisChar.toString();
                                 
-                            }
+//                             }
                             
                            
                             
                             
-                            if(selectedArmSeq2.contains(thisWindowSeq)){
-                                ArrayList<String> temp= new ArrayList<String>();
-                                temp.add(thisTrailingInfo);
-                               // result1.add(new Tuple2<String, ArrayList<String>>(thisWindowSeq,temp));
+//                             if(selectedArmSeq2.contains(thisWindowSeq)){
+//                                 ArrayList<String> temp= new ArrayList<String>();
+//                                 temp.add(thisTrailingInfo);
+//                               // result1.add(new Tuple2<String, ArrayList<String>>(thisWindowSeq,temp));
                             
-                                result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)),temp));
-                            }
+//                                 result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeq)),temp));
+//                             }
                             
                             
                             
-                            if(selectedArmSeq2.contains(thisWindowSeqRev)){
-                                ArrayList<String> temp= new ArrayList<String>();
-                                temp.add(thisTrailingInfo);
-                                //result1.add(new Tuple2<String, ArrayList<String>>(thisWindowSeqRev,temp));
+//                             if(selectedArmSeq2.contains(thisWindowSeqRev)){
+//                                 ArrayList<String> temp= new ArrayList<String>();
+//                                 temp.add(thisTrailingInfo);
+//                                 //result1.add(new Tuple2<String, ArrayList<String>>(thisWindowSeqRev,temp));
 
-                                result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeqRev)),temp));
+//                                 result1.add(new Tuple2<String, ArrayList<String>>(selectedArmSeq2.get(selectedArmSeq2.indexOf(thisWindowSeqRev)),temp));
 
-                            }
-                          }
-                      }
+//                             }
+//                           }
+//                       }
 
                       
-                     return(result1);
-                    }
-                });
+//                      return(result1);
+//                     }
+//                 });
 
-            JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(3000); //this line needs to be modfied  as you can consider overlap of k-mer arrays  to reduce search space
+
+//             // you can proabably sort the smaller kmer by location to reduce the future search space             
+//             JavaPairRDD <String,Tuple2<ArrayList<String>,ArrayList<String>>> mashup=trailingSeq_matchedArmer.join(selectedArmMer).repartition(3000); //this line needs to be modfied  as you can consider overlap of k-mer arrays  to reduce search space
             
-            mashup.persist(StorageLevel.MEMORY_AND_DISK());
+//             mashup.persist(StorageLevel.MEMORY_AND_DISK());
     
 
-//            trailingSeq_matchedArmer.saveAsTextFile("trailin_matchtest");
-//            System.out.println("trailingseq:"+trailingSeq_matchedArmer.count());
-//            System.out.println("mashup:"+mashup.count());
-            // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
-            JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
-                     @Override
-                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>> keyValue){
-                         ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
-                         ArrayList<Integer>locs=new ArrayList<Integer>();
-                         Tuple2<ArrayList<String>,ArrayList<String>> temp=keyValue._2();
+// //            trailingSeq_matchedArmer.saveAsTextFile("trailin_matchtest");
+// //            System.out.println("trailingseq:"+trailingSeq_matchedArmer.count());
+// //            System.out.println("mashup:"+mashup.count());
+//             // output format {seqOfTraing, [trailingstart, matchorder, arm_array_unit_starts]}
+//             JavaPairRDD <String, ArrayList<Integer>> mashup2= mashup.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>>,String,ArrayList<Integer>>(){
+//                      @Override
+//                      public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Tuple2<ArrayList<String>,ArrayList<String>>> keyValue){
+//                          ArrayList<Tuple2<String, ArrayList<Integer>>> output2 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();  
+//                          ArrayList<Integer>locs=new ArrayList<Integer>();
+//                          Tuple2<ArrayList<String>,ArrayList<String>> temp=keyValue._2();
                          
-                         String[] temp2=temp._1().get(0).split("_");
-                         int thisTrailingStart=Integer.parseInt(temp2[1]);
-                         locs.add(thisTrailingStart);
-                         String tracrSeq=temp2[0];
+//                          String[] temp2=temp._1().get(0).split("_");
+//                          int thisTrailingStart=Integer.parseInt(temp2[1]);
+//                          locs.add(thisTrailingStart);
+//                          String tracrSeq=temp2[0];
                          
-                         for(int i=0;i<temp._2().size();i++){
-                            locs.add(Integer.parseInt(temp._2().get(i)));
-                         }
+//                          for(int i=0;i<temp._2().size();i++){
+//                             locs.add(Integer.parseInt(temp._2().get(i)));
+//                          }
               
-                        output2.add(new Tuple2<String, ArrayList<Integer>>(tracrSeq,locs));
+//                         output2.add(new Tuple2<String, ArrayList<Integer>>(tracrSeq,locs));
 
-                        return(output2); 
-                     }
-                }).repartition(3000);
-            mashup2.persist(StorageLevel.MEMORY_AND_DISK());
+//                         return(output2); 
+//                      }
+//                 }).repartition(3000);
+//             mashup2.persist(StorageLevel.MEMORY_AND_DISK());
             
-         //   System.out.println("mashup2:"+mashup2.count());
-            JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
-            //        System.out.println("mashup3:"+mashup3.count());
+//          //   System.out.println("mashup2:"+mashup2.count());
+//             JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
+//             //        System.out.println("mashup3:"+mashup3.count());
 
-            JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
-                    @Override
-                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
-                        String thisTrailingSeq=keyValue._1();
-                        Iterable<ArrayList<Integer>> matchInfo =keyValue._2();
-                        Iterator <ArrayList<Integer>> itr=matchInfo.iterator();
-                        ArrayList<Tuple2<String, ArrayList<Integer>>>output3 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
+//             JavaPairRDD <String, ArrayList<Integer>>result=mashup3.flatMapToPair(new PairFlatMapFunction<Tuple2<String,Iterable<ArrayList<Integer>>>,String,ArrayList<Integer>>(){
+//                     @Override
+//                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<String,Iterable<ArrayList<Integer>>> keyValue){
+//                         String thisTrailingSeq=keyValue._1();
+//                         Iterable<ArrayList<Integer>> matchInfo =keyValue._2();
+//                         Iterator <ArrayList<Integer>> itr=matchInfo.iterator();
+//                         ArrayList<Tuple2<String, ArrayList<Integer>>>output3 = new ArrayList<Tuple2<String, ArrayList<Integer>>> ();
                         
-                        String tracrStarts="";
-                        ArrayList<Integer> firstUnitStarts =new ArrayList<Integer>();
-                        ArrayList<Integer> secondUnitStarts =new ArrayList<Integer>();
-                        ArrayList<Integer> thirdUnitStarts =new ArrayList<Integer>();
+//                         String tracrStarts="";
+//                         ArrayList<Integer> firstUnitStarts =new ArrayList<Integer>();
+//                         ArrayList<Integer> secondUnitStarts =new ArrayList<Integer>();
+//                         ArrayList<Integer> thirdUnitStarts =new ArrayList<Integer>();
                   
-                        while(itr.hasNext()){
-                          ArrayList<Integer> thisMacthInfo=itr.next();  
+//                         while(itr.hasNext()){
+//                           ArrayList<Integer> thisMacthInfo=itr.next();  
                           
-                          tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0); // collecting  start locations of one trailing seq 
-                          firstUnitStarts.add(thisMacthInfo.get(1));
-                          secondUnitStarts.add(thisMacthInfo.get(2));
-                          thirdUnitStarts.add(thisMacthInfo.get(3));
+//                           tracrStarts=tracrStarts+"_"+thisMacthInfo.get(0); // collecting  start locations of one trailing seq 
+//                           firstUnitStarts.add(thisMacthInfo.get(1));
+//                           secondUnitStarts.add(thisMacthInfo.get(2));
+//                           thirdUnitStarts.add(thisMacthInfo.get(3));
                              
             
-                        }            
+//                         }            
                         
-                         ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
-                         Collections.sort(firstUnitStartsSorted);
-                         ArrayList<Integer>filterdStarts=new ArrayList<Integer>();
-                         // merging arm-mer which  can form a minimal array and reside in the same repeat unit
-                         for(int i=0;i<firstUnitStartsSorted.size()-1;i++){
-                              int thisFirstStart=firstUnitStartsSorted.get(i);
-                              int nextFirstStart=firstUnitStartsSorted.get(i+1);
-                              int interval=nextFirstStart-thisFirstStart;
-                              if(interval>=armlen && interval<r_max-armlen){
-                                  if(!filterdStarts.contains(thisFirstStart)){
+//                          ArrayList<Integer>firstUnitStartsSorted=firstUnitStarts;
+//                          Collections.sort(firstUnitStartsSorted);
+//                          ArrayList<Integer>filterdStarts=new ArrayList<Integer>();
+//                          // merging arm-mer which  can form a minimal array and reside in the same repeat unit
+//                          for(int i=0;i<firstUnitStartsSorted.size()-1;i++){
+//                               int thisFirstStart=firstUnitStartsSorted.get(i);
+//                               int nextFirstStart=firstUnitStartsSorted.get(i+1);
+//                               int interval=nextFirstStart-thisFirstStart;
+//                               if(interval>=armlen && interval<r_max-armlen){
+//                                   if(!filterdStarts.contains(thisFirstStart)){
                                       
-                                      int  secondThisStart=secondUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart));
-                                      int  thirdThisStart=thirdUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart));
+//                                       int  secondThisStart=secondUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart));
+//                                       int  thirdThisStart=thirdUnitStarts.get(firstUnitStarts.indexOf(thisFirstStart));
                                       
-                                      int  thisFirstDist=secondThisStart-thisFirstStart;
-                                      int  thisSecondDist=thirdThisStart-secondThisStart;
+//                                       int  thisFirstDist=secondThisStart-thisFirstStart;
+//                                       int  thisSecondDist=thirdThisStart-secondThisStart;
                                       
-                                      if(thisFirstDist>=r_min && thisSecondDist>=r_min){
-                                          if(thisSecondDist<=r_max && thisFirstDist <=r_max){
-                                             filterdStarts.add(thisFirstStart);
-                                             filterdStarts.add(secondThisStart);
-                                             filterdStarts.add(thirdThisStart);
+//                                       if(thisFirstDist>=r_min && thisSecondDist>=r_min){
+//                                           if(thisSecondDist<=r_max && thisFirstDist <=r_max){
+//                                              filterdStarts.add(thisFirstStart);
+//                                              filterdStarts.add(secondThisStart);
+//                                              filterdStarts.add(thirdThisStart);
                                               
-                                          } 
-                                      }
+//                                           } 
+//                                       }
                     
-                                        int  secondNextStart=secondUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart));
-                                        int  thirdNextStart=thirdUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart));
-                                        int  nextFirstDistance=secondNextStart-nextFirstStart;
-                                        int  nextSecondDistance=thirdNextStart-secondNextStart;                           
-                                        if(nextFirstDistance>=r_min && nextSecondDistance>=r_min){
-                                            if(nextFirstDistance<=r_max && nextSecondDistance<=r_max){
-                                                filterdStarts.add(nextFirstStart);
-                                                filterdStarts.add(secondNextStart);
-                                                filterdStarts.add(thirdNextStart);
-                                            }
-                                        }       
+//                                         int  secondNextStart=secondUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart));
+//                                         int  thirdNextStart=thirdUnitStarts.get(firstUnitStarts.indexOf(nextFirstStart));
+//                                         int  nextFirstDistance=secondNextStart-nextFirstStart;
+//                                         int  nextSecondDistance=thirdNextStart-secondNextStart;                           
+//                                         if(nextFirstDistance>=r_min && nextSecondDistance>=r_min){
+//                                             if(nextFirstDistance<=r_max && nextSecondDistance<=r_max){
+//                                                 filterdStarts.add(nextFirstStart);
+//                                                 filterdStarts.add(secondNextStart);
+//                                                 filterdStarts.add(thirdNextStart);
+//                                             }
+//                                         }       
                                           
-                                  }
-                              }
-                         }
-                      String outKey=thisTrailingSeq+tracrStarts;        
-                      output3.add(new Tuple2<String, ArrayList<Integer>>(outKey,filterdStarts));     
-                      return(output3);   
-                    }
+//                                   }
+//                               }
+//                          }
+//                       String outKey=thisTrailingSeq+tracrStarts;        
+//                       output3.add(new Tuple2<String, ArrayList<Integer>>(outKey,filterdStarts));     
+//                       return(output3);   
+//                     }
                         
-            });     
+//             });     
 
-            return(result);        
+//            return(result);        
         }
         
         
