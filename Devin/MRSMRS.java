@@ -180,14 +180,13 @@
     
                 });
             
-            
+              JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
+               kmersInSameBucket.saveAsTextFile("kmersInSameBucket");
                return(selectedArmMer);
             
-//             // currently you have   arrays of small k mer ,  you can further process to throw away part of them to reduce the search space
-//             final List<String> selectedArmSeq2= selectedArmMer.keys().collect();
-//             final int armlen=selectedArmSeq2.get(0).length();
-        
-            
+
+             // try to find  short k-mers with the same repeat unit
+             
             
 //             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
 //             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
@@ -298,7 +297,6 @@
 //                 }).repartition(3000);
 //             mashup2.persist(StorageLevel.MEMORY_AND_DISK());
             
-//          //   System.out.println("mashup2:"+mashup2.count());
 //             JavaPairRDD <String ,Iterable<ArrayList<Integer>>> mashup3=mashup2.groupByKey();
 //             //        System.out.println("mashup3:"+mashup3.count());
 
