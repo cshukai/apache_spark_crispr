@@ -57,10 +57,9 @@
             
             // search of palindrome building block 
            JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
-           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
-           
+
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
-           Java PairRDD<String,Integer>repeatUnitMers=mrsmrs.parseDevinOutput(buildingblock);
+          // JavaPairRDD<String,Integer>repeatUnitMers=mrsmrs.parseDevinOutput(buildingblock);
            
            palindromeInput.saveAsTextFile(home_dir+"/"+"mrsmrs");
            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
@@ -89,7 +88,7 @@
             /* external palindromes*/
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile(home_dir+"/crispr_test2");
-            JavaPairRDD<String, ArrayList<Integer>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15,100);
+            JavaPairRDD<Integer, ArrayList<String>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15,100);
             test6.saveAsTextFile(home_dir+"/crispr_test3");
 
     	}        
@@ -112,7 +111,7 @@
             
           output: { selected trailing sequence_startLoc of this trailing seq , start locations of units in a array  } 
         */
-        public JavaPairRDD <Integer, ArrayList<String>> findMinimalTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq,int bucketWindowSize) {
+        public JavaPairRDD <Integer, ArrayList<String>> findMinimalTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq,int bucketScanSize) {
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
@@ -121,16 +120,16 @@
                 final int unitDistMax=unitMaxLen+spacerMaxLen;
                 final int trailingLen=lengthOfTrailingSeq;
                 final double tracrAlignRatio2=tracrAlignRatio;
-                
+                final int bucketWindowSize=bucketScanSize;
                 JavaPairRDD<String,Iterable<Integer>> locations_per_repeat=arm_mer.groupByKey();
-                JavaPairRDD<Integer,ArrayList<String>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,String,ArrayList<String>>(){
+                JavaPairRDD<Integer,ArrayList<String>> selectedArmMer= locations_per_repeat.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<Integer>>,Integer,ArrayList<String>>(){
                     @Override
-                    public Iterable<Tuple2<String,ArrayList<String>>> call(Tuple2<String, Iterable<Integer>> keyValue){
+                    public Iterable<Tuple2<Integer,ArrayList<String>>> call(Tuple2<String, Iterable<Integer>> keyValue){
                      Iterable<Integer>data =keyValue._2();
                      Iterator<Integer> itr=data.iterator();
                      String seq=keyValue._1();
                      ArrayList<Integer> locs_on_postiveStrand=new ArrayList<Integer>();
-                     ArrayList<Tuple2<String, ArrayList<String>>> possibleRepeatUnits = new ArrayList<Tuple2<String, ArrayList<String>>> ();
+                     ArrayList<Tuple2<Integer, ArrayList<String>>> possibleRepeatUnits = new ArrayList<Tuple2<Integer, ArrayList<String>>> ();
     
                      while(itr.hasNext()){
                        int thisLoc=itr.next();
@@ -159,7 +158,7 @@
                                        thisPositionSet.add(Integer.toString(thisPosLoc));
                                        thisPositionSet.add(Integer.toString(nextPosLoc));
                                        thisPositionSet.add(Integer.toString(nextTwoPosLoc));
-                                       possibleRepeatUnits.add(new Tuple2<Integer,ArrayList<String>>(bucketNum),thisPositionSet));
+                                       possibleRepeatUnits.add(new Tuple2<Integer,ArrayList<String>>(bucketNum,thisPositionSet));    
                                       
                                   }
                                
