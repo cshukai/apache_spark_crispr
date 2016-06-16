@@ -181,7 +181,7 @@
                 });
             
               JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
-               kmersInSameBucket.saveAsTextFile("kmersInSameBucket");
+               kmersInSameBucket.saveAsTextFile("/idas/sc724/kmersInSameBucket");
                return(selectedArmMer);
             
 
