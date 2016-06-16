@@ -179,15 +179,65 @@
                     }
     
                 });
-            
-              JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
-               kmersInSameBucket.saveAsTextFile("/idas/sc724/kmersInSameBucket");
-               return(selectedArmMer);
-            
+             //discovery of short k-mers within the same repeat unit
+             JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
+             JavaPairRDD<String,ArrayList<Integer>> potentialCrisprArray = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
+                    @Override
+                    public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<Integer, Iterable<ArrayList<String>>> keyValue){
+                     Iterable<ArrayList<String>> kmer_seq_starts =keyValue._2();
+                     Iterator<ArrayList<String>> itr=kmer_seq_starts.iterator();
 
-             // try to find  short k-mers with the same repeat unit
-             
-            
+                     
+                     ArrayList<Integer> kmer_starts= new ArrayList<Integer>();
+                     while(itr.hasNext()){
+                       ArrayList<String> this_kmer_seq_starts=itr.next();
+                       for(int i=1;i<this_kmer_seq_starts.size();i++){
+                           this_kmer_seq_starts.add(Integer.parse(kmer_starts.get(i)));
+                       }
+                     
+                     }
+    
+                     Collections.sort(locs_on_postiveStrand);
+                     int iterationNum=locs_on_postiveStrand.size();
+                     for(int j=0;j<iterationNum;j++){
+                         int thisPosLoc=locs_on_postiveStrand.get(j);
+                         
+                         if(j<iterationNum-1){
+                            if(j<iterationNum-2){
+                              int nextTwoPosLoc=locs_on_postiveStrand.get(j+2);
+                              int nextPosLoc=locs_on_postiveStrand.get(j+1); 
+                              int firstDist=nextPosLoc-thisPosLoc;
+                              
+                              int secondDist_pos=nextTwoPosLoc-nextPosLoc;
+                              if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
+                                  if(firstDist<=unitDistMax && firstDist>=unitDistMin){
+                                       ArrayList<String> thisPositionSet=new ArrayList<String>();
+                                       thisPositionSet.add(seq);
+                                       int bucketNum=(int)Math.ceil((thisPosLoc+nextPosLoc+nextTwoPosLoc)/(3*bucketWindowSize));
+                                       thisPositionSet.add(Integer.toString(thisPosLoc));
+                                       thisPositionSet.add(Integer.toString(nextPosLoc));
+                                       thisPositionSet.add(Integer.toString(nextTwoPosLoc));
+                                       possibleRepeatUnits.add(new Tuple2<Integer,ArrayList<String>>(bucketNum,thisPositionSet));    
+                                      
+                                  }
+                               
+                              }
+                                
+                            }
+                            
+                                
+                            }
+                            
+                      
+                         }
+                   
+                     
+    
+                     return(possibleRepeatUnits);
+    
+                    }
+             });
+             return(potentialCrisprArray);
 //             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
 //             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
 //             JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<String>>(){
