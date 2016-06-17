@@ -191,8 +191,6 @@
                      Iterator<ArrayList<String>> itr=kmer_seq_starts.iterator();
 
                      ArrayList<Integer> kmer_arr_1st_pos= new ArrayList<Integer>();
-                     ArrayList<Integer> kmer_arr_2nd_pos= new ArrayList<Integer>();
-                     ArrayList<Integer> kmer_arr_3rd_pos= new ArrayList<Integer>();
 
                      while(itr.hasNext()){
                        ArrayList<String> this_kmer_seq_starts=itr.next();
@@ -200,13 +198,7 @@
                            if(i==1){
                                kmer_arr_1st_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));
                            }
-                           if(i==2){
-                               kmer_arr_2nd_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));
-                           }
-                           if(i==3){
-                               kmer_arr_3rd_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));;
-                               
-                           }
+
                        }
 
                      }
