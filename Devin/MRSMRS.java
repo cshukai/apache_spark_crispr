@@ -180,59 +180,54 @@
     
                 });
              //discovery of short k-mers within the same repeat unit
+             // if you two k-mer are within the same repeat unit , you can rest assure correspondingly trailing k-mers are  to be in the second/ third repeat units
+             // based on the  distance filter above 
              JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
              JavaPairRDD<String,ArrayList<Integer>> potentialCrisprArray = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<Integer, Iterable<ArrayList<String>>> keyValue){
                      Iterable<ArrayList<String>> kmer_seq_starts =keyValue._2();
+                     int  kmer_len=kmer_seq_starts.get(0).length();
                      Iterator<ArrayList<String>> itr=kmer_seq_starts.iterator();
 
-                     
-                     ArrayList<Integer> kmer_starts= new ArrayList<Integer>();
+                     ArrayList<Integer> kmer_arr_1st_pos= new ArrayList<Integer>();
+                     ArrayList<Integer> kmer_arr_2nd_pos= new ArrayList<Integer>();
+                     ArrayList<Integer> kmer_arr_3rd_pos= new ArrayList<Integer>();
+
                      while(itr.hasNext()){
                        ArrayList<String> this_kmer_seq_starts=itr.next();
                        for(int i=1;i<this_kmer_seq_starts.size();i++){
-                           this_kmer_seq_starts.add(Integer.parse(kmer_starts.get(i)));
-                       }
-                     
-                     }
-    
-                     Collections.sort(locs_on_postiveStrand);
-                     int iterationNum=locs_on_postiveStrand.size();
-                     for(int j=0;j<iterationNum;j++){
-                         int thisPosLoc=locs_on_postiveStrand.get(j);
-                         
-                         if(j<iterationNum-1){
-                            if(j<iterationNum-2){
-                              int nextTwoPosLoc=locs_on_postiveStrand.get(j+2);
-                              int nextPosLoc=locs_on_postiveStrand.get(j+1); 
-                              int firstDist=nextPosLoc-thisPosLoc;
-                              
-                              int secondDist_pos=nextTwoPosLoc-nextPosLoc;
-                              if(secondDist_pos<=unitDistMax && secondDist_pos>=unitDistMin){
-                                  if(firstDist<=unitDistMax && firstDist>=unitDistMin){
-                                       ArrayList<String> thisPositionSet=new ArrayList<String>();
-                                       thisPositionSet.add(seq);
-                                       int bucketNum=(int)Math.ceil((thisPosLoc+nextPosLoc+nextTwoPosLoc)/(3*bucketWindowSize));
-                                       thisPositionSet.add(Integer.toString(thisPosLoc));
-                                       thisPositionSet.add(Integer.toString(nextPosLoc));
-                                       thisPositionSet.add(Integer.toString(nextTwoPosLoc));
-                                       possibleRepeatUnits.add(new Tuple2<Integer,ArrayList<String>>(bucketNum,thisPositionSet));    
-                                      
-                                  }
+                           if(i==1){
+                               kmer_arr_1st_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));
+                           }
+                           if(i==2){
+                               kmer_arr_2nd_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));
+                           }
+                           if(i==3){
+                               kmer_arr_3rd_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));;
                                
-                              }
-                                
-                            }
-                            
-                                
-                            }
-                            
-                      
-                         }
-                   
+                           }
+                       }
+
+                     }
                      
-    
+                     ArrayList<Integer> kmer_arr_1st_pos_nonSorted=kmer_arr_1st_pos;// for tracing index later
+                     Collections.sort(kmer_arr_1st_pos);
+                     ArrayList<Integer> indexes= new ArrayList<Integer>(); // store the index for the valid k-mers pairs with reasonable distance in between
+                     for(int i=0;i<kmer_arr_1st_pos.size()-1;i++){
+                         int this_pos=kmer_arr_1st_pos.get(i);
+                         for(j=i+1;j<kmer_arr_1st_pos.size();j++){
+                             int next_pos=kmer_arr_1st_pos.get(j);
+                             int first_dist=next_pos-this_pos;
+                             while(first_dis<=r_max-kmer){
+                             }
+                             
+                         }
+                         
+                  
+                     }
+
+
                      return(possibleRepeatUnits);
     
                     }
