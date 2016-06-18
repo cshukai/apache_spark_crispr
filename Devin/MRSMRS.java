@@ -183,7 +183,7 @@
              // if you two k-mer are within the same repeat unit , you can rest assure correspondingly trailing k-mers are  to be in the second/ third repeat units
              // based on the  distance filter above 
              JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
-             JavaPairRDD<String,ArrayList<Integer>> potentialCrisprArray = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
+             JavaPairRDD<String,ArrayList<Integer>> kmersInFirstCopyOfCrisprArr = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<Integer, Iterable<ArrayList<String>>> keyValue){
                      Iterable<ArrayList<String>> kmer_seq_starts =keyValue._2();
@@ -191,6 +191,8 @@
                      Iterator<ArrayList<String>> itr=kmer_seq_starts.iterator();
 
                      ArrayList<Integer> kmer_arr_1st_pos= new ArrayList<Integer>();
+                     ArrayList<Integer> kmer_arr_2nd_pos= new ArrayList<Integer>();
+                     ArrayList<Integer> kmer_arr_3rd_pos= new ArrayList<Integer>();
 
                      while(itr.hasNext()){
                        ArrayList<String> this_kmer_seq_starts=itr.next();
@@ -198,7 +200,13 @@
                            if(i==1){
                                kmer_arr_1st_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));
                            }
-
+                           if(i==2){
+                               kmer_arr_2nd_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));
+                           }
+                           if(i==3){
+                               kmer_arr_3rd_pos.add(Integer.parseInt(this_kmer_seq_starts.get(i)));;
+                               
+                           }
                        }
 
                      }
@@ -212,6 +220,12 @@
                              int next_pos=kmer_arr_1st_pos.get(j);
                              int first_dist=next_pos-this_pos;
                              while(first_dis<=r_max-kmer){
+                                 if(!indexes.cotains(i)){
+                                     indexes.add(i);
+                                 }
+                                 if(!indexes.cotains(j)){
+                                     indexes.add(j);
+                                 }
                              }
                              
                          }
