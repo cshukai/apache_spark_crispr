@@ -179,11 +179,16 @@
                     }
     
                 });
-             //discovery of short k-mers within the same repeat unit
-             // if you two k-mer are within the same repeat unit , you can rest assure correspondingly trailing k-mers are  to be in the second/ third repeat units
-             // based on the  distance filter above 
+             /*
+                1.purpose : use k-mer array to assemble crispr array
+                2.rationale :
+                (1)if your two k-mer are within the same repeat unit , you can rest assure correspondingly trailing k-mers are  to be in the second/ third repeat units ,based on the  distance filter above 
+                (2)determination of crispr array of class-II crispr array also depends on alingment against tracrRNA's anti-repeat region in addition to  spacer distance, so at this point, you just need to consider minimum crispr array with sequence variation, no need to consider truncated case in this point
+             */    
+             
              JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
-             JavaPairRDD<String,ArrayList<Integer>> kmersInFirstCopyOfCrisprArr = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
+             //
+             JavaPairRDD<String,ArrayList<Integer>> potentialCrisprArr = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<Integer, Iterable<ArrayList<String>>> keyValue){
                      Iterable<ArrayList<String>> kmer_seq_starts =keyValue._2();
@@ -220,6 +225,7 @@
                              int next_pos=kmer_arr_1st_pos.get(j);
                              int first_dist=next_pos-this_pos;
                              while(first_dis<=r_max-kmer){
+                                 // check if the kmer in second/ third repeat units follow the same kmer-occurence order in the first repat unit
                                  if(!indexes.cotains(i)){
                                      indexes.add(i);
                                  }

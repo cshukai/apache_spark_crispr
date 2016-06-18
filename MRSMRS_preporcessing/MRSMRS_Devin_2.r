@@ -54,8 +54,8 @@ hdfs_filenames=c(hdfs_filenames,this_name)
 
 }
 
-prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
-#prefix='spark-submit  --class "PalindromeFinder" --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
+#prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
+prefix='spark-submit  --class "PalindromeFinder"   --num-executors 5 target/scala-2.10/palindromefinder_2.10-0.1.jar'
 min_repeat_len=15
 min_palin_arm=4
 
