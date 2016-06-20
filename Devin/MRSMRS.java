@@ -222,18 +222,30 @@
                      Collections.sort(kmer_arr_1st_pos);
                      ArrayList<Integer> indexes= new ArrayList<Integer>(); // store the index for the valid k-mers pairs with reasonable distance in between
                      for(int i=0;i<kmer_arr_1st_pos.size()-1;i++){
-                         int this_pos=kmer_arr_1st_pos.get(i);
+                         int this_1st_pos=kmer_arr_1st_pos.get(i);
                          for(j=i+1;j<kmer_arr_1st_pos.size();j++){
-                             int next_pos=kmer_arr_1st_pos.get(j);
-                             int first_dist=next_pos-this_pos;
+                             int next_1st_pos=kmer_arr_1st_pos.get(j);
+                             int first_dist=next_1st_pos-this_1st_pos;
+                             String rep_unit_seq="";
                              while(first_dis<=r_max-kmer){
                                  // check if the kmer in second/ third repeat units follow the same kmer-occurence order in the first repat unit
-                                 if(!indexes.cotains(i)){
-                                     
+                                 int corresponding_first_idx=kmer_arr_1st_pos_nonSorted.indexOf(this_pos);
+                                 int corresponding_next_idx=kmer_arr_2nd_pos
+                                 int this_2nd_pos=kmer_arr_2nd_pos.get(corresponding_first_idx);
+                                 int next_2nd_pos=kmer_arr_2rd_pos.get(corresponding_next_idx)
+                                 int second_dis=next_2nd_pos-this_2nd_pos;
+                                 if(second_dis==first_dis){
+                                     int this_3rd_pos=kmer_arr_3rd_pos.get(corresponding_first_idx);
+                                     int next_3rd_pos=kmer_arr_3rd_pos.get(corresponding_next_idx);
+                                     int third_dis=next_3rd_pos-this_3rd_pos;
+                                     if(third_dis==first_dist){
+                                         // order and distance are the same , so sorting in first unit guratnee sorting in second/third unit
+                                         // start to figure out the consensus seqeunce
+                                         //  if nth units between two k-mer array is adjacent/overlap , then merge , otherwise use "N" to represent sequence variance with repeat unit
+                                         
+                                     }
                                  }
-                                 if(!indexes.cotains(j)){
-                                     
-                                 }
+                                 
                              }
                              
                          }
