@@ -244,7 +244,8 @@
                                          // start to figure out the consensus seqeunce
                                          //  if nth units between two k-me arrays are adjacent/overlap to each other , then merge , otherwise use "N" to represent sequence variance with repeat unit
                                          if(first_dis<=kmer_len){ // adjacent/overlap case , need to update i after merging the two -kmer arrays
-                                             //
+                                             //update the end position
+                                             break;
                                          }
                                          
                                          
