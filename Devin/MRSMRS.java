@@ -190,7 +190,7 @@
              
              JavaPairRDD<Integer,Iterable<ArrayList<String>>> kmersInSameBucket=selectedArmMer.groupByKey();
              
-             JavaPairRDD<String,ArrayList<Integer>> goodRepeatPairs = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
+             JavaPairRDD<String,ArrayList<Integer>> goodRepeatUnitPairs = kmersInSameBucket.flatMapToPair(new PairFlatMapFunction<Tuple2<Integer, Iterable<ArrayList<String>>>,String,ArrayList<Integer>>(){
                     @Override
                     public Iterable<Tuple2<String,ArrayList<Integer>>> call(Tuple2<Integer, Iterable<ArrayList<String>>> keyValue){
                      Iterable<ArrayList<String>> kmer_seq_starts =keyValue._2();
@@ -222,7 +222,7 @@
                      Collections.sort(kmer_arr_1st_pos);
                      ArrayList<Integer> indexes= new ArrayList<Integer>(); // store the index for the valid k-mers pairs with reasonable distance in between
                      
-                     int [] repeat_unit_locs=new int[6]; // for storage of start and end locations of 3 units of a crispr arra
+                     ArrayList<Integer>repeat_unit_locs=new ArrayList<Integer>(); // for storage of start and end locations of 3 units of a crispr arra
                      String consensus_seq="";
                      
                      for(int i=0;i<kmer_arr_1st_pos.size()-1;i++){
@@ -253,9 +253,13 @@
                                              //update the end position
                                              this_1st_end=this_2nd_pos;
                                              next_1st_end=next_2nd_pos+kmer_len-1;
-                                             
-                                             
-                                                                   
+                                             if(repeat_unit_locs.size()==0){
+                                                repeat_unit_locs.add(this_1st_pos);    
+                                             }
+                                             if(!repeat_unit_locs.contains(this_1st_end)){
+                                                repeat_unit_locs.add(this_1st_end);    
+                                             }
+                                       
                                              break;
                                          }
                                          
