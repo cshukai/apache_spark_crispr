@@ -184,7 +184,7 @@
                 2.rationale :
                 (1)if your two k-mer are within the same repeat unit , you can rest assure correspondingly trailing k-mers are  to be in the second/ third repeat units ,based on the  distance filter above 
                 (2)determination of crispr array of class-II crispr array also depends on alingment against tracrRNA's anti-repeat region in addition to  spacer distance, so at this point, you just need to consider minimum crispr array with sequence variation, no need to consider truncated case in this point
-                3.output: potentialCrisprArr <seq(repeat_unit),[unit1_start,unit1_end,unit2_start,unit2_end,unit3_start,unit3_end]
+                3.output:  goodRepeatUnitPairs <seq(repeat_unit),[unit1_start,unit1_end,unit2_start,unit2_end]
                           use 'N' to represent sequence variation
              */    
              
@@ -249,7 +249,8 @@
                                          // order and distance are the same , so sorting in first unit guratnee kmers in second/third unit are sorted by location
                                          // start to figure out the consensus seqeunce
                                          //  if nth units between two k-me arrays are adjacent/overlap to each other , then merge , otherwise use "N" to represent sequence variance with repeat unit
-                                         if(first_dis<=kmer_len){ // adjacent/overlap case , need to update i after merging the two -kmer arrays
+                                         int dist_kmers_in_unit=this_2nd_pos-this_1st_pos+1;
+                                         if(dist_kmers_in_unit<=kmer_len){ // adjacent/overlap case , need to update i after merging the two -kmer array 
                                              //update the end position
                                              this_1st_end=this_2nd_pos;
                                              next_1st_end=next_2nd_pos+kmer_len-1;
@@ -264,7 +265,7 @@
                                          }
                                          
                                          else{// seq variance case, use "N" for representation
-                                             
+                                               
                                          }
                                          
                                      }
