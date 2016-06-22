@@ -250,7 +250,8 @@
                                          // start to figure out the consensus seqeunce
                                          //  if nth units between two k-me arrays are adjacent/overlap to each other , then merge , otherwise use "N" to represent sequence variance with repeat unit
                                          int dist_kmers_in_unit=this_2nd_pos-this_1st_pos+1;
-                                         if(dist_kmers_in_unit<=kmer_len){ // adjacent/overlap case , need to update i after merging the two -kmer array 
+                                         int merge_cutoff=this_1st_end-this_1st_pos+1;
+                                         if(dist_kmers_in_unit<=merge_cutoff){ // adjacent/overlap case , need to update i after merging the two -kmer array 
                                              //update the end position
                                              this_1st_end=this_2nd_pos;
                                              next_1st_end=next_2nd_pos+kmer_len-1;
@@ -260,7 +261,7 @@
                                              if(!repeat_unit_locs.contains(this_1st_end)){
                                                 repeat_unit_locs.add(this_1st_end);    
                                              }
-                                       
+                                            
                                              break;
                                          }
                                          
