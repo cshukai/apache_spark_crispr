@@ -98,12 +98,7 @@
                 return records;
               }
         
-        
-        
-    
 
-        
-     
         
         /*purpose: record sequence/position during extension from every unit in the building block array
           mechanisms: extend first toward right end and then left end due to 5'handle in the mechanism for crRNA processing
@@ -161,12 +156,11 @@
                     MaxSpace_left=avaiablespace-MaxSpace_right;
                     //calcuate the cut-off value for determination of seqeunce variacne
                     final  int supportCopy=(int)Math.ceil(buildingBlockCopies*supportRatio);
-                    final  int variantNum=(int)Math.floor(MaxSpace_right*varianceRatio);
-                  
-                  
-                    
+                    final  int variantNum=(int)Math.floor(MaxSpace_right*varianceRatio); 
+                    // sequence on the left of stem-loop should be more conserverd 
+                    // so flexibility on right can gurantee sufficeint  tolerance on left
 
-                    //geneation of potential extended regions
+                    /*geneation of potential extended regions*/
                      ArrayList<String> leftSeqs=new ArrayList<String>();
                      ArrayList<Integer>variantNumPerUnitCopy=new ArrayList<Integer>();
                      ArrayList<String> rightSeqs=new ArrayList<String>();
@@ -176,18 +170,14 @@
                           variantNumPerUnitCopy.add(0);
                           rightExtendStops.add(0);
                           leftExtendStarts.add(0);
-                          finalStarts[i]=buildingBlockStarlocs.get(i);
-                         
-                           finalEnds[i]=finalStarts[i]+palinSize-1;
-                         
-                          
-                       
-                          
+                          finalStarts[i]=buildingBlockStarlocs.get(i); // original positions before extension
+                          finalEnds[i]=finalStarts[i]+palinSize-1;
+    
                           int thisBlockStart=buildingBlockStarlocs.get(i);
                           int thisLeftEnd=thisBlockStart-1;
                           int thisLeftStart=thisLeftEnd-MaxSpace_left+1;
                           String thisLeftSeq=fasta_seq.get(0).substring(thisLeftStart,thisLeftEnd);
-                          leftSeqs.add(thisLeftSeq);
+                          leftSeqs.add(thisLeftSeq); // longest possible left seq
                           
    
                           
@@ -196,7 +186,7 @@
                             int thisRightStart=thisBlockEnd+1;
                             int thisRightEnd=thisRightStart+MaxSpace_right-1;
                             String thisRightSeq=fasta_seq.get(0).substring(thisRightStart,thisRightEnd);
-                            rightSeqs.add(thisRightSeq);
+                            rightSeqs.add(thisRightSeq); //longest possible right sequence
 
             
                      }
@@ -238,15 +228,14 @@
                        
                              
                          }
+                         
+                         
+                             // determine if there is a nucleotide dominant sufficiently                 
                              ArrayList<Integer> baseCountList=new ArrayList();
                              for(int t=0; t <baseCount.length;t++){
-                                
                                  baseCountList.add(baseCount[t]);
                              } 
                              int maxBaseCount=Collections.max(baseCountList);
-                             
-             
-                             
                              if(maxBaseCount>=supportCopy){
                                 int maxIdx=baseCountList.indexOf(maxBaseCount);
                                 char maxBase='q';
@@ -263,6 +252,7 @@
                                     maxBase='G';
                                 }
                              
+                                // keeping record of variance frequency
                                 for(int m=0;m<rightSeqs.size();m++){
                                   String targetRightSeq=rightSeqs.get(m);
                                   char targetBase=targetRightSeq.charAt(j);
@@ -276,13 +266,9 @@
                                 for(int b=0;b<variantNumPerUnitCopyArr.length;b++){
                                     int varNumThisUnit=variantNumPerUnitCopyArr[b];
                                     if(varNumThisUnit<=variantNum){
-                                          //finalEnds[b]=finalEnds[b]+j+1;
                                           finalEnds[b]=finalEnds[b]+1; 
-                                         
                                           int extension_step=j+1;
-                                          
-                                       
-                                          
+
                                     }
                                     
                                     
