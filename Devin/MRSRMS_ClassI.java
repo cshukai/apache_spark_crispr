@@ -71,18 +71,11 @@
 
            
             /*internal palindromes */ 
-            // JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
-            // test_3.saveAsTextFile("crispr_test");
+            JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
+            test_3.saveAsTextFile("crispr_test");
            //extension of palindrome building block
-            // JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.75,0.5,0.5,true,0.5);
-            //                                                   // extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio)
-            // test_4.saveAsTextFile("crispr_test2");
-            
-            /* external palindromes*/
-            JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
-            test5.saveAsTextFile(home_dir+"/crispr_test2");
-            JavaPairRDD<Integer, ArrayList<String>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15,100);
-            test6.saveAsTextFile(home_dir+"/crispr_test3");
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.75,0.5,0.5,0.5);
+            test_4.saveAsTextFile("crispr_test2");
 
     	}        
         
@@ -120,7 +113,7 @@
           (2) 
           
         */
-        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,boolean internal,double rightLenRatio){
+        public JavaPairRDD<String,ArrayList<Integer>>  extendBuildingBlockArray(JavaPairRDD<String,ArrayList<Integer>> buildingBlockArr,int maxRepLen, int minRepLen, int MaxSpace_rightrLen, int minSpacerLen, List<String>fasta, double support_ratio,double variance_right_ratio,double variance_left_ratio,double rightLenRatio){
             final double supportRatio=support_ratio;
             final double varianceRatio=variance_right_ratio;
             final double right_len_ratio=rightLenRatio;
@@ -129,8 +122,7 @@
             final int rep_min=minRepLen;
             final int spa_min=minSpacerLen;
             final int spa_max=MaxSpace_rightrLen;
-            final boolean is_internal=internal;
-          
+
             JavaPairRDD <String,ArrayList<Integer>> result= buildingBlockArr.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<Integer>>(){
                     
                     @Override
@@ -161,14 +153,13 @@
                      int MaxSpace_left=0;
                      
                      int palinSize=0;
-
-                        palinSize=2*armLen+loopsize;
-                        avaiablespace=rep_max-palinSize;
-
-                     
+                   
+                    // calculate how maximum possible steps for  extension to left and rigth
+                    palinSize=2*armLen+loopsize;
+                    avaiablespace=rep_max-palinSize;
                     MaxSpace_right=(int)Math.ceil(avaiablespace*right_len_ratio);
                     MaxSpace_left=avaiablespace-MaxSpace_right;
-                    
+                    //calcuate the cut-off value for determination of seqeunce variacne
                     final  int supportCopy=(int)Math.ceil(buildingBlockCopies*supportRatio);
                     final  int variantNum=(int)Math.floor(MaxSpace_right*varianceRatio);
                   
@@ -186,13 +177,11 @@
                           rightExtendStops.add(0);
                           leftExtendStarts.add(0);
                           finalStarts[i]=buildingBlockStarlocs.get(i);
-                          if(is_internal){
+                         
                            finalEnds[i]=finalStarts[i]+palinSize-1;
                          
-                          }
-                          else{
-                           finalEnds[i]=finalStarts[i]+armLen-1;
-                          }
+                          
+                       
                           
                           int thisBlockStart=buildingBlockStarlocs.get(i);
                           int thisLeftEnd=thisBlockStart-1;
@@ -202,25 +191,14 @@
                           
    
                           
-                          if(is_internal){
+
                             int thisBlockEnd=thisBlockStart+palinSize-1;
                             int thisRightStart=thisBlockEnd+1;
                             int thisRightEnd=thisRightStart+MaxSpace_right-1;
                             String thisRightSeq=fasta_seq.get(0).substring(thisRightStart,thisRightEnd);
                             rightSeqs.add(thisRightSeq);
-                           
 
-                          }
-                          
-                          else{
-                            int thisBlockEnd=thisBlockStart+armLen-1;
-                            int thisRightStart=thisBlockEnd+1;
-                            int thisRightEnd=thisRightStart+MaxSpace_right-1;
-                            String thisRightSeq=fasta_seq.get(0).substring(thisRightStart,thisRightEnd);
-                            rightSeqs.add(thisRightSeq);
-                        
-
-                          }
+            
                      }
                              
                       
