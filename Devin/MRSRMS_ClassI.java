@@ -30,6 +30,7 @@
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
             String home_dir="/idas/sc724";
+            String out_dir= "/idas/sc724/classI_result"
             /*user input*/
             
             //array structure
@@ -48,18 +49,18 @@
             /*processing*/
             // input directories to gneerate buildinb block
            String species_folder=args[0]; //ex: "Streptococcus_thermophilus_lmd_9.GCA_000014485.1.29.dna.chromosome.Chromosome.fa";
-           String fasta_path=home_dir+"/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
+           String fasta_path=home_dir+"/singleLineGenome_genome/"+args[1];//ex:"Streptococcus_thermophilus_lmd_9.fa.txt";
            // String fasta_path=args[1];             
             
             // search of palindrome building block 
-           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/"+stemLoopArmLen+"/"+species_folder);  
+           JavaRDD<String> kBlock4PalindromeArms=sc.textFile(home_dir+"/kmer/"+stemLoopArmLen+"/"+species_folder);  
 
            JavaPairRDD<String,Integer>palindromeInput=mrsmrs.parseDevinOutput(kBlock4PalindromeArms);
           // JavaPairRDD<String,Integer>repeatUnitMers=mrsmrs.parseDevinOutput(buildingblock);
            
-           palindromeInput.saveAsTextFile(home_dir+"/"+"mrsmrs");
+           palindromeInput.saveAsTextFile(out_dir+"/"+species_folder+"/mrsmrs");
            JavaPairRDD <String, ArrayList<Integer>>  palindBlock=mrsmrs.ImperfectPalindromeAcrossGenomes(palindromeInput,stemLoopArmLen,loopLowBound,loopUpBound);
-           palindBlock.saveAsTextFile(home_dir+"/palindrome");
+           palindBlock.saveAsTextFile(out_dir+"/"+species_folder+"/palindrome");
             
     /////////////       
             //mri
@@ -72,7 +73,7 @@
            
             /*internal palindromes */ 
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
-            test_3.saveAsTextFile("crispr_test");
+            test_3.saveAsTextFile(home_dir+"crispr_test");
            //extension of palindrome building block
             JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.75,0.5,0.5,0.5);
             test_4.saveAsTextFile("crispr_test2");
