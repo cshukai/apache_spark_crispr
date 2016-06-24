@@ -73,11 +73,11 @@
            
             /*internal palindromes */ 
             JavaPairRDD <String,ArrayList<Integer>> test_3=mrsmrs.extractPalinDromeArray(palindBlock,50,20,50,20,4); 
-            test_3.saveAsTextFile(home_dir+"crispr_test");
+            test_3.saveAsTextFile(out_dir+"/"+species_folder+"/crispr_test");
            //extension of palindrome building block
-            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,50, 20, 50, 20,fasta_temp, 0.75,0.5,0.5,0.5);
-            test_4.saveAsTextFile("crispr_test2");
-
+            JavaPairRDD<String,ArrayList<Integer>> test_4=mrsmrs.extendBuildingBlockArray(test_3,repeat_unit_max, repeat_unit_min, spacerMax, spacerMin,fasta_temp, 0.75,0.5,0.5,0.5);
+            test_4.saveAsTextFile(out_dir+"/"+species_folder+"/crispr_test2");
+         
     	}        
         
 
