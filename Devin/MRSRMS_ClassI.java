@@ -30,7 +30,7 @@
         	JavaSparkContext sc=new JavaSparkContext(conf);   
             MRSMRS mrsmrs=new MRSMRS();
             String home_dir="/idas/sc724";
-            String out_dir= "/idas/sc724/classI_result"
+            String out_dir= "/idas/sc724/classI_result";
             /*user input*/
             
             //array structure
