@@ -219,6 +219,7 @@
                             
                              int first_dist=next_1st_pos-this_1st_pos;
                              
+                             // take care of first repeat unit and location of other units can be estimated 
                              while(first_dis<=r_max-kmer && j<kmer_arr_1st_pos.size()){
                                  // check if the kmer in second/ third repeat units follow the same kmer-occurence order in the first repat unit
                                  int corresponding_first_idx=kmer_arr_1st_pos_nonSorted.indexOf(this_1st_pos);
