@@ -211,7 +211,7 @@
                      
                      ArrayList<Integer>repeat_unit_locs=new ArrayList<Integer>(); // for storage of start and end locations of 3 units of a crispr arra
                      String consensus_seq="";
-                     
+                     ArrayList<Tuple2<String, ArrayList<Integer>>> output = new ArrayList<Tuple2<String, ArrayList<Integer>>> (); 
                      for(int i=0;i<kmer_arr_1st_pos.size()-1;i++){
                              int j=i+1;
                              int this_1st_pos=kmer_arr_1st_pos.get(i); 
@@ -264,11 +264,11 @@
                      }
 
 
-                     return(goodRepeatUnitPairs);
+                     return(output);
     
                     }
              });
-             return();
+             return(goodRepeatUnitPairs);
 //             // use arm-mer with CRISPR-like architecture to select trailing seqeunce by matching
 //             // output : {matched_arm_seq, [trailingSeq_trailingLocation,matchedOrder]}
 //             JavaPairRDD<String ,ArrayList<String>> trailingSeq_matchedArmer = trailingCandidate.flatMapToPair(new PairFlatMapFunction<Tuple2<String, ArrayList<Integer>>,String,ArrayList<String>>(){
