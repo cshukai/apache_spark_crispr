@@ -239,25 +239,27 @@
                                          //  if nth units between two k-me arrays are adjacent/overlap to each other , then merge , otherwise use "N" to represent sequence variance with repeat unit
                                          int dist_kmers_in_unit=this_2nd_pos-this_1st_pos+1;
                                          int merge_cutoff=this_1st_end-this_1st_pos+1;
+                                         this_2nd_end=this_2nd_pos+kmer_len-1;
                                          if(dist_kmers_in_unit<=merge_cutoff){ // adjacent/overlap case , need to update i after merging the two -kmer array 
-                                             this_2nd_end=this_2nd_pos+kmer_len-1;
-                                             //update the end position
-                                             this_1st_end=this_2nd_pos;
-                                             next_1st_end=next_2nd_pos+kmer_len-1;
+                                        
                                              if(repeat_unit_locs.size()==0){ // add the start position of very first copy
                                                 repeat_unit_locs.add(this_1st_pos); 
                                              }
                                              if(repeat_unit_locs.size()==1){ // add the end position of second copy
-                                                repeat_unit_locs.add(this_1st_pos); 
+                                                repeat_unit_locs.add(this_2nd_end); 
                                              }
                                              if(repeat_unit_locs.size()>1){ // already extended once, continue to extend by updating with the end position of newly added copy
-                                                repeat_unit_locs.set(repeat_unit_locs.size()-1,this_1st_end);    
+                                                repeat_unit_locs.set(repeat_unit_locs.size()-1,this_2nd_end);    
                                              }
-                                             consensus_seq=fasta.substring(this_1st_pos,this_1st_end);
+                                             consensus_seq=fasta.substring(this_1st_pos,this_2nd_end);
                                              break;
                                          }
                                          
                                          else{// seq variance case, use "N" for representation
+                                               int spaceBetween=this_2nd_pos-this_1st_end+1;
+                                               if(repeat_unit_locs.size()==0){ // add the start position of very first copy
+                                                repeat_unit_locs.add(this_1st_pos); 
+                                               }
                                                
                                          }
                                          
