@@ -75,7 +75,7 @@
             /* external palindromes*/
             JavaPairRDD<String, ArrayList<Integer>> test5=mrsmrs.extractTracrTrailCandidate( palindBlock,90, 15, 75,15,2,fasta,15, externalMaxStemLoopArmLen);
             test5.saveAsTextFile(home_dir+"/crispr_test2");
-            JavaPairRDD<Integer, ArrayList<String>> test6= mrsmrs.findMinimalTrailingArray(test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15,100);
+            JavaPairRDD<Integer, ArrayList<String>> test6= mrsmrs.findMinimalTrailingArray(fasta,test5,palindromeInput,90 ,15 ,75,15,tracrAlignRatio,15,100);
             test6.saveAsTextFile(home_dir+"/crispr_test3");
 
     	}        
@@ -98,7 +98,7 @@
             
           output: { selected trailing sequence_startLoc of this trailing seq , start locations of units in a array  } 
         */
-        public JavaPairRDD <Integer, ArrayList<String>> findMinimalTrailingArray(JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq,int bucketScanSize) {
+        public JavaPairRDD <Integer, ArrayList<String>> findMinimalTrailingArray(String fasta,JavaPairRDD <String, ArrayList<Integer>> trailingCandidate , JavaPairRDD<String, Integer> arm_mer,int spacerMaxLen, int spacerMinLen, int unitMaxLen,int unitMinLen, double tracrAlignRatio, int lengthOfTrailingSeq,int bucketScanSize) {
                 final int r_max=unitMaxLen;
                 final int r_min=unitMinLen;
                 final int s_max=spacerMaxLen;
@@ -210,7 +210,8 @@
                      ArrayList<Integer> indexes= new ArrayList<Integer>(); // store the index for the valid k-mers pairs with reasonable distance in between
                      
                      ArrayList<Integer>repeat_unit_locs=new ArrayList<Integer>(); // for storage of start and end locations of 3 units of a crispr arra
-                     int consensus_end=0; // for retrieving consesnsu sequence later
+                     String consensus_seq="";
+                     ArrayList<Tuple2<String, ArrayList<Integer>>> output = new ArrayList<Tuple2<String, ArrayList<Integer>>> (); 
                      for(int i=0;i<kmer_arr_1st_pos.size()-1;i++){
                              int j=i+1;
                              int this_1st_pos=kmer_arr_1st_pos.get(i); 
@@ -248,13 +249,11 @@
                                              }
                                              if(repeat_unit_locs.size()==1){ // add the end position of second copy
                                                 repeat_unit_locs.add(this_1st_pos); 
-                                                consensus_end=this_1st_end;
                                              }
                                              if(repeat_unit_locs.size()>1){ // already extended once, continue to extend by updating with the end position of newly added copy
                                                 repeat_unit_locs.set(repeat_unit_locs.size()-1,this_1st_end);    
-                                                consensus_end=this_1st_end;
                                              }
-                                            
+                                             consensus_seq=fasta.substring(this_1st_pos,this_1st_end);
                                              break;
                                          }
                                          
@@ -268,8 +267,7 @@
                              }
                      }
                     
-                     String consensus_seq="";
-                     ArrayList<Tuple2<String, ArrayList<Integer>>> output = new ArrayList<Tuple2<String, ArrayList<Integer>>> (); 
+                   
 
 
                      return(output);
