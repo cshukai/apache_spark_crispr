@@ -21,7 +21,9 @@ for(i in 1:length(paths)){
     for(j in 1:length(partFiles)){
         con=file(partFiles[j])
         d=readLines(con)
+        
         if(length(d)>0){
+        d=unique(d)
             for(k in 1:length(d)){
                 item=d[k]
                 d_clean=gsub(gsub(x=gsub(x=item,pattern="\\(",replacement=""),pattern="\\]\\)",replacement=""),pattern="\\[",replacement="")
@@ -38,6 +40,8 @@ for(i in 1:length(paths)){
                         this_row=c(this_species,this_arr_id,this_unit_start,unit_len)
                         #result=rbind(result,this_row)
                         #print(nrow(result))
+                      print(partFiles[j])
+                
                       cat(this_row,file="/home/shchang/scratch/crispr_arr/mrsmrs/classI.summary.txt",append=T,fill=T)
                     }
                 }
