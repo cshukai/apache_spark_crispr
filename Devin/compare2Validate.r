@@ -34,8 +34,9 @@ for(i in 1:length(paths)){
                         this_unit_end=unit_positions[m+1]
                         this_species=species[i]# the order of species and paths are the same
                         unit_len=this_unit_end-this_unit_start+1;
-                        this_row=c(this_species,this_arr_id,this_unit_star,unit_len)
-                        result=rbind(result,this_row)
+                        this_row=c(this_species,this_arr_id,this_unit_start,unit_len)
+                       # result=rbind(result,this_row)
+                       cat(this_row,file="/home/shchang/scratch/crispr_arr/mrsmrs/classI.summary.txt",append=T,fill=T)
                     }
                 }
             }
