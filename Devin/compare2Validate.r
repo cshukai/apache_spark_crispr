@@ -19,7 +19,8 @@ result=NULL
 for(i in 1:length(paths)){
     partFiles=Sys.glob(file.path(paths[i], "crispr_test2","part-*"))
     for(j in 1:length(partFiles)){
-        d=readLines(file(partFiles[j]))
+        con=file(partFiles[j])
+        d=readLines(con)
         if(length(d)>0){
             for(k in 1:length(d)){
                 item=d[k]
@@ -35,12 +36,14 @@ for(i in 1:length(paths)){
                         this_species=species[i]# the order of species and paths are the same
                         unit_len=this_unit_end-this_unit_start+1;
                         this_row=c(this_species,this_arr_id,this_unit_start,unit_len)
-                       # result=rbind(result,this_row)
-                       cat(this_row,file="/home/shchang/scratch/crispr_arr/mrsmrs/classI.summary.txt",append=T,fill=T)
+                        #result=rbind(result,this_row)
+                        #print(nrow(result))
+                      cat(this_row,file="/home/shchang/scratch/crispr_arr/mrsmrs/classI.summary.txt",append=T,fill=T)
                     }
                 }
             }
         }
+        close(con)
     }
     
     
