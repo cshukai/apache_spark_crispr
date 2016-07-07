@@ -18,12 +18,14 @@ save.image("../validate.RData")
 result=NULL
 for(i in 1:length(paths)){
     partFiles=Sys.glob(file.path(paths[i], "crispr_test2","part-*"))
+    if(length(partFiles)>0){
+        array_id=0;
     for(j in 1:length(partFiles)){
         con=file(partFiles[j])
         d=readLines(con)
-        
         if(length(d)>0){
         d=unique(d)
+        array_id=array_id+1;
             for(k in 1:length(d)){
                 item=d[k]
                 d_clean=gsub(gsub(x=gsub(x=item,pattern="\\(",replacement=""),pattern="\\]\\)",replacement=""),pattern="\\[",replacement="")
@@ -32,7 +34,7 @@ for(i in 1:length(paths)){
                 
                 for(m in 1:length(unit_positions)){
                     if(m %% 2==1){
-                        this_arr_id=k
+                        this_arr_id=array_id
                         this_unit_start=unit_positions[m]
                         this_unit_end=unit_positions[m+1]
                         this_species=species[i]# the order of species and paths are the same
@@ -49,8 +51,8 @@ for(i in 1:length(paths)){
         }
         close(con)
     }
-    
-    
+        
+    }
 }
 
 
