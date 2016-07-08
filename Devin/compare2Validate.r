@@ -40,11 +40,11 @@ for(i in 1:length(paths)){
                         this_species=species[i]# the order of species and paths are the same
                         unit_len=this_unit_end-this_unit_start+1;
                         this_row=c(this_species,this_arr_id,this_unit_start,unit_len)
-                        #result=rbind(result,this_row)
+                        result=rbind(result,this_row)
                         #print(nrow(result))
                       print(partFiles[j])
                 
-                      cat(this_row,file="/home/shchang/scratch/crispr_arr/mrsmrs/classI.summary.txt",append=T,fill=T)
+                     # cat(this_row,file="/home/shchang/scratch/crispr_arr/mrsmrs/classI.summary.txt",append=T,fill=T)
                     }
                 }
             }
@@ -60,6 +60,24 @@ colnames(result)=c("species","array_id","unit_start","unit_len")
 save.image("../validate.RData")
 
 
-# comparison
-CRT_summary_file="/home/shchang/scratch/crispr_arr/crt"
+############################comparison##################################
+mrsmrs_summary="classI.summary.txt"
+CRT_summary_file="/home/shchang/scratch/crispr_arr/crt*.csv"
 PILER_summary_file="/home/shchang/scratch/crispr_arr/pilercr"
+
+mrsmrs=read.table(mrsmrs_summary,sep="\t",fill=T)
+mrsmrs_species=names(table(mrsmrs[,1]))
+
+crt=read.csv("crt_summary.csv",header=T)
+crt_species=names(table(crt[,1]))
+
+m_c_array_num=NULL
+m_c_common=intersect(mrsmrs_species,crt_species)
+for(i in 1:length(m_c_common)){
+    this_species=m_c_common[i]
+    these_m_array_num=m
+}
+
+
+length(mrsmrs_species)
+length(crt_species)
