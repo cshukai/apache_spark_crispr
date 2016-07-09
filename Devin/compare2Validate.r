@@ -61,23 +61,40 @@ save.image("../validate.RData")
 
 
 ############################comparison##################################
-mrsmrs_summary="classI.summary.txt"
-CRT_summary_file="/home/shchang/scratch/crispr_arr/crt*.csv"
-PILER_summary_file="/home/shchang/scratch/crispr_arr/pilercr"
-
+#input
+load("/home/shchang/scratch/crispr_arr/validate.RData")
 mrsmrs=read.table(mrsmrs_summary,sep="\t",fill=T)
-mrsmrs_species=names(table(mrsmrs[,1]))
-
 crt=read.csv("crt_summary.csv",header=T)
+piler=read.csv(PILER_summary_file,header=T)
+mrsmrs2=mrsmrs[which(mrsmrs[,1] %in% species),]
+
+# species analysis
+mrsmrs_species=names(table(as.character(mrsmrs2[,1])))
 crt_species=names(table(crt[,1]))
+piler_species=names(table(piler[,1]))
+
+
+length(species)
+length(unique(mrsmrs_species))
+length(unique(crt_species))
+length(unique(piler_species))
+
+
+m_c_common=intersect(mrsmrs_species,crt_species)
+m_p_common=intersect(mrsmrs_species,piler_species)
+c_p_common=intersect(crt_species,piler_species)
+
+#venn diagram
+library(gplots)
+venn( list(Spark=mrsmrs_species,CRT=crt_species,PilerCR=piler_species) )
+
+
 
 m_c_array_num=NULL
-m_c_common=intersect(mrsmrs_species,crt_species)
+
+
 for(i in 1:length(m_c_common)){
     this_species=m_c_common[i]
     these_m_array_num=m
 }
 
-
-length(mrsmrs_species)
-length(crt_species)
