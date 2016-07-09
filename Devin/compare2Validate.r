@@ -97,8 +97,36 @@ save.image("validation.RData")
 library(ShortRead)
 library(Biostrings)
 reserverdList=NULL
-
-
+for(i in 1:length(mrsmrs_species)){
+    this_file=fasta[which(fasta ==mrsmrs_species[i])]
+    if(length(this_file)==1){
+        d=readFasta(this_file)
+        x=toString(unlist(sread(d)))
+        this_d=mrsmrs[which(mrsmrs[,1] == mrsmrs_species[i]),]
+        all_array_id=unique(this_d[,2])
+        for(j in 1:length(all_array_id)){
+            this_array_d=this_d[which(this_d[,2] %in% all_array_id[j] ),]
+            all_seq=NULL
+            for(k in 1:nrow(this_array_d)){
+                this_seq_start=this_array_d[k,3]
+                this_seq_end=this_array_d[k,3]+this_array_d[k,4]-1
+                this_seq=substr(x,this_seq_start,this_seq_end)
+                all_seq=c(all_seq,this_seq)
+            }
+            
+            if(sum(diff(nchar(all_seq)))==0){
+                 for(k in 1:nchar(all_seq[1])){
+                     estimator=nucleotideFrequencyAt(DNAStringSet(all_seq),at=1,as.prob=T)
+                 }
+            }
+       
+        }
+    
+    }
+    else{
+        print("warn")
+    }
+}
 #venn diagram
 library(gplots)
 venn( list(Spark=mrsmrs_species,CRT=crt_species,PilerCR=piler_species) )
