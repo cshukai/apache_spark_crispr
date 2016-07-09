@@ -97,25 +97,7 @@ save.image("validation.RData")
 library(ShortRead)
 library(Biostrings)
 reserverdList=NULL
-for(i in 1:length(mrsmrs_species)){
-    this_file=fasta[which(fasta ==mrsmrs_species[i])]
-    if(length(this_file)==1){
-        d=readFasta(this_file)
-        x=toString(unlist(sread(d)))
-        this_d=mrsmrs[which(mrsmrs[,1] == mrsmrs_species[i]),]
-        fitCount=0
-        for(j in 1:nrow(this_d)-1){
-            this_end=this_d[j,3]+d[j,4]-1
-            thisSeq=substr(x,this_d[j,3],this_end)
-            nextEnd=this_d[j+1,3]+this_d[j+1,4]-1
-            nextSeq=substr(x,this_d[j+1,3],nextEnd)
-            
-        }
-    }
-    else{
-        print("warn")
-    }
-}
+
 
 #venn diagram
 library(gplots)
