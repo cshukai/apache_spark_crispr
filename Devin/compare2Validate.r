@@ -84,6 +84,39 @@ m_c_common=intersect(mrsmrs_species,crt_species)
 m_p_common=intersect(mrsmrs_species,piler_species)
 c_p_common=intersect(crt_species,piler_species)
 
+
+mrsmrs_specific=setdiff(setdiff(mrsmrs_species,crt_species),piler_species)
+# filtering out over-extended 
+mrsmrs3=mrsmrs[which(mrsmrs[,1] %in% mrsmrs_specific),]
+write.csv(mrsmrs3,file="../mrsmrs.specifi.csv",row.names=F)
+#lewis3
+mrsmrs3=read.csv("mrsmrs.specifi.csv",header=T)
+fasta_home="/home/shchang/data/bac_29_fasta/ftp.ensemblgenomes.org/pub/release-29/bacteria/fasta"
+fasta=Sys.glob(file.path(fasta_home, "*","*","dna","*dna.chromosome.Chromosome.fa"))
+save.image("validation.RData")
+library(ShortRead)
+library(Biostrings)
+reserverdList=NULL
+for(i in 1:length(mrsmrs_species)){
+    this_file=fasta[which(fasta ==mrsmrs_species[i])]
+    if(length(this_file)==1){
+        d=readFasta(this_file)
+        x=toString(unlist(sread(d)))
+        this_d=mrsmrs[which(mrsmrs[,1] == mrsmrs_species[i]),]
+        fitCount=0
+        for(j in 1:nrow(this_d)-1){
+            this_end=this_d[j,3]+d[j,4]-1
+            thisSeq=substr(x,this_d[j,3],this_end)
+            nextEnd=this_d[j+1,3]+this_d[j+1,4]-1
+            nextSeq=substr(x,this_d[j+1,3],nextEnd)
+            
+        }
+    }
+    else{
+        print("warn")
+    }
+}
+
 #venn diagram
 library(gplots)
 venn( list(Spark=mrsmrs_species,CRT=crt_species,PilerCR=piler_species) )
