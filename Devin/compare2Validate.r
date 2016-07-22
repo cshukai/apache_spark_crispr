@@ -68,23 +68,19 @@ crt=read.csv("crt_summary.csv",header=T)
 piler=read.csv(PILER_summary_file,header=T)
 mrsmrs2=mrsmrs[which(mrsmrs[,1] %in% species),]
 
+
+#palindrome analysis
+all_have_species=intersect(intersect(mrsmrs_species,crt_species),piler_species)
+
 # species analysis
 mrsmrs_species=names(table(as.character(mrsmrs2[,1])))
 crt_species=names(table(crt[,1]))
 piler_species=names(table(piler[,1]))
 
-
-length(species)
-length(unique(mrsmrs_species))
-length(unique(crt_species))
-length(unique(piler_species))
-
-
-m_c_common=intersect(mrsmrs_species,crt_species)
-m_p_common=intersect(mrsmrs_species,piler_species)
-c_p_common=intersect(crt_species,piler_species)
-
-
+length(m_c_common)
+length(m_p_common)
+length(c_p_common)
+#mrsmrs_specific=setdiff(setdiff(mrsmrs_species,crt_refined_species),piler_refined_species)
 mrsmrs_specific=setdiff(setdiff(mrsmrs_species,crt_species),piler_species)
 # filtering out over-extended 
 mrsmrs3=mrsmrs[which(mrsmrs[,1] %in% mrsmrs_specific),]
@@ -97,7 +93,7 @@ save.image("validation.RData")
 library(ShortRead)
 library(Biostrings)
 reserverdList=NULL
-for(i in 2726:length(mrsmrs_species)){
+for(i in 3045:length(mrsmrs_species)){
     this_file=fasta[grep(pattern=mrsmrs_species[i],fasta,ignore.case=T)]
     print(i)
     print("+++++++")
@@ -139,26 +135,99 @@ for(i in 2726:length(mrsmrs_species)){
     }
 }
 
+#original_species=names(table(as.character(reserverdList[,1])))
+#crt_refined_species=intersect(original_species,crt_species)
+#piler_refined_species=intersect(original_species,piler_species)
+#crt_refined=crt[which(crt[,1] %in% original_species),]
+piler_refined=piler[which(piler[,1] %in% original_species),]
+mrsmrs_species=names(table(as.character(reserverdList[,1])))
 refineList=NULL
-for(i in 1:nrow(reserverdList)){
-            print(i)
+for(i in 1:length(mrsmrs_species)){
+           print(i)
+           print("---")
             this_d=reserverdList[which(reserverdList[,1] %in% mrsmrs_species[i]),]
             all_array_id=unique(this_d[,2])
             for(j in 1:length(all_array_id)){
             this_array_d=this_d[which(this_d[,2] %in% all_array_id[j] ),]
             this_start=as.numeric(this_array_d[1,3])
             this_end=this_array_d[nrow(this_array_d),3]+this_array_d[nrow(this_array_d),4]-1
+            
             this_arr_size=this_end-this_start+1
-            if(this_arr_size>=75 && length(this_arr_size)>0){
-                refineList=rbind(refineList,this_array_d)
-            }
+            print(this_arr_size)
+            if(this_arr_size>=75 ){
+                these_end=this_array_d[,3]+this_array_d[,4]-1
+                these_spacer_dis=diff(sort(c(this_array_d[,3],these_end)))
+                if(max(these_spacer_dis)>90 || min(these_spacer_dis)<15){
+                }
+                else{
+                    refineList=rbind(refineList,this_array_d)
+                }
 
             }
         }
+      }  
+        
+        
+        
+###################################species level analaysis########################
+mrsmrs_species=names(table(as.character(refineList[,1])))
 
-#arch analysis
-crt_rep_seq=as.character(crt[,4])
-piler_rep_seq=as.numeric(piler[,4])
+
+length(species)
+length(unique(mrsmrs_species))
+length(unique(crt_species))
+length(unique(piler_species))
+
+
+m_c_common=intersect(mrsmrs_species,crt_species)
+
+m_c_c_more=setdiff(crt_species,mrsmrs_species)
+crt_noPalin_species=unique(as.character(crt[which(crt[,6]==0),1]))
+crt_noPalin_species_specific=setdiff(crt_noPalin_species,mrsmrs_species)
+crt_palin_species=unique(as.character(crt[which(crt[,6]>0),1]))
+crt_palin_specific_species=unique(setdiff(crt_palin_species,mrsmrs_species))
+
+m_p_common=intersect(mrsmrs_species,piler_species)
+m_p_p_more=setdiff(piler_species,mrsmrs_species)
+library("Biostrings")
+for(i in 1:length(m_p_p_more)){
+   thisStrain=m_p_p_more[i]
+   d=readLines(file(thisStrain))
+   if(length(grep(pattern="0 putative",x=d))==0){
+      summary_header_idx=grep(pattern="SUMMARY BY POSITION",x=d)
+      first_crispr_idx=summary_header_idx+8;
+      numOfArray=length(d)-first_crispr_idx+1;   
+      for(j first_crispr_idx:first_crispr_idx+numOfArray-1){
+          
+      }   
+   }
+}
+########################################array level analysis#####################################
+m_c_m_more=NULL
+
+for(i 1:length(m_c_common)){
+    this_m=refineList[which(refineList[,1]==m_c_common[i]),]
+    this_c=crt[which(crt[,1]==m_c_common[i]),]
+    this_m_repeatcopy=nrow(this_m)
+    this_c_repeatcopy=nrow(this_c)
+    shared_copy=intersect(this_m[,3],this_c[,3])
+    print(shared_copy/this_m_repeatcopy)
+    print(shared_copy/this_c_repeatcopy)
+    print(i)
+    
+}
+
+c_p_common=intersect(crt_species,piler_species)
+
+
+
+
+
+
+
+#arch analysis (todo)
+crt_rep_seq=as.character(crt_refined[,4])
+piler_rep_seq=as.numeric(piler_refined[,4])
 summary(nchar(crt_rep_seq))
 summary(piler_rep_seq)
 

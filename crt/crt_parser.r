@@ -1,10 +1,10 @@
 library("Biostrings")
 #assuming current directory is the folder containing all the crt output file
-out_files=Sys.glob(file.path("*"))
+out_files=Sys.glob(file.path("*.fa"))
 
 
 #parse crt output into tabular format
-result=NULL
+crt_result=NULL
 for(i in 1:length(out_files)){
    thisStrain=out_files[i]
    d=readLines(file(thisStrain))
@@ -35,7 +35,7 @@ for(i in 1:length(out_files)){
              
                 thisPalinNum=length(findComplementedPalindromes(DNAString(thisRepeatSeq),min.armlength=4,max.looplength=8))
                 thisRow=c(thisStrain,thisCRISPRarrID,thisRepeatStartLoc,thisRepeatSeq,thisSpacerSeq,thisPalinNum)
-                result=rbind(result,thisRow)
+                crt_result=rbind(crt_result,thisRow)
         
          }
       }
@@ -50,10 +50,9 @@ for(i in 1:length(out_files)){
 
 
 }
-colnames(result)=c("strain","crispr_num","repeat_start","rep_unit","spacer","palin_num")
-write.csv(result,"../crt_summary.csv",row.names=F)
+colnames(crt_result)=c("strain","crispr_num","repeat_start","rep_unit","spacer","palin_num")
+write.csv(crt_result,"../crt_summary.csv",row.names=F)
 save.image("../crt_parser.RData")
-
 
 
 # update your R workspace location

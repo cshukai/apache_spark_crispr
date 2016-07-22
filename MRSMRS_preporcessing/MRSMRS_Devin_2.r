@@ -1,11 +1,14 @@
 
 bac_collectoin_home="/home/shchang/data/bac_29_fasta/ftp.ensemblgenomes.org/pub/release-29/bacteria/fasta"
-
+fly_collection_home="/home/shchang/data/fly/ftp.ensembl.org/pub/release-78/fasta/drosophila_melanogaster/dna"
 #unzip raw data
 strain_path=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna"))
 gz_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.gz"))
 genome_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.dna.chromosome.Chromosome.fa.gz"))
 top_paths=Sys.glob(file.path(bac_collectoin_home, "*", "*","dna","*.toplevel.fa.gz"))
+
+fly_fasta=Sys.glob(file.path(fly_collection_home, "*.fa"))
+
 
 for(i in 1:length(genome_paths)){
 cmd=paste("gunzip",genome_paths[i],sep=" ")
@@ -30,6 +33,14 @@ for(i in 1:length(unzipped_genome_paths)){
     system(cmd)
 }
 
+setwd("/home/shchang/scratch/Palindrome_Finder_old/Palindrome/cleanUpData")
+for(i in 1:length(fly_fasta)){
+    cmd=paste("./cleanUpFirst",fly_fasta[i],sep="  ")
+    system(cmd)
+}
+
+
+
 
 setwd("/scratch/shchang/Palindrome2/cleanUpData")
 for(i in 1:length(unzipped_top_refined_paths)){
@@ -46,6 +57,8 @@ for(i in 1:length(cleanedDatasets)){
    cat(cmd,file="upload.sh",append=T,fill=T)
 }
 
+
+
 #generate run script
 hdfs_filenames=NULL
 for(i in 1:length(cleanedDatasets)){
@@ -55,9 +68,24 @@ hdfs_filenames=c(hdfs_filenames,this_name)
 }
 
 #prefix='spark-submit  --class "PalindromeFinder" --master yarn-client --driver-memory 6G  --executor-memory 6G  --num-executors 3 target/scala-2.10/palindromefinder_2.10-0.1.jar'
-prefix='spark-submit  --class "PalindromeFinder"   --num-executors 5 target/scala-2.10/palindromefinder_2.10-0.1.jar'
+prefix='spark-submit  --class "PalindromeFinder" --num-executors 8   target/scala-2.10/palindromefinder_2.10-0.1.jar'
 min_repeat_len=15
-min_palin_arm=4
+min_palin_arm=2
+
+
+    kmer_len=min_palin_arm
+    argu=NULL
+    #argu_2=NULL
+    for(i in 1:length(fly_fasta)){
+        #tmp=paste("/",hdfs_filenames[i],sep="")  #
+        tmp=fly_fasta[i]
+        this_argu=paste(tmp,kmer_len,sep="  ")
+       # second_argu=paste(tmp,min_repeat_len,sep="  ")
+        
+        argu=c(argu,this_argu)
+        #argu_2=c(argu_2,second_argu)
+    }
+
 
 
     kmer_len=min_palin_arm
@@ -67,16 +95,16 @@ min_palin_arm=4
         #tmp=paste("/",hdfs_filenames[i],sep="")  #
         tmp=hdfs_filenames[i]
         this_argu=paste(tmp,kmer_len,sep="  ")
-        second_argu=paste(tmp,min_repeat_len,sep="  ")
+       # second_argu=paste(tmp,min_repeat_len,sep="  ")
         argu=c(argu,this_argu)
-        argu_2=c(argu_2,second_argu)
+        #argu_2=c(argu_2,second_argu)
     }
 
     for(i in 1:length(argu)){
         cmd=paste(prefix,argu[i],sep=" ")
-        cmd_2=paste(prefix,argu_2[i],sep=" ")
+        #cmd_2=paste(prefix,argu_2[i],sep=" ")
         cat(cmd,file="run.sh",append=T,fill=T)
-        cat(cmd_2,file="run.sh",append=T,fill=T)
+        #cat(cmd_2,file="run.sh",append=T,fill=T)
 
     }
 
